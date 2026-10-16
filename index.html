@@ -4024,9 +4024,10 @@ function loadDrawingFromJSON(file) {
 // =====================================================================
 // ===== 作品展示 =====
 // works フォルダの書道作品（image001〜image036）を、入室した位置を中心とする
-// 半径2.5mの円周上に360°展示する。右コントローラーで作品を選び（①）、
+// 半径2.5mの円周上に360°展示する（番号が抜けていれば、その枠だけ空けて残りを表示）。右コントローラーで作品を選び（①）、
 // 目の前に置いて位置・角度・大きさを調整し（②）、それをお手本にして既存の書道描画を行う（③）。
-// 目の前の作品は「紙の白を消して墨だけをうすく」表示し、なぞって書けるようにする。
+// 目の前の作品は「半紙はうっすら白・墨は灰色」で表示し、なぞって書いた自分の線（黒）と見分けられるようにする。
+// 「おわる」では、描いた絵をギャラリーに保存（満杯なら古い順に上書き）してから全部消して、作品選択に戻る。
 //
 // 状態：
 //   EX_OFF    … 作品展示なし（従来どおり）
@@ -4054,17 +4055,19 @@ const EXHIBIT_EXTS = ["png", "jpg", "jpeg"];      // 小文字のみ（GitHub Pa
 const EXHIBIT_FETCH_TIMEOUT_MS = 10000;
 const EXHIBIT_FETCH_RETRY_DELAYS_MS = [700];       // 通信エラー時の再試行（404 は再試行しない）
 const EXHIBIT_MAX_CONSEC_ERRORS = 2;               // 通信エラーの番号がこれだけ続いたら読み込みを打ち切る（オフライン時に長く待たせない）
-const EXHIBIT_TEX_MAX = 768;     // 展示用テクスチャの長辺(px)。2.5m先・高さ約0.9mの表示には十分
+const EXHIBIT_FETCH_PARALLEL = 4;                  // 番号の確認を何本並行して行うか（抜け番号があっても全36番を確認するため）
+const EXHIBIT_TEX_MAX = 768;     // 展示用テクスチャの長辺(px)。2.5m先の表示には十分
 const EXHIBIT_HIRES_MAX = 2048;  // ②③で目の前に置く作品の長辺(px)
 
 // ----- 展示の配置 -----
 const EXHIBIT_RADIUS = 2.5;
 const EXHIBIT_PER_TIER = 12;
 const EXHIBIT_MAX_TIERS = 3;
-const EXHIBIT_TIER_Y = [1.1, 2.1, 3.1];  // 各段の中心の高さ（床から, m）。最上段を見上げる角度は約33°
-const EXHIBIT_FIT_W = 0.8;               // 展示作品は縦横比を保ってこの枠（m）に収める
-const EXHIBIT_FIT_H = 0.9;
-const EXHIBIT_SEL_SCALE = 1.06;          // 選択中の作品を少し大きく見せる
+// 各段の中心の高さ（床から, m）。[0]が最上段。作品が少ないときは上の段（目の高さ）から使う
+const EXHIBIT_TIER_Y = [1.1, 0.7, 0.3];
+const EXHIBIT_FIT_W = 0.5;               // 展示作品は縦横比を保ってこの枠（m）に収める（高さは半紙の実寸程度）
+const EXHIBIT_FIT_H = 0.35;
+const EXHIBIT_SEL_SCALE = 1.08;          // 選択中の作品を少し大きく見せる
 
 // ----- ① 作品選択 -----
 const EXHIBIT_STICK_ON = 0.6;            // スティックをこれ以上倒したら1つ動かす
@@ -4078,12 +4081,14 @@ const EXHIBIT_ADJ_DIST = 0.7;            // 目の前に置く距離（m）
 const EXHIBIT_ADJ_DROP = 0.15;           // 目の高さからこれだけ下に置く（m）
 const EXHIBIT_SIZE_MIN = 0.334;          // 最小：半紙（24.3×33.4cm）の長辺（m）
 const EXHIBIT_SIZE_MAX = EXHIBIT_SIZE_MIN * 3;
+const EXHIBIT_SIZE_INIT = EXHIBIT_SIZE_MIN * 2;    // 置いた直後：半紙の2倍
 const EXHIBIT_TILT_MAX = Math.PI / 2;    // 0＝垂直に立つ ／ π/2＝水平（上端が奥へ倒れ、机に置いた紙の向き）
 const EXHIBIT_TILT_RATE = EXHIBIT_TILT_MAX / 1.5;  // 全倒し1.5秒で 垂直→水平
 const EXHIBIT_SIZE_RATE = Math.log(3) / 1.5;       // 全倒し1.5秒で 最小→最大
 const EXHIBIT_STICK_DEADZONE = 0.2;
-// 目の前の作品（②③）：紙の白を透明にし、墨の部分だけをこの濃さで表示する（なぞり書き用）
-const EXHIBIT_TRACE_OPACITY = 0.35;
+// 目の前の作品（②③）：半紙はうっすら白、墨は灰色（なぞって書く自分の黒い線と見分けられるように）
+const EXHIBIT_TRACE_PAPER_ALPHA = 0.25;          // 半紙の白の濃さ
+const EXHIBIT_TRACE_INK_ALPHA = 0.6;             // 手本の墨の濃さ（黒の60%＝灰色に見える）
 const EXHIBIT_OUTLINE_W = 0.004;                 // 紙のふちを示す細い線の太さ（m）
 const EXHIBIT_OUTLINE_OPACITY_ADJUST = 0.75;     // ②：位置・大きさが分かるようにはっきり
 const EXHIBIT_OUTLINE_OPACITY_DRAW = 0.35;       // ③：書く邪魔にならないよう控えめに
@@ -4092,9 +4097,8 @@ const EXHIBIT_GRAB_SMOOTH_TAU = 0.035;   // 移動の手ぶれ吸収（秒）。
 // ----- ②「もどる」・③「もどる」「おわる」ボタン -----
 const EXHIBIT_BTN_W = 0.20, EXHIBIT_BTN_H = 0.10, EXHIBIT_BTN_GAP = 0.05; // m
 const EXHIBIT_BTN_DWELL_MS = 200;        // トリガーで決定できるのは、この時間ボタンを指し続けてから
-const EXHIBIT_BTN_DIST = 0.5;            // 頭からの水平距離（m）
-const EXHIBIT_BTN_BELOW_EYE = 0.55;      // 目の高さからこれだけ下（腰の高さ）
-const EXHIBIT_BTN_CLEARANCE = 0.12;      // 作品（の外形）からボタンの端までこれ以上離す（m）
+const EXHIBIT_BTN_HINT_GAP = 0.03;       // 案内パネル（トリガー：つかんで うごかす…）の左端とボタンのすき間（m）
+const EXHIBIT_HINT_W = 0.34;             // ②の案内パネルの幅（m）
 
 const EXHIBIT_FONT = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif";
 
@@ -4175,7 +4179,6 @@ const exHits = [];
 const exTmpV1 = new THREE.Vector3();
 const exTmpM = new THREE.Matrix4();
 const exBox = new THREE.Box3();
-const exBox2 = new THREE.Box3();
 
 // ===== 開始画面の状態表示 =====
 function exUpdateStartStatus(){
@@ -4194,6 +4197,27 @@ function exUpdateStartStatus(){
         }
     }
     el.textContent = t;
+    exUpdateARButtonLock();
+}
+
+// 「作品展示：する」で読み込み中の間は START AR を押せなくする（読み込みが終われば元に戻す）。
+// ARButton は disabled 属性を使っていないので、ここで付け外ししても既存の動きと競合しない。
+function exUpdateARButtonLock(){
+    const btn = document.getElementById("ARButton");
+    if(!btn) return;
+    const lock = exhibitEnabled && exLoadStatus === "loading" && !renderer.xr.isPresenting;
+    if(lock){
+        if(!btn.dataset.exLocked){
+            btn.dataset.exLocked = "1";
+            btn.dataset.exText = btn.textContent;
+        }
+        btn.disabled = true;
+        btn.textContent = `さくひんを よみこみ中…（${exLoadedCount}まい）`;
+    } else if(btn.dataset.exLocked){
+        delete btn.dataset.exLocked;
+        btn.disabled = false;
+        btn.textContent = btn.dataset.exText || "START AR";
+    }
 }
 
 // ===== 作品画像の読み込み =====
@@ -4294,34 +4318,41 @@ function exAnalyzeInk(canvas){
         : { inkLo: base + range * 0.3, inkHi: base + range * 0.8, inkInvert: false };
 }
 
-// 「紙を透明にして墨だけをうすく表示する」マテリアル（②③の目の前の作品用）。
-// 画素の明るさから不透明度を決める処理をGPUで行うので、画像を作り直す必要がない。
+// 目の前の作品（②③）用のマテリアル。半紙はうっすら白（EXHIBIT_TRACE_PAPER_ALPHA）、
+// 墨は元の色のまま灰色に見える濃さ（EXHIBIT_TRACE_INK_ALPHA）で表示する。
+// 画素ごとに「墨らしさ」を明るさから求めて、紙の色・濃さと墨の色・濃さを混ぜる。
+// GPUで行うので、画像を作り直す必要はない。黒い紙に白い字の作品では、紙をうっすら黒にする。
 function exMakeTraceMaterial(){
     const uniforms = {
         exInkLo: { value: 0.35 },
         exInkHi: { value: 0.8 },
-        exInkInvert: { value: 0 }
+        exInkInvert: { value: 0 },
+        exPaperA: { value: EXHIBIT_TRACE_PAPER_ALPHA },
+        exInkA: { value: EXHIBIT_TRACE_INK_ALPHA }
     };
     const mat = new THREE.MeshBasicMaterial({
-        side: THREE.DoubleSide, transparent: true, opacity: EXHIBIT_TRACE_OPACITY,
+        side: THREE.DoubleSide, transparent: true, opacity: 1.0,
         depthWrite: false, toneMapped: false
     });
     mat.onBeforeCompile = (shader) => {
         Object.assign(shader.uniforms, uniforms);
         shader.fragmentShader = shader.fragmentShader
             .replace("#include <common>",
-                "#include <common>\nuniform float exInkLo;\nuniform float exInkHi;\nuniform float exInkInvert;")
+                "#include <common>\nuniform float exInkLo;\nuniform float exInkHi;\nuniform float exInkInvert;\n" +
+                "uniform float exPaperA;\nuniform float exInkA;")
             .replace("#include <map_fragment>",
                 "#include <map_fragment>\n" +
                 "{\n" +
                 "  vec3 exS = pow(max(diffuseColor.rgb, vec3(0.0)), vec3(1.0 / 2.2));\n" +   // 見た目の明るさに近づける
                 "  float exL = dot(exS, vec3(0.299, 0.587, 0.114));\n" +
-                "  float exInk = 1.0 - smoothstep(exInkLo, exInkHi, exL);\n" +            // 暗い（墨）ほど不透明
+                "  float exInk = 1.0 - smoothstep(exInkLo, exInkHi, exL);\n" +            // 暗い（墨）ほど 1
                 "  exInk = mix(exInk, 1.0 - exInk, exInkInvert);\n" +                     // 白い字のときは逆
-                "  diffuseColor.a *= exInk;\n" +
+                "  vec3 exPaper = vec3(1.0 - exInkInvert);\n" +                           // 紙の色：白（黒い紙なら黒）
+                "  diffuseColor.rgb = mix(exPaper, diffuseColor.rgb, exInk);\n" +
+                "  diffuseColor.a = mix(exPaperA, exInkA, exInk);\n" +
                 "}");
     };
-    mat.customProgramCacheKey = () => "exTraceInk";
+    mat.customProgramCacheKey = () => "exTraceInkPaper";
     mat.userData.exUniforms = uniforms;
     return mat;
 }
@@ -4333,72 +4364,84 @@ function exMakeTexture(canvas){
     return tex;
 }
 
-// image001 から順に取得し、番号が途切れたところで止める（最大 EXHIBIT_MAX_WORKS 枚）。
-// 拡張子は png → jpg → jpeg の順に試し、見つかった拡張子を次の番号で最初に試す（無駄な404を減らす）。
-// 取得とデコードは並行して進め、デコードは1枚ずつ順番に行う（メモリの急増を防ぐ）。
-async function exLoadWorks(){
-    const loaded = [];
-    let extOrder = EXHIBIT_EXTS.slice();
-    let consecErrors = 0;
-    let skipped = 0;
-    let decodeChain = Promise.resolve();
-
-    for(let n = 1; n <= EXHIBIT_MAX_WORKS; n++){
-        const base = EXHIBIT_DIR + EXHIBIT_NAME_PREFIX + String(n).padStart(EXHIBIT_NAME_DIGITS, "0");
-        let found = null;
-        let hadError = false;
-        for(const ext of extOrder){
-            const url = `${base}.${ext}`;
-            // no-cache：毎回サーバーに更新を確認する（変わっていなければ 304 で軽い）。
-            // これでリロード時に、差し替えた画像が反映される。
-            const r = await exFetchWithRetry(url, "no-cache");
-            if(r.status === "ok"){ found = { url, ext, blob: r.blob }; break; }
-            if(r.status === "error") hadError = true;
-        }
-
-        if(found){
-            consecErrors = 0;
-            extOrder = [found.ext, ...EXHIBIT_EXTS.filter(e => e !== found.ext)];
-            const no = n, item = found;
-            decodeChain = decodeChain.then(async () => {
-                try {
-                    const { canvas, w, h } = await exDecodeToCanvas(item.blob, EXHIBIT_TEX_MAX);
-                    const ink = exAnalyzeInk(canvas);
-                    const texture = exMakeTexture(canvas);
-                    // 入室前にGPUへ転送しておき、展示開始時のカクつきを防ぐ
-                    if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
-                    loaded.push({ no, url: item.url, imgW: w, imgH: h, aspect: w / h, texture,
-                                  inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert });
-                    exLoadedCount = loaded.length;
-                    exUpdateStartStatus();
-                } catch(e){
-                    skipped++;
-                    console.warn(`作品展示：${item.url} を画像として読み込めませんでした（スキップします）`, e);
-                }
-            });
-            continue;
-        }
-
-        if(!hadError) break; // どの拡張子も見つからない＝連番の終わり
-
-        // 通信エラー：この番号は飛ばして次へ。続くようなら打ち切る
-        skipped++;
-        consecErrors++;
-        console.warn(`作品展示：${base}.(${EXHIBIT_EXTS.join("/")}) を取得できませんでした（通信エラー）`);
-        if(consecErrors >= EXHIBIT_MAX_CONSEC_ERRORS){
-            console.warn("作品展示：通信エラーが続いたため、読み込みを打ち切りました");
-            break;
-        }
+// 1つの番号（image0NN）を png → jpg → jpeg の順に探す（前に見つかった拡張子から試す）。
+// 戻り値：{ status: "ok", url, ext, blob } ／ { status: "missing" }（どの拡張子も無い）／ { status: "error" }（通信エラー）
+async function exFetchNumber(n, preferredExt){
+    const base = EXHIBIT_DIR + EXHIBIT_NAME_PREFIX + String(n).padStart(EXHIBIT_NAME_DIGITS, "0");
+    const order = [preferredExt, ...EXHIBIT_EXTS.filter(e => e !== preferredExt)];
+    let hadError = false;
+    for(const ext of order){
+        const url = `${base}.${ext}`;
+        // no-cache：毎回サーバーに更新を確認する（変わっていなければ 304 で軽い）。
+        // これでリロード時に、差し替えた画像が反映される。
+        const r = await exFetchWithRetry(url, "no-cache");
+        if(r.status === "ok") return { status: "ok", url, ext, blob: r.blob };
+        if(r.status === "error") hadError = true;
     }
-
-    await decodeChain;
-    loaded.sort((p, q) => p.no - q.no);
-    return { loaded, skipped };
+    return { status: hadError ? "error" : "missing", base };
 }
 
-function exNeedsLoad(){
-    return exLoadStatus === "idle" || exLoadStatus === "error"
-        || (exLoadStatus === "done" && exWorks.length === 0);
+// image001〜image036 をすべて確認する。無い番号はその枠を空けるだけで、残りは表示する
+// （抜けている番号がいくつあってもよい）。確認は EXHIBIT_FETCH_PARALLEL 本ずつ並行して行い、
+// デコードは1枚ずつ順番に行う（メモリの急増を防ぐ）。
+async function exLoadWorks(){
+    const loaded = [];
+    let preferredExt = EXHIBIT_EXTS[0];
+    let consecErrors = 0;
+    let skipped = 0;
+    let aborted = false;
+    let next = 1;
+    let decodeChain = Promise.resolve();
+
+    const worker = async () => {
+        while(!aborted){
+            const n = next++;
+            if(n > EXHIBIT_MAX_WORKS) return;
+            const r = await exFetchNumber(n, preferredExt);
+            if(r.status === "ok"){
+                consecErrors = 0;
+                preferredExt = r.ext;   // 次の番号は同じ拡張子から試す（無駄な404を減らす）
+                decodeChain = decodeChain.then(async () => {
+                    try {
+                        const { canvas, w, h } = await exDecodeToCanvas(r.blob, EXHIBIT_TEX_MAX);
+                        const ink = exAnalyzeInk(canvas);
+                        const texture = exMakeTexture(canvas);
+                        // 入室前にGPUへ転送しておき、展示開始時のカクつきを防ぐ
+                        if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
+                        loaded.push({ no: n, url: r.url, imgW: w, imgH: h, aspect: w / h, texture,
+                                      inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert });
+                        exLoadedCount = loaded.length;
+                        exUpdateStartStatus();
+                    } catch(e){
+                        skipped++;   // 壊れた画像：その枠は空ける
+                        console.warn(`作品展示：${r.url} を画像として読み込めませんでした（その枠は空けます）`, e);
+                    }
+                });
+            } else if(r.status === "missing"){
+                consecErrors = 0;   // 抜けている番号：その枠を空けるだけ
+            } else {
+                skipped++;
+                consecErrors++;
+                console.warn(`作品展示：${r.base}.(${EXHIBIT_EXTS.join("/")}) を取得できませんでした（通信エラー。その枠は空けます）`);
+                if(consecErrors >= EXHIBIT_MAX_CONSEC_ERRORS && !aborted){
+                    aborted = true;
+                    console.warn("作品展示：通信エラーが続いたため、読み込みを打ち切りました");
+                }
+            }
+        }
+    };
+    await Promise.all(Array.from({ length: EXHIBIT_FETCH_PARALLEL }, worker));
+    await decodeChain;
+    loaded.sort((p, q) => p.no - q.no);
+    return { loaded, skipped, aborted };
+}
+
+// 読み込み（やり直し）が必要か。
+//   開始画面でONにしたとき：まだ読んでいない・失敗した・0枚だった → 読む（画像を追加した直後に試せるように）
+//   入室したとき：まだ読んでいない・通信エラーで失敗した → 読む（0枚は確認済みなので読み直さない）
+function exNeedsLoad(atSessionStart){
+    if(exLoadStatus === "idle" || exLoadStatus === "error") return true;
+    return !atSessionStart && exLoadStatus === "done" && exWorks.length === 0;
 }
 
 function exStartLoading(){
@@ -4408,10 +4451,10 @@ function exStartLoading(){
     exLoadedCount = 0;
     exSkippedCount = 0;
     exUpdateStartStatus();
-    exLoadPromise = exLoadWorks().then(({ loaded, skipped }) => {
+    exLoadPromise = exLoadWorks().then(({ loaded, skipped, aborted }) => {
         exSkippedCount = skipped;
         exBuildWorks(loaded);
-        exLoadStatus = (loaded.length === 0 && skipped > 0) ? "error" : "done";
+        exLoadStatus = (loaded.length === 0 && (skipped > 0 || aborted)) ? "error" : "done";
     }).catch(e => {
         console.warn("作品展示：作品の読み込みに失敗しました", e);
         exLoadStatus = exWorks.length > 0 ? "done" : "error";
@@ -4516,12 +4559,12 @@ function exEnsureScene(){
     exRoot.add(exRayDot);
 
     // --- ②③ で目の前に置く作品（展示中の作品とは別の調整用オブジェクト）---
-    // 紙の白は透明、墨だけをうすく表示する。奥に書いた線も透けて見えるよう深度は書き込まない。
+    // 半紙はうっすら白、墨は灰色で表示する。奥に書いた線も透けて見えるよう深度は書き込まない。
     exAdjMesh = new THREE.Mesh(exUnitPlane, exMakeTraceMaterial());
     exAdjMesh.renderOrder = 2;
     exAdjMesh.visible = false;
     exRoot.add(exAdjMesh);
-    // 紙のふち（紙を透明にしても、位置と大きさが分かるように）
+    // 紙のふち（位置と大きさが分かるように）
     exAdjOutlineMat = new THREE.MeshBasicMaterial({
         color: 0xc8a84a, transparent: true, opacity: EXHIBIT_OUTLINE_OPACITY_ADJUST,
         side: THREE.DoubleSide, depthWrite: false, toneMapped: false
@@ -4540,7 +4583,7 @@ function exEnsureScene(){
     // --- ③「もどる」「おわる」ボタン ---
     exBtnGroup = new THREE.Group();
     exBtnBack = exMakeButton("もどる", "いち・おおきさを なおす");
-    exBtnEnd  = exMakeButton("おわる", "べつの さくひんを えらぶ");
+    exBtnEnd  = exMakeButton("おわる", "ほぞんして えらびなおす");
     exBtnBack.position.x = -(EXHIBIT_BTN_W + EXHIBIT_BTN_GAP) / 2;
     exBtnEnd.position.x  =  (EXHIBIT_BTN_W + EXHIBIT_BTN_GAP) / 2;
     exBtnGroup.add(exBtnBack);
@@ -4652,7 +4695,7 @@ function exMakeButton(label, sub){
 
 // 選択枠を作品の大きさ（w×h）に合わせる
 function exResizeFrame(w, h){
-    const ti = 0.035, to = 0.09, z = 0.002;
+    const ti = 0.02, to = 0.05, z = 0.002;
     const [it, ib, il, ir] = exFrameInner;
     it.position.set(0,  h / 2 + ti / 2, z); it.scale.set(w + ti * 2, ti, 1);
     ib.position.set(0, -h / 2 - ti / 2, z); ib.scale.set(w + ti * 2, ti, 1);
@@ -4668,40 +4711,47 @@ function exResizeFrame(w, h){
 }
 
 // ===== 展示の配置（入室時の位置・向きが基準。以後プレイヤーに追従しない）=====
-// 12枚以下は1段、13〜24枚は2段、25〜36枚は3段。段数で均等に分け（例：13枚→7＋6）、
-// ファイル番号順に下の段から、正面を起点にプレイヤーから見て右回りに並べる。
-// 上の段は半間隔ずらして、上下の作品が重なって見えにくいようにする。
+// 枠の数は「いちばん大きい番号」N で決める（無い番号は枠だけ空く）。
+// N が12以下は1段、13〜24は2段、25〜36は3段。段数で均等に分け（例：N=13 → 7＋6）、
+// 番号順に上の段（目の高さ）から、正面を起点にプレイヤーから見て右回りに並べる。
+// 1つおきの段は半間隔ずらして、上下の作品が重なって見えにくいようにする。
 function exLayout(){
-    const n = exWorks.length;
     exTiers = [];
-    if(n === 0) return;
-    const tiers = Math.min(EXHIBIT_MAX_TIERS, Math.ceil(n / EXHIBIT_PER_TIER));
-    const base = Math.floor(n / tiers), extra = n % tiers;
+    if(exWorks.length === 0) return;
+    const N = exWorks[exWorks.length - 1].no;   // exWorks は番号順
+    const tiers = Math.min(EXHIBIT_MAX_TIERS, Math.ceil(N / EXHIBIT_PER_TIER));
+    const base = Math.floor(N / tiers), extra = N % tiers;
+    const counts = [], starts = [];
+    let acc = 0;
+    for(let t = 0; t < tiers; t++){
+        counts.push(base + (t < extra ? 1 : 0));
+        starts.push(acc);
+        acc += counts[t];
+        exTiers.push([]);
+    }
     const fx = exForward.x, fz = exForward.z;
     const rx = -fz, rz = fx;   // 入室時のプレイヤーから見て右方向
-    let k = 0;
-    for(let t = 0; t < tiers; t++){
-        const cnt = base + (t < extra ? 1 : 0);
+    exWorks.forEach((w, wi) => {
+        const slot = w.no - 1;   // 番号 → 枠
+        let t = 0;
+        while(t < tiers - 1 && slot >= starts[t] + counts[t]) t++;
+        const cnt = counts[t];
+        const i = slot - starts[t];
         const offset = (t % 2 === 1) ? Math.PI / cnt : 0;
-        const list = [];
-        for(let i = 0; i < cnt; i++, k++){
-            const w = exWorks[k];
-            const ang = offset + i * Math.PI * 2 / cnt;
-            const c = Math.cos(ang), s = Math.sin(ang);
-            w.tier = t;
-            w.idx = i;
-            w.angle = ang;
-            w.group.position.set(
-                exCenter.x + (fx * c + rx * s) * EXHIBIT_RADIUS,
-                EXHIBIT_TIER_Y[t],
-                exCenter.z + (fz * c + rz * s) * EXHIBIT_RADIUS
-            );
-            w.group.scale.setScalar(1);
-            w.group.lookAt(exCenter.x, exEyeY, exCenter.z); // 円の中心（目の高さ）に表を向ける
-            list.push(k);
-        }
-        exTiers.push(list);
-    }
+        const ang = offset + i * Math.PI * 2 / cnt;
+        const c = Math.cos(ang), s = Math.sin(ang);
+        w.tier = t;
+        w.idx = i;
+        w.angle = ang;
+        w.group.position.set(
+            exCenter.x + (fx * c + rx * s) * EXHIBIT_RADIUS,
+            EXHIBIT_TIER_Y[t],
+            exCenter.z + (fz * c + rz * s) * EXHIBIT_RADIUS
+        );
+        w.group.scale.setScalar(1);
+        w.group.lookAt(exCenter.x, exEyeY, exCenter.z); // 円の中心（目の高さ）に表を向ける
+        exTiers[t].push(wi);                             // 段の中は枠の順（番号順）
+    });
     exCircleGroup.updateMatrixWorld(true); // 直後のレイ判定に新しい位置を使う
 }
 
@@ -4850,13 +4900,14 @@ function exShowSelectHint(){
     exPlaceHintNearController();
 }
 
-// ② 作品のすぐ手前・下側に案内を出す（作品が低すぎるときは上側）
-function exShowAdjustHint(){
+// ② 作品のすぐ手前・下側に案内パネルを置く（作品が低すぎるときは上側）。表示はしない。
+// ③ではパネルは出さないが、ボタンを同じ位置関係に置くためにこの位置を使う。
+function exComputeAdjustHintPose(){
     exDrawPanel(exHintMesh, "adjust", [
         { text: "トリガー：つかんで うごかす", size: 64 },
         { text: "スティック 上下：たおす ／ 左右：おおきさ", size: 64 },
         { text: "A：かきはじめる ／ B・もどる：えらびなおす", size: 64, bold: true, color: "#e8c86a" }
-    ], 0.34);
+    ], EXHIBIT_HINT_W);
     exAdjMesh.updateMatrixWorld(true);
     exBox.setFromObject(exAdjMesh);
     const hh = exHintMesh.scale.y;
@@ -4870,6 +4921,11 @@ function exShowAdjustHint(){
                 + Math.abs(dz) * (exBox.max.z - exBox.min.z) / 2 + 0.06;
     exHintMesh.position.set(exAdjPos.x + dx * reach, y, exAdjPos.z + dz * reach);
     exHintMesh.lookAt(exHeadPos);
+    exHintMesh.updateMatrixWorld(true);
+}
+
+function exShowAdjustHint(){
+    exComputeAdjustHintPose();
     exHintMesh.visible = true;
 }
 
@@ -4973,42 +5029,14 @@ async function exLoadHiRes(w){
 }
 
 // ===== ボタンの配置（②「もどる」・③「もどる」「おわる」）=====
-// 腰の高さ・左前方を第一候補にし、目の前の作品（②では案内も）に近すぎるときは別の候補へずらす。
-function exComputeAvoidBox(includeHint){
-    exAdjMesh.updateMatrixWorld(true);
-    exBox.setFromObject(exAdjMesh);
-    if(includeHint && exHintMesh.visible){
-        exHintMesh.updateMatrixWorld(true);
-        exBox.union(exBox2.setFromObject(exHintMesh));
-    }
-}
-
-function exPlaceButtonGroup(group, halfW, includeHint){
-    const { pos: head, forward: f } = getViewerPose();
-    const rx = -f.z, rz = f.x;
-    exComputeAvoidBox(includeHint);
-    const y = Math.max(0.55, head.y - EXHIBIT_BTN_BELOW_EYE);
-    const degs = [-35, 35, -50, 50, -65, 65, -80, 80]; // 負＝左。正面に近い候補から順に試す
-    let best = null, bestDist = -Infinity;
-    for(const d of degs){
-        const a = d * Math.PI / 180;
-        const c = Math.cos(a), s = Math.sin(a);
-        const p = new THREE.Vector3(
-            head.x + (f.x * c + rx * s) * EXHIBIT_BTN_DIST, y,
-            head.z + (f.z * c + rz * s) * EXHIBIT_BTN_DIST);
-        const dist = exBox.distanceToPoint(p) - halfW;
-        if(dist >= EXHIBIT_BTN_CLEARANCE){ best = p; break; }
-        if(dist > bestDist){ bestDist = dist; best = p; }
-    }
-    group.position.copy(best);
-    group.lookAt(head);
+// 案内パネル（トリガー：つかんで うごかす…）の左どなりに、パネルと同じ向きで置く。
+// ②では作品を動かすとパネルと一緒に動き、③では③に入った時点の位置に固定する。
+function exPlaceButtonsLeftOfHint(group, halfW){
+    exTmpV1.set(1, 0, 0).applyQuaternion(exHintMesh.quaternion);   // パネルの右方向
+    const off = EXHIBIT_HINT_W / 2 + EXHIBIT_BTN_HINT_GAP + halfW;
+    group.position.copy(exHintMesh.position).addScaledVector(exTmpV1, -off);
+    group.quaternion.copy(exHintMesh.quaternion);
     group.updateMatrixWorld(true);
-}
-
-// ②で作品（や案内）をボタンに近づけたかどうか（置き直しが行ったり来たりしないよう、判定はゆるめ）
-function exButtonTooClose(group, halfW){
-    exComputeAvoidBox(true);
-    return exBox.distanceToPoint(group.position) - halfW < EXHIBIT_BTN_CLEARANCE * 0.5;
 }
 
 function exUpdateButtonVisuals(armed){
@@ -5123,7 +5151,7 @@ function exEnterAdjust(index, fresh){
         exAdjPos.y = pos.y - EXHIBIT_ADJ_DROP;
         exAdjYaw = Math.atan2(-forward.x, -forward.z); // 作品の表（+Z）をプレイヤーへ向ける
         exAdjTilt = 0;
-        exAdjSize = EXHIBIT_SIZE_MIN;
+        exAdjSize = EXHIBIT_SIZE_INIT;   // 半紙の2倍
         exAdjMesh.material.map = w.texture;
         exAdjMesh.material.needsUpdate = true;
         // この作品の墨と紙の明るさに合わせて、紙を透明にするしきい値を設定
@@ -5138,7 +5166,7 @@ function exEnterAdjust(index, fresh){
     exApplyAdjustTransform();
     exShowAdjust(true);
     exShowAdjustHint();
-    exPlaceButtonGroup(exBtnGroupAdj, EXHIBIT_BTN_W / 2, true);
+    exPlaceButtonsLeftOfHint(exBtnGroupAdj, EXHIBIT_BTN_W / 2);
     exBtnGroupAdj.visible = true;
     exBtnNeedFresh = true;
 }
@@ -5147,11 +5175,12 @@ function exEnterDraw(){
     exState = EX_DRAW;
     exGate = true;
     exGrabbing = false;
-    exSetAdjustLook(true);   // 墨はうすいまま（なぞって書けるように）、紙のふちだけ控えめに
-    exHintMesh.visible = false;
+    exSetAdjustLook(true);   // 作品の見え方は②と同じ（なぞって書けるように）、紙のふちだけ控えめに
     exBtnGroupAdj.visible = false;
     exResetButtonPointing();
-    exPlaceButtonGroup(exBtnGroup, EXHIBIT_BTN_W + EXHIBIT_BTN_GAP / 2, false);
+    exComputeAdjustHintPose();  // ②の案内パネルと同じ位置関係に置く（パネル自体は出さない）
+    exHintMesh.visible = false;
+    exPlaceButtonsLeftOfHint(exBtnGroup, EXHIBIT_BTN_W + EXHIBIT_BTN_GAP / 2);
     exBtnGroup.visible = true;
     exBtnNeedFresh = true;
     if(brushGroup) brushGroup.visible = !operationLocked;
@@ -5282,15 +5311,19 @@ function exStickMove(dir, isRepeat){
     const cur = exWorks[exSelIdx];
     if(!cur){ exSetSelection(0); return; }
     if(dir === "L" || dir === "R"){
-        // 同じ段の中で左右へ（円なので端はつながっている）
+        // 同じ段の中で左右へ。空き枠は飛ばす（円なので端はつながっている）
         const list = exTiers[cur.tier];
         if(!list || list.length <= 1){ if(!isRepeat) exBuzzLimit(); return; }
-        const ni = (cur.idx + (dir === "R" ? 1 : -1) + list.length) % list.length;
-        exSetSelection(list[ni]);
+        const p = list.indexOf(exSelIdx);
+        const np = (p + (dir === "R" ? 1 : -1) + list.length) % list.length;
+        exSetSelection(list[np]);
         exBuzzTick();
     } else {
-        // 上下の段へ。いまの作品にいちばん近い角度の作品を選ぶ。作品のない段へは動かない
-        const nt = cur.tier + (dir === "U" ? 1 : -1);
+        // 上下の段へ（段の添字は上から 0,1,2）。作品が1枚もない段は飛ばす。
+        // 移った段では、いまの作品にいちばん近い角度の作品を選ぶ
+        const step = dir === "U" ? -1 : 1;
+        let nt = cur.tier + step;
+        while(nt >= 0 && nt < exTiers.length && exTiers[nt].length === 0) nt += step;
         if(nt < 0 || nt >= exTiers.length){ if(!isRepeat) exBuzzLimit(); return; }
         let best = -1, bestD = Infinity;
         for(const wi of exTiers[nt]){
@@ -5330,6 +5363,10 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
         if(exGrabbing){
             exTmpV1.copy(exRayOrigin).add(exGrabOffset);
             exAdjPos.lerp(exTmpV1, 1 - Math.exp(-dt / EXHIBIT_GRAB_SMOOTH_TAU));
+            // 動かしている間は、作品の表（+Z）を常にプレイヤー（頭）の方へ向ける。
+            // 左右の向きだけを合わせ、上下の「たおす」角度はスティックで決めた値のまま。
+            const hx = exHeadPos.x - exAdjPos.x, hz = exHeadPos.z - exAdjPos.z;
+            if(hx * hx + hz * hz > 1e-4) exAdjYaw = Math.atan2(hx, hz);
         }
 
         // スティック：傾きの大きい軸だけ有効（上下＝たおす／左右＝おおきさ）。離せばその値で止まる
@@ -5352,11 +5389,7 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
     }
     exApplyAdjustTransform();
     exShowAdjustHint();
-    // 作品や案内をボタンに近づけたら、ボタンを離れた場所へ置き直す（動かしている間・指している間はしない）
-    if(!exGate && !exGrabbing && !exHoverBtn && !exBtnCapture
-       && exButtonTooClose(exBtnGroupAdj, EXHIBIT_BTN_W / 2)){
-        exPlaceButtonGroup(exBtnGroupAdj, EXHIBIT_BTN_W / 2, true);
-    }
+    exPlaceButtonsLeftOfHint(exBtnGroupAdj, EXHIBIT_BTN_W / 2);   // ボタンはパネルの左に付いて動く
 }
 
 // ③：既存の描画はそのまま。「もどる」「おわる」を指しているときだけレイを出し、
@@ -5367,14 +5400,68 @@ function exTickDraw(now, trigDown, aEdge){
     const allow = !operationLocked && !drawing && !releaseActive && exIn.grip < GRIP_PAN_THRESHOLD;
     const busy = exTickButtons(exBtnMeshes, now, trigDown, aEdge, allow);
     if(exBtnFired){
-        exBuzzDecide();
         const toAdjust = (exBtnFired === exBtnBack);
         exLeaveDraw();
-        if(toAdjust) exEnterAdjust(exAdjIdx, false); // もどる：②へ（位置・角度・大きさはそのまま）
-        else exEnterSelect();                         // おわる：①へ（描いた線はそのまま残す）
+        if(toAdjust){
+            exBuzzDecide();
+            exEnterAdjust(exAdjIdx, false);   // もどる：②へ（位置・角度・大きさ・描いた線はそのまま）
+        } else {
+            // おわる：ギャラリーに新しく保存（満杯なら古い順に上書き）→ 描画を全部消す → ①へ
+            exSaveToGalleryOldestFirst();
+            exClearAllLikeLongB();
+            exEnterSelect();
+        }
         return true;
     }
     return busy;
+}
+
+// ギャラリーに新しく保存する（左トリガーの保存と同じ内容・同じサムネイル）。
+// 違いは満杯のときだけ：左トリガーは選んでいるスロットを上書きするが、こちらは
+// いちばん古いもの（一覧のいちばん後ろ）を消してから先頭に入れる。お手本（default）のスロットは消さない。
+// 何も書いていないとき・直前に保存したものと同じときは保存しない。
+function exSaveToGalleryOldestFirst(){
+    if(replayActive) finishReplayImmediately();
+    if(stampIndex === 0) return false;
+    const hash = computeDrawingHash();
+    if(hash === lastSavedHash) return false;
+
+    const baked = readBakedInstanceData();
+    const data = {
+        matrices: baked.matrices,
+        colors: baked.colors,
+        count: baked.count,
+        thumbnail: null,
+        strokeBoundaries: strokeStack.slice()
+    };
+    renderer.render(scene, camera);          // 左トリガーの保存（saveCurrentDrawing）と同じ手順
+    data.thumbnail = createThumbnail();
+
+    const userStart = defaultGalleryData ? 1 : 0;
+    const maxSlots = defaultGalleryData ? MAX_USER_GALLERY : MAX_GALLERY;
+    if(gallery.length - userStart >= maxSlots){
+        removeGallerySlotInternal(gallery.length - 1);   // いちばん古いもの（新しい保存は先頭に入るため末尾が最古）
+    }
+    insertAtSlot(userStart, data);
+
+    lastSavedHash = hash;
+    pendingSlotIndex = -1;
+    blinkTimer = 0;
+    blinkVisible = true;
+    vibrate("left", 100, 0.75);
+    return true;
+}
+
+// 描画を全部消す（Bボタン長押しと同じ処理。墨の色も黒に戻す）
+function exClearAllLikeLongB(){
+    if(replayActive) finishReplayImmediately();
+    clearAll();
+    colorMode = COLOR_MODE.BW;
+    colorChanged = false;
+    isWhite = false;
+    currentColor.set(0x111111);
+    blackLockFrames = BLACK_LOCK_DURATION;
+    vibrate("right", 120, 0.9);
 }
 
 // ===== 毎フレームの入口（render() から呼ばれる）=====
@@ -5454,7 +5541,7 @@ function exhibitOnSessionStart(){
     exPrevB = false;
     exPrevTime = performance.now();
     exRoot.visible = true;
-    if(exNeedsLoad()) exStartLoading();
+    if(exNeedsLoad(true)) exStartLoading();
 }
 
 function exhibitOnSessionEnd(){
@@ -5491,7 +5578,7 @@ function exhibitRestoreAfterCapture(v){
     btn.addEventListener("click", () => {
         exhibitEnabled = !exhibitEnabled;
         // ONにした時点で読み込みを始める（入室までに終わっていれば待ち時間なし）
-        if(exhibitEnabled && exNeedsLoad()) exStartLoading();
+        if(exhibitEnabled && exNeedsLoad(false)) exStartLoading();
         refresh();
     });
     refresh();
