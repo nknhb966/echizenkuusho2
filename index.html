@@ -4109,7 +4109,7 @@ const EXHIBIT_TWO_HAND_OFF = 0.25;       // どちらかがこれ未満で終了
 const EXHIBIT_RESET_HOLD_MS = 1000;
 const EXHIBIT_RESET_WARN_MS = 500;
 // ②の案内パネル：文字の大きさは以前のまま（1m あたり約3012px）、まわりに余白を入れる
-const EXHIBIT_HINT_CW = 1720, EXHIBIT_HINT_CH = 440;   // パネルのキャンバス（px）
+const EXHIBIT_HINT_CW = 1720, EXHIBIT_HINT_CH = 540;   // パネルのキャンバス（px）
 const EXHIBIT_HINT_PAD_X = 100, EXHIBIT_HINT_PAD_Y = 60; // 余白（px）
 const EXHIBIT_HINT_W = 0.34 * EXHIBIT_HINT_CW / 1024;  // パネルの幅（m）
 // ②③（作品選択以外）の間、展示作品をうっすら暗くするときの明るさ（1＝元のまま）
@@ -4132,6 +4132,7 @@ let exLoadedCount = 0;
 let exSkippedCount = 0;
 let exWorks = [];            // { no, url, imgW, imgH, aspect, texture, w, h, group, mesh, tier, idx, angle }
 let exWorkMeshes = [];       // レイ判定の対象（展示作品の板だけ）
+let exAdjPickList = [];      // ②のレイ判定の対象（目の前の作品＋展示作品）
 let exTiers = [];            // 段ごとの exWorks インデックス（下の段から）
 
 // ----- シーン上のオブジェクト（初回だけ生成して使い回す）-----
@@ -4144,9 +4145,14 @@ let exHintMesh = null, exMsgMesh = null;
 let exCtrlHintMesh = null;   // ①・読み込み中にコントローラーの近くに出す小さな案内
 let exAdjOutline = null;     // 目の前の作品の紙のふち（細い線4本）
 let exAdjOutlineMat = null;
-let exBtnGroup = null, exBtnBack = null, exBtnEnd = null;   // ③「もどる」「おわる」
+let exBtnGroup = null, exBtnBack = null, exBtnEnd = null;   // ③「おわる」「もどる」
+let exBtnUndo = null, exBtnClearAll = null;                  // ③「クリア」「すべてクリア」
 let exBtnMeshes = [];
-let exBtnGroupAdj = null, exBtnAdjBack = null, exBtnAdjOk = null;   // ②「もどる」「けってい」
+let exBtnGroupAdj = null, exBtnAdjBack = null, exBtnAdjOk = null;   // ②「けってい」「もどる」
+let exBtnAdjReset = null;                                             // ②「リセット」（置き直し）
+let exAdjSwapIdx = -1;       // ② トリガーを押したときにレイが当たっていた展示作品（離したときに入れ替える）
+let exAdjHoverWork = -1;     // ② いまレイが当たっている展示作品
+let exAdjRayOnWork = false;  // ② いまレイが選んだ作品（目の前の作品）に当たっているか
 let exBtnMeshesAdj = [];
 let exAllBtnMeshes = [];
 let exMsgUntil = 0;
@@ -4516,6 +4522,7 @@ function exBuildWorks(loaded){
         w.tier = 0; w.idx = i; w.angle = 0;
         exWorkMeshes.push(mesh);
     });
+    exAdjPickList = [exAdjMesh, ...exWorkMeshes];
 }
 
 function exDisposeWorks(){
@@ -4614,31 +4621,36 @@ function exEnsureScene(){
     exRoot.add(exCtrlHintMesh);
     exRoot.add(exMsgMesh);
 
-    // --- ③「もどる」「おわる」ボタン ---
+    // --- ③ のボタン（上から「おわる」「もどる」「クリア」「すべてクリア」）---
     exBtnGroup = new THREE.Group();
-    exBtnBack = exMakeButton("もどる", "いち・おおきさを なおす");
-    exBtnEnd  = exMakeButton("おわる", "ほぞんして えらびなおす");
-    // 縦に並べる：上「おわる」、下「もどる」
-    exBtnEnd.position.y  =  (EXHIBIT_BTN_H + EXHIBIT_BTN_VGAP) / 2;
-    exBtnBack.position.y = -(EXHIBIT_BTN_H + EXHIBIT_BTN_VGAP) / 2;
-    exBtnGroup.add(exBtnBack);
-    exBtnGroup.add(exBtnEnd);
-    exBtnMeshes = [exBtnBack, exBtnEnd];
+    exBtnEnd      = exMakeButton("おわる", "てんじさくひんを えらぶ");
+    exBtnBack     = exMakeButton("もどる", "いち・おおきさを なおす");
+    exBtnUndo     = exMakeButton("クリア", "ひとつ もどす");
+    exBtnClearAll = exMakeButton("すべてクリア", "ぜんぶ けす");
+    exBtnMeshes = [exBtnEnd, exBtnBack, exBtnUndo, exBtnClearAll];
+    exStackButtons(exBtnGroup, exBtnMeshes);
     exBtnGroup.visible = false;
     exRoot.add(exBtnGroup);
 
-    // --- ②「けってい」（③へ。Aと同じ）・「もどる」（作品選択へ。Bと同じ）。縦に並べる：上「けってい」、下「もどる」---
+    // --- ② のボタン（上から「けってい」＝③へ・Aと同じ／「もどる」＝作品選択へ・Bと同じ／「リセット」＝置き直し）---
     exBtnGroupAdj = new THREE.Group();
-    exBtnAdjOk = exMakeButton("けってい", "かきはじめる");
-    exBtnAdjBack = exMakeButton("もどる", "さくひんを えらびなおす");
-    exBtnAdjOk.position.y   =  (EXHIBIT_BTN_H + EXHIBIT_BTN_VGAP) / 2;
-    exBtnAdjBack.position.y = -(EXHIBIT_BTN_H + EXHIBIT_BTN_VGAP) / 2;
-    exBtnGroupAdj.add(exBtnAdjOk);
-    exBtnGroupAdj.add(exBtnAdjBack);
-    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack];
+    exBtnAdjOk    = exMakeButton("けってい", "かきはじめる");
+    exBtnAdjBack  = exMakeButton("もどる", "さくひんを えらびなおす");
+    exBtnAdjReset = exMakeButton("リセット", "はじめの いちに もどす");
+    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack, exBtnAdjReset];
+    exStackButtons(exBtnGroupAdj, exBtnMeshesAdj);
     exBtnGroupAdj.visible = false;
     exRoot.add(exBtnGroupAdj);
-    exAllBtnMeshes = [exBtnBack, exBtnEnd, exBtnAdjOk, exBtnAdjBack];
+    exAllBtnMeshes = [...exBtnMeshes, ...exBtnMeshesAdj];
+}
+
+// ボタンを上から順に、すき間 EXHIBIT_BTN_VGAP で縦に並べる（グループの中心＝並び全体の中心）
+function exStackButtons(group, buttons){
+    const step = EXHIBIT_BTN_H + EXHIBIT_BTN_VGAP;
+    buttons.forEach((b, i) => {
+        b.position.y = ((buttons.length - 1) / 2 - i) * step;
+        group.add(b);
+    });
 }
 
 function exRoundRectPath(ctx, x, y, w, h, r){
@@ -4815,6 +4827,15 @@ function exSetCircleDim(on){
     for(const m of exWorkMeshes) m.material.color.setScalar(v);
 }
 
+// ②：レイが当たっている展示作品に光る枠を出す（-1 で消す）。選択（exSelIdx）は変えない
+function exShowFrameOn(i){
+    const w = exWorks[i];
+    if(!w){ exFrame.visible = false; return; }
+    w.group.add(exFrame);
+    exResizeFrame(w.w, w.h);
+    exFrame.visible = true;
+}
+
 function exClearSelectionHighlight(){
     const w = exWorks[exSelIdx];
     if(w && w.group) w.group.scale.setScalar(1);
@@ -4960,7 +4981,8 @@ function exShowSelectHint(){
 // ③ではパネルは出さないが、ボタンを同じ位置関係に置くためにこの位置を使う。
 function exComputeAdjustHintPose(){
     exDrawPanel(exHintMesh, "adjust", [
-        { text: "トリガー：つかんで うごかす", size: 54 },
+        { text: "さくひんに レイを あてて トリガー：うごかす", size: 54 },
+        { text: "てんじさくひんに あてて トリガー：いれかえる", size: 54 },
         { text: "りょうてトリガー：ひろげる＝おおきさ ／ てくび＝たおす", size: 54 },
         { text: "スティック 上下：たおす ／ 左右：おおきさ", size: 54 },
         { text: "A・けってい：かきはじめる ／ B・もどる：えらびなおす", size: 54, bold: true, color: "#e8c86a" }
@@ -5198,6 +5220,31 @@ function exEnterSelect(){
     exSetSelection(exSelIdx >= 0 && exSelIdx < exWorks.length ? exSelIdx : 0);
 }
 
+// 目の前に置く作品（画像）をセットする。位置・角度・大きさ（長辺）は変えない
+function exSetAdjustWork(index){
+    exCancelHiRes();
+    exAdjIdx = index;
+    const w = exWorks[index];
+    exAdjMesh.material.map = w.texture;
+    exAdjMesh.material.needsUpdate = true;
+    // この作品の墨と紙の明るさに合わせて、③で紙を透明にするしきい値を設定
+    const u = exAdjMesh.material.userData.exUniforms;
+    u.exInkLo.value = w.inkLo;
+    u.exInkHi.value = w.inkHi;
+    u.exInkInvert.value = w.inkInvert ? 1 : 0;
+    if(Math.max(w.imgW, w.imgH) > EXHIBIT_TEX_MAX) exLoadHiRes(w);
+}
+
+// 置き方を初めの状態にする：目の前0.7mに、プレイヤーの方を向けて垂直・半紙の3倍
+function exResetAdjustPlacement(){
+    const { pos, forward } = getViewerPose();
+    exAdjPos.copy(pos).addScaledVector(forward, EXHIBIT_ADJ_DIST);
+    exAdjPos.y = pos.y - EXHIBIT_ADJ_DROP;
+    exAdjYaw = Math.atan2(-forward.x, -forward.z); // 作品の表（+Z）をプレイヤーへ向ける
+    exAdjTilt = 0;
+    exAdjSize = EXHIBIT_SIZE_INIT;
+}
+
 function exEnterAdjust(index, fresh){
     exState = EX_ADJUST;
     exGate = true;
@@ -5209,25 +5256,12 @@ function exEnterAdjust(index, fresh){
     exCtrlHintMesh.visible = false;
     exResetButtonPointing();
     exSetCircleDim(true);   // 展示作品をうっすら暗く
+    exAdjSwapIdx = -1;
+    exAdjHoverWork = -1;
     if(fresh){
-        // ①から来たとき：選んだ作品を目の前に、プレイヤーの方を向けて垂直・最小サイズで置く
-        exCancelHiRes();
-        exAdjIdx = index;
-        const w = exWorks[index];
-        const { pos, forward } = getViewerPose();
-        exAdjPos.copy(pos).addScaledVector(forward, EXHIBIT_ADJ_DIST);
-        exAdjPos.y = pos.y - EXHIBIT_ADJ_DROP;
-        exAdjYaw = Math.atan2(-forward.x, -forward.z); // 作品の表（+Z）をプレイヤーへ向ける
-        exAdjTilt = 0;
-        exAdjSize = EXHIBIT_SIZE_INIT;   // 半紙の2倍
-        exAdjMesh.material.map = w.texture;
-        exAdjMesh.material.needsUpdate = true;
-        // この作品の墨と紙の明るさに合わせて、紙を透明にするしきい値を設定
-        const u = exAdjMesh.material.userData.exUniforms;
-        u.exInkLo.value = w.inkLo;
-        u.exInkHi.value = w.inkHi;
-        u.exInkInvert.value = w.inkInvert ? 1 : 0;
-        if(Math.max(w.imgW, w.imgH) > EXHIBIT_TEX_MAX) exLoadHiRes(w);
+        // ①から来たとき：選んだ作品を目の前に、プレイヤーの方を向けて垂直・半紙の3倍で置く
+        exSetAdjustWork(index);
+        exResetAdjustPlacement();
     }
     // ③から「もどる」で来たときは、位置・角度・大きさをそのまま引き継ぐ
     exSetAdjustLook(false);
@@ -5246,6 +5280,9 @@ function exEnterDraw(){
     exTwoHand = false;
     exSetAdjustLook(true);   // 作品の見え方は②と同じ（なぞって書けるように）、紙のふちだけ控えめに
     exBtnGroupAdj.visible = false;
+    exAdjSwapIdx = -1;
+    exAdjHoverWork = -1;
+    if(exFrame) exFrame.visible = false;   // ②で展示作品に出していた枠を消す
     exResetButtonPointing();
     exHintMesh.visible = false;
     exCtrlHintMesh.visible = false;
@@ -5418,18 +5455,67 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
         exResetButtonPointing();
     } else {
         // 「もどる」ボタン（つかんで動かしている間は指せない）
-        const btnBusy = exTickButtons(exBtnMeshesAdj, now, trigDown, aEdge, !exGrabbing && !exTwoHand);
+        const btnBusy = exTickButtons(exBtnMeshesAdj, now, trigDown, aEdge, !exGrabbing && !exTwoHand && exAdjSwapIdx < 0);
         if(exBtnFired === exBtnAdjBack){ exCancelToSelect(); return; }   // ②「もどる」→ ①作品選択（Bと同じ）
         if(exBtnFired === exBtnAdjOk){ vibrate("right", 80, 0.7); exEnterDraw(); return; }   // ②「けってい」→ ③（Aと同じ）
+        if(exBtnFired === exBtnAdjReset){
+            // ②「リセット」：①から選んだときと同じ置き方に戻す（作品はそのまま）
+            exBuzzDecide();
+            exGrabbing = false;
+            exTwoHand = false;
+            exResetAdjustPlacement();
+            exGate = true;   // 押したボタン・トリガーを離すまで次の操作を受け付けない
+            exApplyAdjustTransform();
+            exShowAdjustHint();
+            exPlaceButtonsLeftOfWork(exBtnGroupAdj);
+            return;
+        }
         if(bEdge){ exCancelToSelect(); return; }
         if(aEdge){ vibrate("right", 80, 0.7); exEnterDraw(); return; }
 
+        // レイ：ボタンを指していないときは、目の前の作品・展示作品のどちらに当たっているかを調べる
+        exAdjRayOnWork = false;
+        let hoverWork = -1;
+        if(!exHoverBtn && !btnBusy && exCtrlValid && !exTwoHand && !exGrabbing){
+            exHits.length = 0;
+            exAdjMesh.updateMatrixWorld(true);
+            exRaycaster.intersectObjects(exAdjPickList, false, exHits);
+            const hit = exHits[0];
+            if(hit && hit.object === exAdjMesh) exAdjRayOnWork = true;
+            else if(hit) hoverWork = hit.object.userData.exIndex;
+            if(!exGrabbing) exShowRay(hit ? hit.distance : EXHIBIT_RAY_LEN, !!hit);
+        }
+        if(exGrabbing) exHideRay();
+        if(hoverWork === exAdjIdx) hoverWork = -1;   // いま選んでいる作品そのものは入れ替え対象にしない
+        if(hoverWork !== exAdjHoverWork){
+            exAdjHoverWork = hoverWork;
+            exShowFrameOn(hoverWork);
+            if(hoverWork >= 0) exBuzzTick();
+        }
+
         // 両手（左右のトリガーを両方押す）：手の間隔で大きさ、手首の傾きで「たおす」角度。位置は動かさない
         exTickTwoHand(btnBusy);
+        if(exTwoHand) exAdjSwapIdx = -1;   // 両手調整に入ったら、展示作品の入れ替えは取り消し
 
-        // 位置：トリガーを押した瞬間の「作品 − コントローラー」の差を保ったまま動かす（急に飛ばない）
+        // 展示作品の入れ替え：押したときと離したときに同じ展示作品を指していれば、離したときに入れ替える
+        if(trigEdge && !btnBusy && !exTwoHand && hoverWork >= 0 && exIn.grip < GRIP_PAN_THRESHOLD){
+            exAdjSwapIdx = hoverWork;
+        } else if(exAdjSwapIdx >= 0 && !trigDown){
+            if(hoverWork === exAdjSwapIdx){
+                exSetSelection(exAdjSwapIdx);         // ①に戻ったときもこの作品から
+                exClearSelectionHighlight();
+                exSetAdjustWork(exAdjSwapIdx);        // 位置・角度・大きさ（長辺）はそのまま、画像だけ入れ替える
+                exAdjHoverWork = -1;
+                exShowFrameOn(-1);
+                exBuzzDecide();
+            }
+            exAdjSwapIdx = -1;
+        }
+
+        // 位置：選んだ作品にレイが当たっているときだけ、トリガーでつかんで動かせる。
+        // トリガーを押した瞬間の「作品 − コントローラー」の差を保ったまま動かす（急に飛ばない）。
         // ボタンに使われているトリガー（btnBusy）・グリップを握っているとき（完全リセットの姿勢）・両手のときは動かさない
-        if(!exGrabbing && !exTwoHand && trigEdge && !btnBusy && exCtrlValid && exIn.grip < GRIP_PAN_THRESHOLD){
+        if(!exGrabbing && !exTwoHand && trigEdge && !btnBusy && exAdjRayOnWork && exCtrlValid && exIn.grip < GRIP_PAN_THRESHOLD){
             exGrabbing = true;
             exGrabOffset.copy(exAdjPos).sub(exRayOrigin);
             exGrabStartPos.copy(exAdjPos);
@@ -5578,6 +5664,25 @@ function exTickDraw(now, trigDown, aEdge){
     // 書いている間・払いの途中・グリップを握っている間・固定化中は指せない（描画・固定化・移動と競合させない）
     const allow = !operationLocked && !drawing && !releaseActive && exIn.grip < GRIP_PAN_THRESHOLD;
     const busy = exTickButtons(exBtnMeshes, now, trigDown, aEdge, allow);
+    if(exBtnFired === exBtnUndo || exBtnFired === exBtnClearAll){
+        if(exBtnFired === exBtnUndo){
+            // クリア：描画を1つもどす（Bを短く押したときと同じ）
+            undoLastStroke();
+            vibrate("right", 40, 0.5);
+        } else {
+            // すべてクリア：描画を全部消す（B長押しと同じ）
+            if(replayActive) finishReplayImmediately();
+            clearAll();
+            colorMode = COLOR_MODE.BW;
+            colorChanged = false;
+            isWhite = false;
+            currentColor.set(0x111111);
+            blackLockFrames = BLACK_LOCK_DURATION;
+            vibrate("right", 120, 0.9);
+        }
+        exGate = true;   // ③のまま。押したボタン・トリガーを離すまで既存の描画などを止める（押しっぱなしで線が出ないように）
+        return true;
+    }
     if(exBtnFired){
         const toAdjust = (exBtnFired === exBtnBack);
         exLeaveDraw();
