@@ -4098,17 +4098,22 @@ const EXHIBIT_OUTLINE_OPACITY_DRAW = 0.35;       // ③：書く邪魔になら�
 const EXHIBIT_GRAB_SMOOTH_TAU = 0.035;   // 移動の手ぶれ吸収（秒）。小さいほど追従が速い
 
 // ----- ②「もどる」・③「もどる」「おわる」ボタン -----
-const EXHIBIT_BTN_W = 0.20, EXHIBIT_BTN_H = 0.10, EXHIBIT_BTN_GAP = 0.05; // m
+const EXHIBIT_BTN_W = 0.30, EXHIBIT_BTN_H = 0.15, EXHIBIT_BTN_GAP = 0.05; // m（文字の大きさはそのままで、ボタンは以前の1.5倍）
 const EXHIBIT_BTN_DWELL_MS = 200;        // トリガーで決定できるのは、この時間ボタンを指し続けてから
-const EXHIBIT_BTN_WORK_GAP = 0.04;       // 作品の左端とボタンのすき間（m）。ボタンは作品の上下中央の左に縦に並べる
-const EXHIBIT_BTN_VGAP = 0.03;           // 縦に並べたボタンどうしのすき間（m）
+const EXHIBIT_BTN_WORK_GAP = 0.14;       // 作品の左端とボタンのすき間（m）。ボタンは作品の上下中央の左に縦に並べる
+const EXHIBIT_BTN_VGAP = 0.13;           // 縦に並べたボタンどうしのすき間（m）（なぞり書き・押し間違いを防ぐため広め）
 // ----- ② 両手での調整（左右のトリガーを両方押している間）-----
 const EXHIBIT_TWO_HAND_ON = 0.5;         // 両方のトリガーがこれ以上で両手モード
 const EXHIBIT_TWO_HAND_OFF = 0.25;       // どちらかがこれ未満で終了
 // ----- 完全リセット（右トリガー＋右グリップ＋B長押し）-----
 const EXHIBIT_RESET_HOLD_MS = 1000;
 const EXHIBIT_RESET_WARN_MS = 500;
-const EXHIBIT_HINT_W = 0.34;             // ②の案内パネルの幅（m）
+// ②の案内パネル：文字の大きさは以前のまま（1m あたり約3012px）、まわりに余白を入れる
+const EXHIBIT_HINT_CW = 1720, EXHIBIT_HINT_CH = 440;   // パネルのキャンバス（px）
+const EXHIBIT_HINT_PAD_X = 100, EXHIBIT_HINT_PAD_Y = 60; // 余白（px）
+const EXHIBIT_HINT_W = 0.34 * EXHIBIT_HINT_CW / 1024;  // パネルの幅（m）
+// ②③（作品選択以外）の間、展示作品をうっすら暗くするときの明るさ（1＝元のまま）
+const EXHIBIT_DIM_LEVEL = 0.4;
 const EXHIBIT_HINT_DROP = 0.04;          // 作品の下端から案内パネルまでのすき間（m）
 const EXHIBIT_HINT_FRONT = 0.06;         // 作品の手前側の端から、さらにプレイヤー側へ出す距離（m）
 const EXHIBIT_HINT_PITCH = 20 * Math.PI / 180;   // 案内パネルとボタンを少し上向きにして読みやすく
@@ -4136,6 +4141,7 @@ const exFrameInner = [], exFrameOuter = [];
 let exRayMesh = null, exRayDot = null;
 let exAdjMesh = null;
 let exHintMesh = null, exMsgMesh = null;
+let exCtrlHintMesh = null;   // ①・読み込み中にコントローラーの近くに出す小さな案内
 let exAdjOutline = null;     // 目の前の作品の紙のふち（細い線4本）
 let exAdjOutlineMat = null;
 let exBtnGroup = null, exBtnBack = null, exBtnEnd = null;   // ③「もどる」「おわる」
@@ -4601,9 +4607,11 @@ function exEnsureScene(){
     exRoot.add(exAdjOutline);
 
     // --- 案内パネル・メッセージ ---
-    exHintMesh = exMakePanel(1024, 320);
+    exHintMesh = exMakePanel(EXHIBIT_HINT_CW, EXHIBIT_HINT_CH);
+    exCtrlHintMesh = exMakePanel(1024, 320);
     exMsgMesh = exMakePanel(1024, 256);
     exRoot.add(exHintMesh);
+    exRoot.add(exCtrlHintMesh);
     exRoot.add(exMsgMesh);
 
     // --- ③「もどる」「おわる」ボタン ---
@@ -4660,7 +4668,7 @@ function exMakePanel(cw, ch){
 }
 
 // パネルに文字を描く（内容が変わったときだけ描き直す）。lines: [{ text, size, bold, color }]
-function exDrawPanel(mesh, key, lines, widthM){
+function exDrawPanel(mesh, key, lines, widthM, padX = 35, padY = 20){
     const c = mesh.userData.canvas;
     mesh.scale.set(widthM, widthM * c.height / c.width, 1);
     if(mesh.userData.key === key) return;
@@ -4675,21 +4683,21 @@ function exDrawPanel(mesh, key, lines, widthM){
     ctx.stroke();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const lh = (c.height - 40) / lines.length;
+    const lh = (c.height - padY * 2) / lines.length;
     lines.forEach((ln, i) => {
         ctx.font = `${ln.bold ? "bold " : ""}${ln.size}px ${EXHIBIT_FONT}`;
         ctx.fillStyle = ln.color || "#f0e8d0";
-        ctx.fillText(ln.text, c.width / 2, 20 + lh * (i + 0.5), c.width - 70);
+        ctx.fillText(ln.text, c.width / 2, padY + lh * (i + 0.5), c.width - padX * 2);
     });
     mesh.material.map.needsUpdate = true;
 }
 
 function exMakeButton(label, sub){
     const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 256;
+    canvas.width = 768;     // 以前（512×256）の1.5倍。文字のpxは同じなので、見た目の文字の大きさは変わらない
+    canvas.height = 384;
     const ctx = canvas.getContext("2d");
-    exRoundRectPath(ctx, 8, 8, 496, 240, 48);
+    exRoundRectPath(ctx, 10, 10, 748, 364, 64);
     ctx.fillStyle = "rgba(40, 26, 8, 0.92)";
     ctx.fill();
     ctx.lineWidth = 10;
@@ -4699,10 +4707,10 @@ function exMakeButton(label, sub){
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#fff4d0";
     ctx.font = `bold 110px ${EXHIBIT_FONT}`;
-    ctx.fillText(label, 256, 110, 450);
+    ctx.fillText(label, 384, 160, 700);
     ctx.fillStyle = "#e8d8a8";
     ctx.font = `40px ${EXHIBIT_FONT}`;
-    ctx.fillText(sub, 256, 200, 450);
+    ctx.fillText(sub, 384, 270, 700);
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     const btn = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
@@ -4798,6 +4806,13 @@ function exSetSelection(i){
     w.group.add(exFrame);
     exResizeFrame(w.w, w.h);
     exFrame.visible = true;
+}
+
+// ②③の間は展示作品（円周上の作品）だけをうっすら暗くする。
+// 目の前の作品・描いた線・ボタン・案内パネルは別のマテリアルなので影響しない。
+function exSetCircleDim(on){
+    const v = on ? EXHIBIT_DIM_LEVEL : 1.0;
+    for(const m of exWorkMeshes) m.material.color.setScalar(v);
 }
 
 function exClearSelectionHighlight(){
@@ -4918,13 +4933,13 @@ function exPlaceHintNearController(){
     } else {
         exTmpV1.set(0, -0.25, -0.9).applyQuaternion(renderer.xr.getCamera().quaternion).add(exHeadPos);
     }
-    exHintMesh.position.copy(exTmpV1);
-    exHintMesh.lookAt(exHeadPos);
-    exHintMesh.visible = true;
+    exCtrlHintMesh.position.copy(exTmpV1);
+    exCtrlHintMesh.lookAt(exHeadPos);
+    exCtrlHintMesh.visible = true;
 }
 
 function exShowLoadingHint(){
-    exDrawPanel(exHintMesh, "loading" + exLoadedCount, [
+    exDrawPanel(exCtrlHintMesh, "loading" + exLoadedCount, [
         { text: "さくひんを よみこみちゅう…", size: 74, bold: true },
         { text: `${exLoadedCount} まい`, size: 60, color: "#e8c86a" }
     ], 0.17);
@@ -4932,7 +4947,7 @@ function exShowLoadingHint(){
 }
 
 function exShowSelectHint(){
-    exDrawPanel(exHintMesh, "select", [
+    exDrawPanel(exCtrlHintMesh, "select", [
         { text: "さくひんを えらんでね", size: 80, bold: true },
         { text: "レイ＋トリガー ／ スティック＋A", size: 58, color: "#e8c86a" }
     ], 0.17);
@@ -4949,7 +4964,7 @@ function exComputeAdjustHintPose(){
         { text: "りょうてトリガー：ひろげる＝おおきさ ／ てくび＝たおす", size: 54 },
         { text: "スティック 上下：たおす ／ 左右：おおきさ", size: 54 },
         { text: "A・けってい：かきはじめる ／ B・もどる：えらびなおす", size: 54, bold: true, color: "#e8c86a" }
-    ], EXHIBIT_HINT_W);
+    ], EXHIBIT_HINT_W, EXHIBIT_HINT_PAD_X, EXHIBIT_HINT_PAD_Y);
     const w = exWorks[exAdjIdx];
     if(!w) return;
     const sh = w.aspect >= 1 ? exAdjSize / w.aspect : exAdjSize;   // 作品の高さ
@@ -4998,6 +5013,7 @@ function exHideAll(){
     exResetButtonPointing();
     exShowAdjust(false);
     exHintMesh.visible = false;
+    exCtrlHintMesh.visible = false;
     exMsgMesh.visible = false;
     exBtnGroup.visible = false;
     exBtnGroupAdj.visible = false;
@@ -5176,6 +5192,8 @@ function exEnterSelect(){
     exBtnGroupAdj.visible = false;
     exResetButtonPointing();
     exCircleGroup.visible = true;
+    exHintMesh.visible = false;
+    exSetCircleDim(false);  // 選択中は展示作品を元の明るさに
     exRoot.visible = true;
     exSetSelection(exSelIdx >= 0 && exSelIdx < exWorks.length ? exSelIdx : 0);
 }
@@ -5188,7 +5206,9 @@ function exEnterAdjust(index, fresh){
     exAdjAtLimit = false;
     exClearSelectionHighlight();
     exBtnGroup.visible = false;
+    exCtrlHintMesh.visible = false;
     exResetButtonPointing();
+    exSetCircleDim(true);   // 展示作品をうっすら暗く
     if(fresh){
         // ①から来たとき：選んだ作品を目の前に、プレイヤーの方を向けて垂直・最小サイズで置く
         exCancelHiRes();
@@ -5228,6 +5248,7 @@ function exEnterDraw(){
     exBtnGroupAdj.visible = false;
     exResetButtonPointing();
     exHintMesh.visible = false;
+    exCtrlHintMesh.visible = false;
     exPlaceButtonsLeftOfWork(exBtnGroup);
     exBtnGroup.visible = true;
     exBtnNeedFresh = true;
@@ -5249,6 +5270,7 @@ function exCancelToSelect(){
     vibrate("right", 40, 0.5);
     exGrabbing = false;
     exHintMesh.visible = false;
+    exCtrlHintMesh.visible = false;
     exEnterSelect();
 }
 
@@ -5297,6 +5319,7 @@ function exTickWait(){
         return;
     }
     exHintMesh.visible = false;
+    exCtrlHintMesh.visible = false;
     if(exWorks.length > 0){
         exLayout();
         exEnterSelect();
@@ -5503,6 +5526,7 @@ function exFullReset(){
     exCancelHiRes();
     exShowAdjust(false);
     exHintMesh.visible = false;
+    exCtrlHintMesh.visible = false;
     exBtnGroup.visible = false;
     exBtnGroupAdj.visible = false;
     exResetButtonPointing();
