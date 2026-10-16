@@ -1,0 +1,5308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>越前・空書 ─ 3D書道体験</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Antique+Soft&family=Noto+Serif+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', serif; }
+
+/* ===== カラートークン ===== */
+:root {
+  --bg-panel2: rgba(12, 10, 24, 0.82);
+  --border: rgba(200, 168, 74, 0.18);
+  --txt-head: #f0e8d0;
+  --txt-body: #ddd4b8;
+  --txt-sub: #b8a888;
+  --txt-muted: #c8a84a;
+  --accent: #c8a84a;
+
+  /* ボタン色トークン（モーダル用） */
+  --clr-trigger-bg:  rgba(180, 40, 40, 0.22);
+  --clr-trigger-bd:  rgba(220, 70, 70, 0.55);
+  --clr-trigger-tx:  #f87171;
+
+  --clr-green-bg:    rgba(30, 100, 50, 0.22);
+  --clr-green-bd:    rgba(60, 180, 90, 0.55);
+  --clr-green-tx:    #6ee7a0;
+
+  --clr-orange-bg:   rgba(160, 80, 0, 0.22);
+  --clr-orange-bd:   rgba(230, 130, 30, 0.55);
+  --clr-orange-tx:   #fbbf60;
+
+  --clr-purple-bg:   rgba(80, 40, 160, 0.22);
+  --clr-purple-bd:   rgba(150, 100, 240, 0.55);
+  --clr-purple-tx:   #c4b5fd;
+
+  --clr-gray-bg:     rgba(40, 40, 50, 0.30);
+  --clr-gray-bd:     rgba(120, 120, 140, 0.35);
+  --clr-gray-tx:     rgba(180, 175, 165, 0.55);
+}
+
+/* ===== コントローラーガイドパネル ===== */
+#controllerGuide {
+  /* モーダル内側の通常フローに配置（fixedだと高さに含まれず潰れ、スクロールも効かない） */
+  position: static;
+  width: 100%;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: none;
+  box-shadow: none;
+  padding: 16px 24px 14px;
+}
+
+#controllerGuide h3 {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--txt-muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(200,168,74,0.35);
+}
+
+.guide-cols {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+.guide-divider {
+  width: 1px;
+  background: rgba(200, 168, 74, 0.18);
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.ctrl-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  max-width: 600px;
+}
+
+.ctrl-panel.left-ctrl {
+  flex-direction: row-reverse;
+}
+
+.ctrl-panel h4 {
+  display: none;
+}
+
+.ctrl-svg-wrap {
+  flex-shrink: 0;
+  width: 215px;
+  height: 230px;
+}
+.ctrl-svg-wrap svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ctrl-labels {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  justify-content: center;
+}
+
+.ctrl-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--txt-head);
+  letter-spacing: 0.06em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(200,168,74,0.22);
+  margin-bottom: 2px;
+  text-shadow: 0 0 12px rgba(200,168,74,0.25);
+}
+
+.ctrl-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.55;
+  color: var(--txt-body);
+}
+.ctrl-label-row .desc {
+  color: var(--txt-body);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.ctrl-label-row .desc.muted {
+  color: var(--clr-gray-tx);
+  font-style: italic;
+}
+
+.btn-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  background: rgba(60, 50, 100, 0.28);
+  border: 1.5px solid rgba(180, 160, 240, 0.30);
+  color: #c4b5fd;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* トリガー系 */
+.btn-badge.red {
+  background: var(--clr-trigger-bg);
+  border-color: var(--clr-trigger-bd);
+  color: var(--clr-trigger-tx);
+}
+/* Aボタン */
+.btn-badge.green {
+  background: var(--clr-green-bg);
+  border-color: var(--clr-green-bd);
+  color: var(--clr-green-tx);
+}
+/* Bボタン / 戻る系  */
+.btn-badge.orange {
+  background: var(--clr-orange-bg);
+  border-color: var(--clr-orange-bd);
+  color: var(--clr-orange-tx);
+}
+/* スティック */
+.btn-badge.purple {
+  background: var(--clr-purple-bg);
+  border-color: var(--clr-purple-bd);
+  color: var(--clr-purple-tx);
+}
+/* 割り当てなし・システム */
+.btn-badge.gray {
+  background: var(--clr-gray-bg);
+  border-color: var(--clr-gray-bd);
+  color: var(--clr-gray-tx);
+}
+/* Xボタン */
+.btn-badge.blue {
+  background: rgba(30, 60, 140, 0.28);
+  border-color: rgba(100, 150, 240, 0.45);
+  color: #93c5fd;
+}
+
+/* ===== AR START ボタン（スタート画面内） ===== */
+#ARButton {
+  display: block !important;
+  position: static !important;
+  transform: none !important;
+  width: 100% !important;
+  padding: 18px 24px !important;
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  font-family: 'Zen Antique Soft', 'Noto Serif JP', serif !important;
+  letter-spacing: 0.22em !important;
+  border: none !important;
+  border-radius: 50px !important;
+  cursor: pointer !important;
+  z-index: 1 !important;
+  background: linear-gradient(135deg, #b8902a, #e8c86a, #b8902a) !important;
+  color: #1a0e00 !important;
+  box-shadow:
+    0 0 0 0 rgba(200,168,74,0.6),
+    0 8px 32px rgba(180,140,40,0.45),
+    0 2px 8px rgba(0,0,0,0.5) !important;
+  animation: arPulse 2.2s ease-in-out infinite !important;
+  transition: transform 0.15s, box-shadow 0.15s !important;
+  text-shadow: 0 1px 4px rgba(255,240,180,0.4) !important;
+}
+#ARButton:hover {
+  transform: scale(1.04) !important;
+  box-shadow:
+    0 0 0 12px rgba(200,168,74,0.12),
+    0 12px 40px rgba(180,140,40,0.60),
+    0 2px 8px rgba(0,0,0,0.5) !important;
+}
+#ARButton:disabled {
+  background: linear-gradient(135deg, #444, #666) !important;
+  animation: none !important;
+  color: #999 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+  cursor: not-allowed !important;
+}
+@keyframes arPulse {
+  0%   { box-shadow: 0 0 0 0   rgba(200,168,74,0.6), 0 8px 32px rgba(180,140,40,0.45), 0 2px 8px rgba(0,0,0,0.5); }
+  50%  { box-shadow: 0 0 0 18px rgba(200,168,74,0.0), 0 8px 40px rgba(180,140,40,0.60), 0 2px 8px rgba(0,0,0,0.5); }
+  100% { box-shadow: 0 0 0 0   rgba(200,168,74,0.6), 0 8px 32px rgba(180,140,40,0.45), 0 2px 8px rgba(0,0,0,0.5); }
+}
+
+/* ===== タイトル画面 ===== */
+#startScreen {
+  position: fixed; inset: 0; z-index: 2000;
+  display: block;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(80,40,10,0.55) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(20,10,60,0.6) 0%, transparent 55%),
+    linear-gradient(160deg, #0e0a1a 0%, #1a0f08 50%, #0a0e1a 100%);
+  /* 縦スクロールを許可（画面に収まらないときだけスクロール） */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* 中身は専用ラッパーで縦中央寄せ。margin:auto により、
+   収まるときは中央・あふれるときはスクロール（フレックスの上端見切れ回避） */
+.start-inner {
+  min-height: 100%;
+  margin: 0 auto; /* 横中央のみ。縦は min-height + justify-content で中央寄せ（overflow時は上から表示） */
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%;
+  padding: max(28px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  position: relative; z-index: 1;
+}
+#startScreen::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 30% at 15% 50%, rgba(180,120,40,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 85% 20%, rgba(80,60,180,0.10) 0%, transparent 70%);
+}
+.start-deco {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 8px; opacity: 0.5;
+}
+.start-deco .dl { width: 70px; height: 1px; background: linear-gradient(to right, transparent, #c8a84a); }
+.start-deco .dr { width: 70px; height: 1px; background: linear-gradient(to left,  transparent, #c8a84a); }
+.start-deco span { font-size: 13px; letter-spacing: 0.35em; color: #c8a84a; font-family: 'Noto Serif JP', serif; }
+.start-title {
+  font-family: 'Zen Antique Soft', 'Noto Serif JP', serif;
+  font-size: clamp(44px, 6.5vw, 72px);
+  font-weight: 400; color: #f0e8d0; letter-spacing: 0.18em; line-height: 1;
+  text-shadow: 0 0 40px rgba(200,168,74,0.45), 0 2px 8px rgba(0,0,0,0.8);
+  position: relative; z-index: 1;
+}
+.start-title .ta { color: #c8a84a; }
+.start-subtitle {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(15px, 2.2vw, 24px); font-weight: 400;
+  color: rgba(220,210,190,0.75); letter-spacing: 0.38em;
+  margin-top: 0px; margin-bottom: 24px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.6); position: relative; z-index: 1;
+}
+.start-divider {
+  width: min(400px, 72vw); height: 1px; margin-bottom: 20px;
+  background: linear-gradient(to right, transparent, rgba(200,168,74,0.5) 30%, rgba(200,168,74,0.5) 70%, transparent);
+  position: relative; z-index: 1;
+}
+.start-controls {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  width: min(500px, 88vw); position: relative; z-index: 1;
+}
+/* スライダー */
+.start-slider-block {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(200,168,74,0.2);
+  border-radius: 12px;
+  padding: 5px 16px;
+  width: 100%;
+}
+.start-slider-block .ssl-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0; /* 行間の余白（トグルボタン行が詰まって見えないように） */
+}
+/* ===== かんたん設定（プリセット） ===== */
+.ssl-preset {
+  margin: 6px 0 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(200,168,74,0.18);
+}
+.ssl-preset-lbl {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(200,190,160,0.65);
+  letter-spacing: 0.14em;
+  font-family: sans-serif;
+  margin: 2px 0 8px;
+}
+.ssl-preset-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ssl-preset-btn {
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: sans-serif;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  background: rgba(200,168,74,0.12);
+  border: 1px solid rgba(200,168,74,0.38);
+  color: #e8dcb4;
+}
+.ssl-preset-btn:hover {
+  background: rgba(200,168,74,0.24);
+  border-color: rgba(200,168,74,0.7);
+}
+.ssl-preset-btn:active {
+  transform: scale(0.97);
+}
+.ssl-preset-btn .sub {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+/* スライダーに有効/無効トグルが付く行は、右端にトグル用の列を足す */
+.start-slider-block .ssl-row.has-toggle {
+  grid-template-columns: auto auto 1fr auto;
+}
+/* 行内の小さな有効/無効トグル */
+.start-slider-block .ssl-toggle {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: sans-serif;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(200,168,74,0.4);
+  background: rgba(200,168,74,0.15);
+  color: #c8a84a;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.start-slider-block .ssl-toggle.off {
+  border-color: rgba(200,190,160,0.25);
+  background: rgba(255,255,255,0.04);
+  color: rgba(200,190,160,0.5);
+}
+/* トグルOFF時、そのスライダーを淡色・操作不可に見せる */
+.start-slider-block .ssl-row.disabled .ssl-val,
+.start-slider-block .ssl-row.disabled input[type=range] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.start-slider-block .ssl-lbl {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(200,190,160,0.65);
+  letter-spacing: 0.14em;
+  font-family: sans-serif;
+  white-space: nowrap;
+}
+.start-slider-block .ssl-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #c8a84a;
+  font-family: sans-serif;
+  min-width: 60px;
+  text-align: right;
+}
+.start-slider-block input[type=range] {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(to right, #c8a84a 0%, #c8a84a var(--pct,100%), rgba(255,255,255,0.12) var(--pct,100%));
+}
+.start-slider-block input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f0e0a0;
+  border: 2px solid #c8a84a;
+  box-shadow: 0 0 6px rgba(200,168,74,0.5);
+  cursor: pointer;
+}
+.start-slider-block input[type=range]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f0e0a0;
+  border: 2px solid #c8a84a;
+  cursor: pointer;
+}
+.start-slider-block .ssl-warn {
+  grid-column: 3;
+  text-align: center;
+  font-size: 11px;
+  color: #f59e0b;
+  font-family: sans-serif;
+  margin-top: 2px;
+  min-height: 0;
+  line-height: 1.2;
+}
+.start-slider-block .ssl-warn:empty {
+  display: none;
+}
+/* ファイルボタン行 */
+.start-file-row { display: flex; gap: 10px; width: 100%; }
+.start-file-btn {
+  flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 700;
+  font-family: sans-serif; border-radius: 10px; cursor: pointer; transition: all 0.18s;
+  white-space: nowrap; background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(200,168,74,0.3); color: rgba(230,220,190,0.85);
+}
+.start-file-btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(200,168,74,0.55); }
+/* 注意書き */
+.start-notice {
+  width: 100%; font-size: 13px; color: rgba(240,200,80,0.7);
+  background: rgba(180,130,0,0.10); border: 1px solid rgba(200,168,74,0.2);
+  border-radius: 8px; padding: 7px 12px; line-height: 1.7; font-family: sans-serif; text-align: center;
+}
+/* ガイドボタン */
+.start-guide-btn {
+  width: 100%; padding: 12px 14px; font-size: 14px; font-weight: 700;
+  font-family: 'Noto Serif JP', sans-serif; letter-spacing: 0.06em;
+  border-radius: 12px; cursor: pointer; transition: all 0.18s; text-align: center;
+  background: rgba(80,60,180,0.16); border: 1px solid rgba(140,120,240,0.32); color: rgba(200,190,255,0.88);
+  display: block;
+}
+.start-guide-btn:hover { background: rgba(80,60,180,0.30); border-color: rgba(140,120,240,0.55); }
+/* 制作クレジット */
+.start-credit {
+  margin-top: 14px; font-size: 13px; color: rgba(180,160,120,0.45);
+  letter-spacing: 0.18em; font-family: 'Noto Serif JP', sans-serif; text-align: center; line-height: 1.9;
+  position: relative; z-index: 1;
+}
+
+/* ===== モーダル（コントローラーガイド） ===== */
+#guideModal {
+  position: fixed; inset: 0; z-index: 3000; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(4, 3, 14, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#guideModal::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 40% at 20% 30%, rgba(140, 90, 20, 0.08) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 55% at 80% 70%, rgba(40, 20, 100, 0.10) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 30% at 60% 15%, rgba(180, 140, 40, 0.05) 0%, transparent 60%);
+}
+#guideModal.open { display: flex; }
+#guideModalInner {
+  background:
+    radial-gradient(ellipse 70% 50% at 25% 20%, rgba(80, 50, 10, 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 70% at 80% 80%, rgba(20, 10, 60, 0.22) 0%, transparent 60%),
+    linear-gradient(150deg, rgba(18, 14, 32, 0.95) 0%, rgba(12, 9, 22, 0.97) 50%, rgba(14, 10, 28, 0.95) 100%);
+  border: 1px solid rgba(200, 168, 74, 0.20);
+  border-radius: 20px;
+  box-shadow:
+    0 0 0 1px rgba(200,168,74,0.06) inset,
+    0 20px 60px rgba(0,0,0,0.75),
+    0 0 40px rgba(180,130,30,0.06);
+  width: 96vw;
+  max-width: 1200px;
+  /* 中身なりの高さにし、画面を超えたぶんは内側でスクロール（縦・横とも） */
+  min-height: 0;
+  max-height: 92vh;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 24px 28px 20px;
+  position: relative;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+#guideModalClose {
+  position: absolute; top: 14px; right: 18px; z-index: 3001;
+  background: rgba(200, 168, 74, 0.08);
+  border: 1px solid rgba(200, 168, 74, 0.25);
+  border-radius: 8px;
+  padding: 6px 18px; font-size: 15px; font-weight: 700;
+  color: rgba(200, 168, 74, 0.80);
+  cursor: pointer; font-family: sans-serif;
+  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(200,168,74,0.3);
+}
+#guideModalClose:hover {
+  background: rgba(200, 168, 74, 0.18);
+  color: rgba(240, 210, 120, 1.0);
+}
+
+/* ===== スマホ・狭い画面向け調整 ===== */
+@media (max-width: 768px) {
+  /* タイトル画面：余白と間隔をコンパクトに（スクロール前提） */
+  .start-controls { width: min(500px, 92vw); }
+  .start-deco .dl, .start-deco .dr { width: 44px; }
+
+  /* コントローラーガイド：横並びだと潰れるので縦積みにする */
+  #guideModalInner {
+    width: 96vw;
+    min-height: 0;
+    max-height: 90vh;
+    padding: 18px 14px 16px;
+  }
+  #controllerGuide { padding: 8px 2px 10px; }
+  #controllerGuide h3 { font-size: 15px; margin-bottom: 10px; }
+
+  /* 2カラムを縦に積む。順番は「右コントローラー → 左コントローラー」 */
+  .guide-cols { flex-direction: column; align-items: stretch; gap: 6px; }
+  .ctrl-panel:not(.left-ctrl) { order: 1; }  /* 右コントローラーを先に */
+  .guide-divider { order: 2; }
+  .ctrl-panel.left-ctrl       { order: 3; }  /* 左コントローラーを後に */
+
+  /* 各パネル内：コントローラー画像を上、その説明を下に縦並び（行→列） */
+  .ctrl-panel,
+  .ctrl-panel.left-ctrl {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .guide-divider { width: auto; height: 1px; align-self: stretch; margin: 4px 0; }
+
+  /* 画像は中央に、説明は横幅いっぱいに */
+  .ctrl-svg-wrap { width: 160px; height: 172px; }
+  .ctrl-labels   { width: 100%; max-width: 380px; gap: 7px; }
+
+  .ctrl-title { font-size: 14px; text-align: center; }
+  .ctrl-label-row .desc { font-size: 13px; line-height: 1.45; }
+  .btn-badge { min-width: 72px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== タイトル画面 ===== -->
+<div id="startScreen">
+  <div class="start-inner">
+  <div class="start-deco">
+    <div class="dl"></div>
+    <span>ECHIZEN KUUSHO</span>
+    <div class="dr"></div>
+  </div>
+
+  <h1 class="start-title"><span class="ta">越前</span>・空書</h1>
+  <p class="start-subtitle">３Ｄ書道体験</p>
+  <div class="start-divider"></div>
+
+  <div class="start-controls">
+    <div id="arButtonSlot" style="width:100%;"></div>
+    <button class="start-guide-btn" id="openGuideBtn">🎮 コントローラーのつかいかたを見る</button>
+    <div style="width:100%;height:1px;background:rgba(200,168,74,0.15);"></div>
+    <div class="start-file-row">
+      <button class="start-file-btn" id="downloadJsonBtn">💾 ファイルに保存</button>
+      <button class="start-file-btn" id="loadJsonBtn">📂 ファイルから読込</button>
+    </div>
+    <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
+
+    <div class="start-slider-block">
+      <div class="ssl-preset">
+        <span class="ssl-preset-lbl">かんたん設定</span>
+        <div class="ssl-preset-btns">
+          <button class="ssl-preset-btn" id="presetBeginner" data-preset="beginner">🔰 ビギナー</button>
+          <button class="ssl-preset-btn" id="presetStandard" data-preset="standard">🖌️ スタンダード</button>
+          <button class="ssl-preset-btn" id="presetCreator" data-preset="creator">🎨 クリエイター</button>
+          <button class="ssl-preset-btn" id="presetSuper" data-preset="super">🚀 スーパークリエイター</button>
+        </div>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">すみの多さ</span>
+        <span class="ssl-val" id="limitVal">12,000</span>
+        <input type="range" id="limitSlider" min="5000" max="50000" step="1000" value="12000">
+        <div class="ssl-warn" id="limitWarning"></div>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">とりけしできる筆数</span>
+        <span class="ssl-val" id="stampsVal">10</span>
+        <input type="range" id="stampsSlider" min="1" max="30" step="1" value="10">
+        <div class="ssl-warn" id="stampsWarning"></div>
+      </div>
+      <div class="ssl-row has-toggle" id="brushSizeRow">
+        <span class="ssl-lbl">ふでの太さ</span>
+        <span class="ssl-val" id="brushSizeVal">26</span>
+        <input type="range" id="brushSizeSlider" min="0.008" max="0.08" step="0.002" value="0.026">
+        <button class="ssl-toggle off" id="brushSizeToggle">こてい</button>
+        <div class="ssl-warn" id="brushSizeWarning"></div>
+      </div>
+      <div class="ssl-row has-toggle" id="releaseTauRow">
+        <span class="ssl-lbl">はらいの長さ</span>
+        <span class="ssl-val" id="releaseTauVal">0.07</span>
+        <input type="range" id="releaseTauSlider" min="0.03" max="0.25" step="0.01" value="0.07">
+        <button class="ssl-toggle off" id="releaseTauToggle">こてい</button>
+        <div class="ssl-warn" id="releaseTauWarning"></div>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">かきはじめの反応</span>
+        <span class="ssl-val" id="startResponseVal">50</span>
+        <input type="range" id="startResponseSlider" min="0" max="1" step="0.05" value="0.5">
+        <div class="ssl-warn" id="startResponseWarning"></div>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">すみがきれたら</span>
+        <button class="start-file-btn" id="inkLimitModeToggle" style="min-width:11em;">🛑 とまる</button>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">絵をうごかす・まわす</span>
+        <button class="start-file-btn" id="moveRotateToggle" style="min-width:11em;">🔒 しない</button>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">おてほんの文字</span>
+        <button class="start-file-btn" id="defaultTextToggle" style="min-width:8em;">✒️ ひょうじする</button>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">リピート（Aながおし）</span>
+        <button class="start-file-btn" id="repeatToggle" style="min-width:8em;">🚫 しない</button>
+      </div>
+      <div class="ssl-row">
+        <span class="ssl-lbl">作品展示</span>
+        <button class="start-file-btn" id="exhibitToggle" style="min-width:8em;">🚫 しない</button>
+        <div class="ssl-warn" id="exhibitStatus"></div>
+      </div>
+    </div>
+
+    <div class="start-notice">
+      ⚠️ コントローラーの「ほぞん」はブラウザをとじるときえます<br>
+      ながくのこしたいときは「ファイルに保存」してください
+    </div>
+  </div>
+
+  <div class="start-credit">
+    越前市ぷらぷらぼ 制作<br>
+  </div>
+  </div>
+</div>
+
+<!-- ===== モーダル（コントローラーガイド） ===== -->
+<div id="guideModal">
+  <button id="guideModalClose">✕ 閉じる</button>
+  <div id="guideModalInner">
+    <div id="controllerGuide">
+      <h3>コントローラーのつかいかた</h3>
+      <div class="guide-cols">
+
+        <!-- ===== 左コントローラー ===== -->
+        <div class="ctrl-panel left-ctrl">
+          <div class="ctrl-svg-wrap">
+            <svg viewBox="0 0 220 230" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lgripL" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2a2d42"/><stop offset="40%" stop-color="#1e2136"/><stop offset="100%" stop-color="#141628"/>
+                </linearGradient>
+                <linearGradient id="lringL" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2e3250"/><stop offset="100%" stop-color="#181c30"/>
+                </linearGradient>
+                <linearGradient id="ltrigL" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2a3050"/><stop offset="100%" stop-color="#101428"/>
+                </linearGradient>
+                <filter id="ds" x="-15%" y="-15%" width="130%" height="130%">
+                  <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.55)"/>
+                </filter>
+              </defs>
+              <ellipse cx="108" cy="82" rx="88" ry="62" fill="url(#lringL)" stroke="#4a5070" stroke-width="3" filter="url(#ds)"/>
+              <ellipse cx="108" cy="82" rx="76" ry="50" fill="rgba(255,255,255,0.05)" stroke="#3a4060" stroke-width="1.2"/>
+              <ellipse cx="94" cy="72" rx="30" ry="18" fill="rgba(255,255,255,0.06)" stroke="none" transform="rotate(-10,94,72)"/>
+              <path d="M 84 118 C 77 128, 74 148, 75 168 C 76 188, 84 202, 96 206 C 108 210, 120 205, 126 192 C 132 179, 131 160, 128 142 C 125 126, 119 116, 112 112 C 105 108, 91 108, 84 118 Z" fill="url(#lgripL)" stroke="#3a4060" stroke-width="2.2" filter="url(#ds)"/>
+              <path d="M 90 122 C 86 134, 86 150, 88 165 C 96 162, 106 161, 116 164 C 118 150, 118 135, 114 122 C 108 115, 96 115, 90 122 Z" fill="rgba(255,255,255,0.07)" stroke="none"/>
+              <ellipse cx="101" cy="203" rx="22" ry="5" fill="rgba(0,0,0,0.4)" stroke="none"/>
+              <path d="M 116 128 C 128 122, 138 126, 140 138 C 142 150, 134 158, 124 156 C 118 154, 116 146, 116 128 Z" fill="url(#ltrigL)" stroke="#3a4060" stroke-width="1.8"/>
+              <path d="M 120 132 C 128 128, 134 132, 134 140" fill="none" stroke="rgba(255,255,255,0.20)" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- ① トリガー（赤系） -->
+              <circle cx="152" cy="138" r="15" fill="rgba(180,40,40,0.55)" stroke="rgba(240,80,80,0.7)" stroke-width="1.5"/>
+              <text x="152" y="145" font-size="18" fill="#ffaaaa" font-weight="900" font-family="sans-serif" text-anchor="middle">①</text>
+              <path d="M 76 148 C 64 144, 58 152, 60 163 C 62 174, 72 178, 80 172 C 83 165, 81 154, 76 148 Z" fill="url(#ltrigL)" stroke="#3a4060" stroke-width="1.8"/>
+              <!-- ⑥ グリップ（グレー） -->
+              <circle cx="47" cy="159" r="15" fill="rgba(50,50,65,0.70)" stroke="rgba(120,120,140,0.4)" stroke-width="1.5"/>
+              <text x="47" y="166" font-size="18" fill="#aaa8b8" font-weight="900" font-family="sans-serif" text-anchor="middle">⑥</text>
+              <!-- スティック（紫系） -->
+              <ellipse cx="88" cy="86" rx="14" ry="14" fill="rgba(80,45,160,0.45)" stroke="rgba(150,100,240,0.6)" stroke-width="2"/>
+              <ellipse cx="88" cy="86" rx="9" ry="9" fill="rgba(120,80,200,0.5)"/>
+              <ellipse cx="85" cy="83" rx="4" ry="3" fill="rgba(255,255,255,0.18)"/>
+              <!-- ② システムボタン（グレー） -->
+              <circle cx="68" cy="67" r="10" fill="rgba(50,50,65,0.70)" stroke="rgba(120,120,140,0.4)" stroke-width="1.2"/>
+              <text x="68" y="71" font-size="12" fill="#aaa8b8" font-weight="900" font-family="sans-serif" text-anchor="middle">②</text>
+              <!-- X ボタン（青系） -->
+              <circle cx="128" cy="90" r="12" fill="rgba(30,60,140,0.55)" stroke="rgba(100,150,240,0.65)" stroke-width="2"/>
+              <text x="128" y="95" font-size="12" fill="#93c5fd" font-weight="900" font-family="sans-serif" text-anchor="middle">X</text>
+              <!-- ③ 番号（青系） -->
+              <circle cx="146" cy="72" r="15" fill="rgba(20,40,100,0.60)" stroke="rgba(80,120,220,0.5)" stroke-width="1.5"/>
+              <text x="146" y="79" font-size="18" fill="#93c5fd" font-weight="900" font-family="sans-serif" text-anchor="middle">③</text>
+              <!-- Y ボタン（青系） -->
+              <circle cx="112" cy="72" r="12" fill="rgba(30,60,140,0.55)" stroke="rgba(100,150,240,0.65)" stroke-width="2"/>
+              <text x="112" y="77" font-size="12" fill="#93c5fd" font-weight="900" font-family="sans-serif" text-anchor="middle">Y</text>
+              <!-- ④ 番号（青系） -->
+              <circle cx="96" cy="52" r="15" fill="rgba(20,40,100,0.60)" stroke="rgba(80,120,220,0.5)" stroke-width="1.5"/>
+              <text x="96" y="59" font-size="18" fill="#93c5fd" font-weight="900" font-family="sans-serif" text-anchor="middle">④</text>
+              <!-- スティック中央 -->
+              <circle cx="108" cy="106" r="6" fill="rgba(80,45,160,0.35)" stroke="rgba(150,100,240,0.5)" stroke-width="1.5"/>
+              <circle cx="108" cy="106" r="3.5" fill="rgba(255,255,255,0.12)"/>
+              <!-- ⑤ システム（グレー） -->
+              <circle cx="100" cy="120" r="10" fill="rgba(50,50,65,0.70)" stroke="rgba(120,120,140,0.4)" stroke-width="1.2"/>
+              <text x="100" y="125" font-size="12" fill="#aaa8b8" font-weight="900" font-family="sans-serif" text-anchor="middle">⑤</text>
+              <text x="110" y="14" font-size="18" fill="#c8a84a" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="2">LEFT</text>
+            </svg>
+          </div>
+          <div class="ctrl-labels">
+            <div class="ctrl-title">ひだりて（ギャラリー）</div>
+            <div class="ctrl-label-row"><span class="btn-badge red">① トリガー</span><span class="desc">いまかいた絵を ギャラリーにほぞん（ブラウザをとじると きえます）</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge gray">② スティック</span><span class="desc muted">（わりあてなし）</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge blue">③ X ボタン</span><span class="desc">つぎの絵に きりかえる</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge blue">④ Y ボタン</span><span class="desc">ひとつまえの絵に きりかえる</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge gray">⑤ システム</span><span class="desc muted">（わりあてなし）</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge gray">⑥ グリップ</span><span class="desc">おしているあいだ、ほぞんした絵のいちらんが見える</span></div>
+          </div>
+        </div>
+
+        <div class="guide-divider"></div>
+
+        <!-- ===== 右コントローラー ===== -->
+        <div class="ctrl-panel">
+          <div class="ctrl-svg-wrap">
+            <svg viewBox="0 0 220 230" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lgripR" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2a2d42"/><stop offset="40%" stop-color="#1e2136"/><stop offset="100%" stop-color="#141628"/>
+                </linearGradient>
+                <linearGradient id="lringR" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2e3250"/><stop offset="100%" stop-color="#181c30"/>
+                </linearGradient>
+                <linearGradient id="ltrigR" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#2a3050"/><stop offset="100%" stop-color="#101428"/>
+                </linearGradient>
+                <filter id="dsR" x="-15%" y="-15%" width="130%" height="130%">
+                  <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.55)"/>
+                </filter>
+              </defs>
+              <ellipse cx="112" cy="82" rx="88" ry="62" fill="url(#lringR)" stroke="#4a5070" stroke-width="3" filter="url(#dsR)"/>
+              <ellipse cx="112" cy="82" rx="76" ry="50" fill="rgba(255,255,255,0.05)" stroke="#3a4060" stroke-width="1.2"/>
+              <path d="M 136 118 C 143 128, 146 148, 145 168 C 144 188, 136 202, 124 206 C 112 210, 100 205, 94 192 C 88 179, 89 160, 92 142 C 95 126, 101 116, 108 112 C 115 108, 129 108, 136 118 Z" fill="url(#lgripR)" stroke="#3a4060" stroke-width="2.2" filter="url(#dsR)"/>
+              <path d="M 130 122 C 134 134, 134 150, 132 165 C 124 162, 114 161, 104 164 C 102 150, 102 135, 106 122 C 112 115, 124 115, 130 122 Z" fill="rgba(255,255,255,0.07)" stroke="none"/>
+              <ellipse cx="119" cy="203" rx="22" ry="5" fill="rgba(0,0,0,0.4)" stroke="none"/>
+              <path d="M 104 128 C 92 122, 82 126, 80 138 C 78 150, 86 158, 96 156 C 102 154, 104 146, 104 128 Z" fill="url(#ltrigR)" stroke="#3a4060" stroke-width="1.8"/>
+              <path d="M 100 132 C 92 128, 86 132, 86 140" fill="none" stroke="rgba(255,255,255,0.20)" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- ① トリガー（赤系） -->
+              <circle cx="68" cy="138" r="15" fill="rgba(180,40,40,0.55)" stroke="rgba(240,80,80,0.7)" stroke-width="1.5"/>
+              <text x="68" y="145" font-size="18" fill="#ffaaaa" font-weight="900" font-family="sans-serif" text-anchor="middle">①</text>
+              <path d="M 144 148 C 156 144, 162 152, 160 163 C 158 174, 148 178, 140 172 C 137 165, 139 154, 144 148 Z" fill="url(#ltrigR)" stroke="#3a4060" stroke-width="1.8"/>
+              <!-- ⑥ グリップ（グレー） -->
+              <circle cx="173" cy="159" r="15" fill="rgba(50,50,65,0.70)" stroke="rgba(120,120,140,0.4)" stroke-width="1.5"/>
+              <text x="173" y="166" font-size="18" fill="#aaa8b8" font-weight="900" font-family="sans-serif" text-anchor="middle">⑥</text>
+              <!-- スティック（紫系） -->
+              <ellipse cx="132" cy="86" rx="14" ry="14" fill="rgba(80,45,160,0.45)" stroke="rgba(150,100,240,0.6)" stroke-width="2"/>
+              <ellipse cx="132" cy="86" rx="9" ry="9" fill="rgba(120,80,200,0.5)"/>
+              <ellipse cx="129" cy="83" rx="4" ry="3" fill="rgba(255,255,255,0.18)"/>
+              <!-- ② システムボタン（グレー） -->
+              <circle cx="152" cy="67" r="10" fill="rgba(50,50,65,0.70)" stroke="rgba(120,120,140,0.4)" stroke-width="1.2"/>
+              <text x="152" y="71" font-size="12" fill="#aaa8b8" font-weight="900" font-family="sans-serif" text-anchor="middle">②</text>
+              <!-- A ボタン（緑系） -->
+              <circle cx="92" cy="90" r="12" fill="rgba(20,90,45,0.55)" stroke="rgba(60,180,90,0.70)" stroke-width="2"/>
+              <text x="92" y="95" font-size="12" fill="#6ee7a0" font-weight="900" font-family="sans-serif" text-anchor="middle">A</text>
+              <!-- ③ 番号（緑系） -->
+              <circle cx="76" cy="72" r="15" fill="rgba(20,80,40,0.55)" stroke="rgba(50,160,80,0.55)" stroke-width="1.5"/>
+              <text x="76" y="79" font-size="18" fill="#6ee7a0" font-weight="900" font-family="sans-serif" text-anchor="middle">③</text>
+              <!-- B ボタン（オレンジ系） -->
+              <circle cx="108" cy="72" r="12" fill="rgba(140,70,10,0.55)" stroke="rgba(220,130,30,0.70)" stroke-width="2"/>
+              <text x="108" y="77" font-size="12" fill="#fbbf60" font-weight="900" font-family="sans-serif" text-anchor="middle">B</text>
+              <!-- ④ 番号（オレンジ系） -->
+              <circle cx="124" cy="52" r="15" fill="rgba(130,60,10,0.55)" stroke="rgba(200,120,30,0.55)" stroke-width="1.5"/>
+              <text x="124" y="59" font-size="18" fill="#fbbf60" font-weight="900" font-family="sans-serif" text-anchor="middle">④</text>
+              <!-- スティック中央 -->
+              <circle cx="112" cy="106" r="6" fill="rgba(80,45,160,0.35)" stroke="rgba(150,100,240,0.5)" stroke-width="1.5"/>
+              <circle cx="112" cy="106" r="3.5" fill="rgba(255,255,255,0.12)"/>
+              <!-- ⑤ システム（グレー） -->
+              <circle cx="120" cy="123" r="15" fill="rgba(50,50,65,0.70)" stroke="rgba(120,120,140,0.4)" stroke-width="1.5"/>
+              <text x="120" y="130" font-size="18" fill="#aaa8b8" font-weight="900" font-family="sans-serif" text-anchor="middle">⑤</text>
+              <text x="110" y="14" font-size="18" fill="#c8a84a" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="2">RIGHT</text>
+            </svg>
+          </div>
+          <div class="ctrl-labels">
+            <div class="ctrl-title">みぎて（ふで）</div>
+            <div class="ctrl-label-row"><span class="btn-badge red">① トリガー</span><span class="desc">おしながらうごかすと 絵がかける！つよくおすと 線がふとくなる。はやくふりぬくと「はらい」がでる</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge purple">② スティック</span><span class="desc">たおした方向で いろをえらべる（カラーモード）。カチッと おしこむと、おてほんを もういちど さいしょから 見られる</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge green">③ A ボタン</span><span class="desc">くろ↔しろ に きりかえる（メニューで「リピート」を する にすると、ながおしで さいしょから もういちど見る）</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge orange">④ B ボタン</span><span class="desc">1つもどる（かわいた墨は もどせない）。ながくおすと ぜんぶけす</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge gray">⑤ メニューボタン</span><span class="desc">メニューに もどる（もどって入りなおすと「こてい」も かいじょされる）</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge gray">⑥ グリップ</span><span class="desc">にぎりながら… A＝絵をうごかす／B＝絵をまわす（メニューで「絵をうごかす・まわす」を する のとき）／スティック上下＝ふとさ・左右＝はらいのながさ（メニューで「ちょうせい」のとき）／おしこみ＝もとにもどす</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge gray">🔒 こてい</span><span class="desc">みぎのグリップ＋トリガーを いっしょに引いたまま A を10回つづけておすと、かけない・けせない「こてい」になる。おなじそうさで かいじょ。こてい中に そうさしようとすると ブルッと ふるえる。メニューにもどって 入りなおしても かいじょ</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { ARButton } from "https://unpkg.com/three@0.160.0/examples/jsm/webxr/ARButton.js";
+
+// ===== シーン・レンダラー・カメラ =====
+let scene, camera, renderer;
+
+// ===== コントローラ関連 =====
+let controller0, controller1
+let rightController = null;
+let gamepad = null;
+let leftController = null;
+let leftGamepad = null;
+// inputSource → three.js コントローラーオブジェクトの対応表。
+// connected/disconnected で維持し、毎フレームの再バインド（reconcileInputSources）で
+// 正しいオブジェクトを引くために使う。取りこぼしても index フォールバックで自己修復する。
+const srcCtrlMap = new Map();
+
+// ===== 筆先・描画管理 =====
+let tipMesh = null;
+let stickMesh = null;
+let brushGroup = null;      // 筆メッシュ全体のグループ（表示/非表示の切り替え用）
+
+// ===== 固定化（ロック）状態 =====
+// 「新しく書いたり消したりできなくなる」完全固定モード。
+// 発動/解除ジェスチャ：右手グリップ＋右手トリガー＋Aボタンを10回連続押し。
+// 固定化中はコントローラーのあらゆる操作をブロックし、操作しようとした瞬間だけ
+// バイブで知らせる。メニュー再入室（sessionstart）でも解除される。
+let operationLocked = false;          // 固定化中フラグ（書けない／消せない／動かせない）
+const LOCK_TOGGLE_TAPS = 10;          // 必要な連打回数
+const LOCK_TAP_TIMEOUT_MS = 700;      // この間隔を超えたらカウントをリセット
+const LOCK_TRIGGER_THRESHOLD = 0.5;   // 「トリガーを引いている」とみなすしきい値
+let lockTapCount = 0;
+let lockTapLastTime = 0;
+let prevAForLock = false;
+// 固定化中の「操作しようとした瞬間」バイブ用：直前フレームの入力状態
+let lockFbPrev = {
+    rTrig:false, rGrip:false, rA:false, rB:false, rStickBtn:false, rStickAx:false,
+    lTrig:false, lGrip:false, lX:false, lY:false, lStickBtn:false, lStickAx:false
+};
+let drawing = false;
+let hasLast = false;
+let lastSize = 0.01;
+
+// ===== カラー管理 =====
+const COLOR_MODE = { BW: 0, FREE: 1 };
+let colorMode = COLOR_MODE.BW;
+let colorChanged = false;
+let isWhite = false;
+let currentColor = new THREE.Color(0x111111);
+let prevAPressed = false;
+let prevBUndoPressed = false;
+let prevStickPressed = false;
+let prevLeftTrigger = false;
+let prevLeftA = false;
+let prevLeftB = false;
+let blackLockFrames = 0;
+const BLACK_LOCK_DURATION = 30;
+
+// ===== 長押し管理 =====
+const LONG_PRESS_WARNING_MS = 300;
+const LONG_PRESS_TRIGGER_MS = 600;
+let aBtnHoldStart = 0;
+let aBtnLongFired = false;
+let aBtnWarnFired = false;
+let bBtnHoldStart = 0;
+let bBtnLongFired = false;
+let bBtnWarnFired = false;
+
+// ===== 描画スタック・更新フラグ =====
+let strokeStack = [];
+let needsUpdate = false;
+
+// ===== ギャラリー管理 =====
+let gallery = [];
+let currentGalleryIndex = -1;
+let galleryGroup;
+let galleryVisible = false;
+const MAX_GALLERY = 5;
+
+// ===== Gamepad ボタン・軸定義 =====
+const BTN_TRIGGER = 0;
+const BTN_STICK = 3;
+const BTN_A = 4;
+const BTN_B = 5;
+const AXIS_X = 2;
+const AXIS_Y = 3;
+
+// ===== 書道パラメータ =====
+const STEP_DISTANCE = 0.003;
+const STEP_DISTANCE_FAST = 0.006;
+// 太さ追従の1フレームあたり収束率（draw内でステップ数に分配される）
+const SIZE_LERP_PER_FRAME = 0.30;
+const VELOCITY_FAST_THRESHOLD = 0.012;
+const MIN_SIZE = 0.001;
+let maxBrushSize = 0.026; // 筆の最大の太さ。スライダー/VR操作で変更可
+// ===== グリップ＋スティックによる太さ調整（VRセッション中） =====
+const BRUSH_SIZE_MIN = 0.008;     // VR操作での最小太さ
+const BRUSH_SIZE_MAX = 0.08;      // VR操作での最大太さ
+const BRUSH_SIZE_DEFAULT = 0.026; // リセット時の太さ
+const BRUSH_ADJUST_RATE = 1.8;    // スティック全倒し1秒あたりの変化率（指数）
+let brushSizeIndicator = null;    // 太さプレビュー球（筆先に表示）
+let brushTailIndicator = null;    // はらいプレビューの尾（彗星状、長さ∝releaseTau）
+let brushIndicatorTimer = 0;      // プレビュー表示の残りフレーム
+let brushAdjustPrevTime = 0;      // dt計算用
+let prevGripStickPressed = false; // グリップ＋スティック押し込みのエッジ検出用
+let brushAtLimit = false;         // 上限/下限到達バイブの多重発火防止
+// はらいの長さのVR調整（グリップ＋スティック左右）
+const RELEASE_TAU_MIN = 0.03;     // ブラウザのスライダーと同じ範囲
+const RELEASE_TAU_MAX = 0.25;
+const RELEASE_TAU_DEFAULT = 0.07;
+const RELEASE_ADJUST_RATE = 1.5;  // スティック全倒し1秒あたりの変化率（指数）
+// ===== 焼き込み（ベイク）システム =====
+// 全スタンプは履歴（histPagesM/C＝唯一の正）に追記され続ける。
+// 動的バッファ（instancedMesh）には直近の「生乾き」ストロークだけを置き、
+// 古いストロークは静的チャンク（bakedChunks）へ焼き込んで動的バッファから追い出す。
+// これにより描画中の負荷は作品の総量に関係なく一定になる。
+// リプレイ・保存・ハッシュはすべて履歴から読むため、1ストローク目から完全に再現できる。
+const MAX_STAMPS = 4000;     // 生乾き（動的）バッファ容量。ユーザー設定ではなくなった
+const CHUNK_CAPACITY = 4000; // 焼き込みチャンク1個あたりの容量
+// 総スタンプ数の安全上限。GPU描画コストは総数に比例して増え続けるため、
+// 無制限だとフレーム落ち→OSによるブラウザ強制終了（クラッシュ）に至る。
+// 12000 ≒ 幅広い機種で余裕を持って安定する目安。スライダーで変更可。
+let totalStampLimit = 12000;
+let totalLimitNotified = false; // 上限到達バイブの多重発火防止
+// 上限到達時の挙動：false=とまる（既定） / true=古いストロークから消えていく
+let rollingInkMode = false;
+let keepStrokes = 10;        // スライダー：生乾き（＝とりけし可能）で残すストローク数
+let bakedChunks = [];        // 焼き込み済みチャンク {mesh, used}
+let standbyChunk = null;     // 事前確保済みの空チャンク（書き出し中の生成カクつき回避）
+let bakedCount = 0;          // 焼き込み済みスタンプ総数
+let bakedStrokeCount = 0;    // 焼き込み済みストローク数
+// 履歴はFloat32Arrayのページ（固定長ブロック）で保持する。
+// オブジェクトをスタンプごとに生成しないためGCが発生せず、
+// 焼き込み・保存のコピーも一括転送になる。
+// 論理インデックス i の物理位置は histStart + i（ローリング削除で先頭がずれる）。
+const HIST_PAGE = 4096;      // 1ページあたりのスタンプ数
+let histPagesM = [];         // 行列ページ Float32Array(HIST_PAGE*16)（textGroupローカル座標）
+let histPagesC = [];         // 色ページ   Float32Array(HIST_PAGE*3)
+let histStart = 0;           // 論理先頭の物理オフセット
+const histScratchM = new THREE.Matrix4(); // 履歴読み出し用の使い回しバッファ
+const histScratchC = new THREE.Color();
+let strokeBeginTime = 0; // ストローク開始時刻（ms）。サイズ追従ブーストの時間窓に使用
+let moveRotateEnabled = false; // 絵の移動・回転（グリップ＋A/B）を許可するか。トグルで変更
+let brushSizeAdjustEnabled = false;  // グリップ＋スティック上下での太さ調整を許可するか
+let releaseTauAdjustEnabled = false; // グリップ＋スティック左右でのはらい調整を許可するか
+let repeatEnabled = false;     // Aボタン長押しでの「もういちど見る」（リピート）を許可するか
+let bulkBoundaryPtr = 0;     // 一括読込・リプレイ用のストローク境界ポインタ
+let inkGeometry = null;      // 動的バッファ・全チャンク共有のジオメトリ
+let inkMaterial = null;      // 動的バッファ・全チャンク共有のマテリアル
+// 差分アップロード用：このフレームで書き換えたインスタンスの範囲
+// （実際の転送処理は render() 内、書き込みは setInkMatrix / setInkColor 経由）
+let inkDirtyMin = Infinity;
+let inkDirtyMax = -1;
+// 前詰め（焼き込み）などバッファ全体が変わったときに立てる全転送フラグ。
+// これが無いと、同一フレームの新スタンプの範囲指定が全転送の意図を
+// 上書きしてしまい、前詰め結果がGPUに届かず幽霊スタンプが出る。
+let inkFullUpload = false;
+// 払い（トリガーを離した後のフェード）パラメータ
+let releaseTau = 0.07;            // 太さ減衰の時定数（秒）。大きいほど払いが長く残る。スライダーで変更可
+const RELEASE_MAX_TIME_MS = 250;  // 払いの最大継続時間（ms）。描き残し防止の保険
+const RELEASE_END_RATIO   = 0.06; // 開始時サイズのこの割合まで細ったら終了（穂先の尖り具合）
+// 空中への点付き防止：払いは「ストローク方向への振り抜き」だけを許す
+const RELEASE_DIR_DOT_MIN = 0.35; // 進行方向とストローク方向の内積がこれ未満なら即終了
+const RELEASE_MAX_DIST    = 0.25; // 払いの最大長（m）。これを超えたら終了
+
+// ===== インスタンス描画関連 =====
+let instancedMesh;
+let stampIndex = 0;
+const dummy = new THREE.Object3D();
+const pos = new THREE.Vector3();
+const lastPos = new THREE.Vector3();
+const interp = new THREE.Vector3();
+const tempVec1 = new THREE.Vector3();
+const tempVec2 = new THREE.Vector3();
+
+// ===== 描き始め補正 =====
+let strokeStart = false;
+let startProgress = 0;
+
+// ===== フェード =====
+let releaseFade = 0;
+let releaseActive = false;
+let lastMoveDir = new THREE.Vector3();
+let releaseStartTime = 0;   // 払い開始時刻（ms）
+let releasePrevTime  = 0;   // 払い処理の前フレーム時刻（ms）
+let releaseStartSize = 0;   // 払い開始時（トリガーを離した瞬間）の太さ
+let releaseDist      = 0;   // 払いで進んだ累計距離（m）
+
+// ===== 書道拡張パラメータ =====
+let smoothVelocity = 0;
+let strokeAngle = 0;
+let strokeAngleY = 0;
+const VELOCITY_SMOOTH = 0.15;
+
+// ===== 筆圧モデル（トリガー平滑化） =====
+// 生のトリガー値を一次遅れ系（指数平滑）で鈍らせ、穂先が広がる／戻る
+// 時間遅れを再現する。押す方向と離す方向で時定数を変える（ヒステリシス）ほか、
+// トリガーの変化が速いほど追加で鈍らせるため、素早い操作でも太さが
+// 急変しない。計算は毎フレーム1回のみで負荷はほぼゼロ。
+//
+// ===== かきはじめの反応（統合パラメータ 0〜1、スライダーで変更可）=====
+// 書き始めの立ち上がりに関わる4つの内部値を1つで連動制御する。
+// 内部では resp = 0.5 + 値（0.5〜1.5）に写像して使う:
+//   プライミング率 = min(1, resp)（開始時に生トリガーの何割まで即応するか）
+//   起筆テーパー速度 = 0.06 + resp×0.16（入りの細い区間の進み）
+//   押し込み時定数 = max(0.02, 0.12 - resp×0.07) 秒（小さいほど機敏）
+//   サイズ追従率 = 値が0.5超のとき 0.30 → 最大0.70/フレームへ引き上げ（書き始め250msのみ）
+let strokeStartResponse = 0.5;
+let smoothTrigger  = 0;   // 平滑化後のトリガー値（太さ計算に使用）
+let triggerRate    = 0;   // トリガー変化速度の推定値（値/秒、平滑化済み）
+let prevRawTrigger = 0;   // 前フレームの生トリガー値
+let lastTriggerTime = 0;  // 前フレームの時刻（ms）
+
+const TRIGGER_TAU_RELEASE  = 0.18; // 離す時の時定数（秒）大きめ＝急に細くならない
+const TRIGGER_RATE_TAU     = 0.05; // 変化速度推定の平滑化時定数（秒）
+const TRIGGER_RATE_REF     = 4.0;  // この速度（トリガー値/秒）で最大ダンピングに達する
+const TRIGGER_RATE_DAMP    = 1.4;  // 速い操作時に時定数を最大何倍まで伸ばすか（+140%）
+
+// 生トリガー値から平滑化トリガー値を更新する（renderから毎フレーム1回呼ぶ）
+function updateSmoothTrigger(raw){
+    const now = performance.now();
+    let dt = (now - lastTriggerTime) / 1000;
+    lastTriggerTime = now;
+    // 初回・タブ復帰・セッション中断などの異常なdtは既定フレーム時間に丸める
+    if(!(dt > 0) || dt > 0.1) dt = 1 / 72;
+
+    // 生トリガーの変化速度（値/秒）を推定し、ノイズを平滑化
+    const rawRate = (raw - prevRawTrigger) / dt;
+    prevRawTrigger = raw;
+    triggerRate += (rawRate - triggerRate) * (1 - Math.exp(-dt / TRIGGER_RATE_TAU));
+
+    // 方向依存の時定数（押し込み＝速め / 離し＝遅め）
+    // 押し込み時定数は「かきはじめの反応」から算出（離す方向は固定）
+    const pressTau = Math.max(0.02, 0.12 - (0.5 + strokeStartResponse) * 0.07);
+    const baseTau = raw > smoothTrigger ? pressTau : TRIGGER_TAU_RELEASE;
+
+    // 速度依存の追加ダンピング：操作が速いほど時定数を伸ばして鈍らせる
+    const speedRatio = Math.min(Math.abs(triggerRate) / TRIGGER_RATE_REF, 1.0);
+    const effTau = baseTau * (1.0 + speedRatio * TRIGGER_RATE_DAMP);
+
+    // フレームレート非依存の指数平滑（72/90/120Hzで同じ手応えになる）
+    smoothTrigger += (raw - smoothTrigger) * (1 - Math.exp(-dt / effTau));
+    return smoothTrigger;
+}
+
+// ===== 再描画（リプレイ）管理 =====
+let replayData = null;
+let replayIndex = 0;
+let replayActive = false;
+let replaySpeed = 1;
+
+// ===== 再描画タイミングパラメータ =====
+const REPLAY_START_DELAY_FRAMES = 60;
+const REPLAY_STROKE_PAUSE_FACTOR = 150;
+const REPLAY_FRAME_PER_STAMP = 1.5;
+
+// ===== 再描画待機カウンタ =====
+let replayWaitFrames = 0;
+let replayFrameCount = 0;
+
+// ===== 保存済み描画の重複チェック =====
+let lastSavedHash = null;
+
+// ===== 保存待ちスロット =====
+let pendingSlotIndex = -1;
+let blinkTimer = 0;
+let blinkVisible = true;
+
+// ===== default.json 固定スロット管理 =====
+let defaultGalleryData = null;
+const DEFAULT_SLOT = 0;
+let showDefaultText = true; // セッション開始時にお手本の文字を表示するか（トグルボタンで変更）。ロード時のデフォルトは表示する
+// お手本（ガイド）の不透明度（0=透明〜1=不透明）。半透明の見本として表示する。
+const DEFAULT_TEXT_OPACITY = 0.3;
+const MAX_USER_GALLERY = 4;
+
+// ===== 描画グループ =====
+let textGroup = new THREE.Group();
+textGroup.matrixAutoUpdate = false;
+
+// ===== オブジェクト境界 =====
+const bbMin = new THREE.Vector3();
+const bbMax = new THREE.Vector3();
+const bbCenter = new THREE.Vector3();
+let bbDirty = true;
+
+// ===== 初期化 =====
+init();
+renderer.setAnimationLoop(render);
+
+function init(){
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+    renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+
+    document.body.appendChild(renderer.domElement);
+
+    const arBtn = ARButton.createButton(renderer, {requiredFeatures:["local-floor"]});
+    document.getElementById("arButtonSlot").appendChild(arBtn);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xcccccc, 0.8));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(1, 2, 1);
+    scene.add(dirLight);
+    const fillLight = new THREE.DirectionalLight(0xeeeeff, 0.3);
+    fillLight.position.set(-1, 0, -1);
+    scene.add(fillLight);
+
+    controller0 = renderer.xr.getController(0);
+    controller1 = renderer.xr.getController(1);
+    scene.add(controller0);
+    scene.add(controller1);
+
+    controller0.addEventListener("connected", onConnected);
+    controller1.addEventListener("connected", onConnected);
+    controller0.addEventListener("disconnected", onDisconnected);
+    controller1.addEventListener("disconnected", onDisconnected);
+
+    createInkSystem();
+    scene.add(textGroup);
+
+    galleryGroup = new THREE.Group();
+    galleryGroup.position.set(0, 0.05, -0.2);
+    scene.add(galleryGroup);
+
+    window.addEventListener("resize", resize);
+
+    loadDefaultFiles().then(() => {
+        renderer.xr.addEventListener("sessionstart", onARSessionStart);
+    });
+}
+
+// ===== default.json / default.png の事前読み込み =====
+async function loadDefaultFiles(){
+    let defaultThumbnail = null;
+    try {
+        const pngRes = await fetch("./default.png");
+        if(pngRes.ok){
+            const blob = await pngRes.blob();
+            defaultThumbnail = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.readAsDataURL(blob);
+            });
+        }
+    } catch(e) { /* default.png なし */ }
+
+    try {
+        const res = await fetch("./default.json");
+        if(!res.ok) return;
+
+        const json = await res.json();
+
+        if(typeof json.replaySpeed === "number") replaySpeed = json.replaySpeed;
+
+        const savedMatrices = [];
+        const savedColors = [];
+        const m = new THREE.Matrix4();
+        const c = new THREE.Color();
+        const order = Array.isArray(json.strokeOrder)
+            ? json.strokeOrder
+            : Array.from({ length: json.count }, (_, i) => i);
+
+        for(let si = 0; si < order.length; si++){
+            const i = order[si];
+            m.fromArray(json.matrices[i]);
+            savedMatrices.push(m.clone());
+            const col = json.colors[i];
+            c.setRGB(col[0], col[1], col[2]);
+            savedColors.push(c.clone());
+        }
+
+        defaultGalleryData = {
+            count: order.length,
+            matrices: savedMatrices,
+            colors: savedColors,
+            strokeBoundaries: Array.isArray(json.strokeBoundaries) ? json.strokeBoundaries : [],
+            thumbnail: defaultThumbnail || createDefaultThumbnailDataURL()
+        };
+
+        console.log("default.json 読み込み完了");
+    } catch(e) {
+        console.warn("default.json の読み込みに失敗:", e);
+    }
+}
+
+// ===== デフォルトサムネイルのプレースホルダー生成 =====
+function createDefaultThumbnailDataURL(){
+    const canvas = document.createElement("canvas");
+    canvas.width = 128; canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#e8f4ff";
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.strokeStyle = "#78bfff";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(4, 4, 120, 120);
+    ctx.fillStyle = "#4a90d9";
+    ctx.font = "bold 48px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("書", 64, 64);
+    return canvas.toDataURL("image/png");
+}
+
+// ===== AR セッション開始時の処理 =====
+function onARSessionStart(){
+    // メニューに戻って再入室したら固定化を必ず解除する
+    operationLocked = false;
+    lockTapCount = 0;
+    if(brushGroup) brushGroup.visible = true;
+
+    if(!defaultGalleryData) return;
+
+    if(gallery.length === 0 || gallery[0] !== defaultGalleryData){
+        gallery.unshift(defaultGalleryData);
+
+        const thumbMesh = createThumbnailMesh(defaultGalleryData, 0);
+        galleryGroup.children.forEach(m => m.userData.index++);
+        galleryGroup.add(thumbMesh);
+        layoutGalleryCircle();
+
+        if(pendingSlotIndex >= 0) pendingSlotIndex++;
+    }
+
+    // お手本（ガイド）は編集対象外の独立レイヤー。表示ONなら毎回アニメ再生し、
+    // OFFなら消す。独立レイヤーなので、再入室時に残っている自分の線は消えない。
+    // （白紙で始めたいときはトグルOFF。お手本はスティック押し込みでいつでも呼べる）
+    // ★作品展示ONのときは自動再生しない（作品選択の邪魔になるため。描画中はスティック押し込みで呼べる）
+    if(showDefaultText && !exhibitEnabled){
+        startGuideReplay();
+        currentGalleryIndex = DEFAULT_SLOT;
+    } else {
+        clearGuide();
+    }
+    updateGalleryHighlight();
+}
+
+// ===== お手本（ガイド）レイヤー =====
+// お手本は「編集・取り消し・クリア・保存・上限カウントの対象外」の独立レイヤー。
+// アニメ再生だけを行い、半透明の見本として表示する。
+// guideMesh は scene 直下（無変換）に置き、startGuideReplay 時点の textGroup 変換を
+// 各行列へ焼き込む＝「自分の線」と必ず同じ位置に揃い、以後 textGroup を戻したり
+// 自分の線を再生したりしても動かない（clearAll などの影響を受けない）。
+let guideMesh = null;          // お手本専用の InstancedMesh（半透明）
+let guideMaterial = null;
+let guideCapacity = 0;
+let guideWorldMatrices = [];   // 配置済みワールド行列（Matrix4）
+let guideColors = [];          // 各スタンプの色（Color）
+let guideBoundaries = [];      // ストローク境界（アニメの“間”用）
+let guideTotal = 0;
+let guideReplayActive = false;
+let guideRevealIndex = 0;
+let guideReplayFrame = 0;
+let guideWaitFrames = 0;
+
+function ensureGuideMesh(capacity){
+    if(!guideMaterial){
+        // 半透明の見本マテリアル。色はインスタンスごと（instanceColor）。
+        guideMaterial = new THREE.MeshLambertMaterial({
+            color: 0xffffff, transparent: true, opacity: DEFAULT_TEXT_OPACITY
+        });
+    }
+    if(guideMesh && guideCapacity >= capacity) return;
+    if(guideMesh){ scene.remove(guideMesh); guideMesh.dispose(); }
+    guideCapacity = Math.max(capacity, 256);
+    guideMesh = new THREE.InstancedMesh(inkGeometry, guideMaterial, guideCapacity);
+    guideMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(guideCapacity * 3), 3);
+    guideMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    guideMesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    guideMesh.frustumCulled = false;
+    guideMesh.count = 0;
+    guideMesh.renderOrder = -1; // 不透明の自分のインクより先に描く
+    scene.add(guideMesh);
+}
+
+// お手本を消す（非表示）。自分の線（通常バッファ）には一切触れない。
+function clearGuide(){
+    guideReplayActive = false;
+    guideRevealIndex = 0;
+    guideTotal = 0;
+    if(guideMesh) guideMesh.count = 0;
+}
+
+// ===== お手本の配置行列を計算（その時点のプレイヤーの位置・向き基準） =====
+// お手本の正面法線は保存座標系で +Z（＝ワールド −Z から見て正しく読める）。
+// プレイヤーの水平視線 forward=(fx,0,fz) に対し、お手本の +Z がプレイヤー側（-forward）を
+// 向くよう Y軸回転 θ=atan2(-fx,-fz) をかける（プレイヤーが −Z を向く既定時は θ=0）。
+// 配置行列 G = T(target) · Ry(θ) · T(-center)。
+//   ・center を 1 回だけ原点へ寄せ、Y回転し、目の前 GUIDE_PLACE_DISTANCE の target へ移す。
+//   ・center を軸に回すので描画形状は不変、上下・鏡像も変化しない。
+//   ・毎回 raw（＝保存データ）から計算するため、再プレイで回転・位置が累積しない。
+//   ・保存時のプレイヤーの立ち位置・向きには依存しない（現在の視点だけで決まる）。
+// ※ textGroup（自分の線）には一切触れないので、自分の描画は動かない。
+const GUIDE_PLACE_DISTANCE = 0.7; // 目の位置からお手本のアンカーまでの距離（m）
+const GUIDE_TOP_FRACTION = 1 / 5;  // 正面に合わせる基準点：お手本の上から 1/5 の高さ
+
+// お手本のアンカー点（保存座標系）を求める。
+// 水平（X・Z）は描画範囲の中心、縦（Y）は「上から 1/5」の高さ。
+function computeGuideAnchor(matrices){
+    let minX=Infinity, minY=Infinity, minZ=Infinity;
+    let maxX=-Infinity, maxY=-Infinity, maxZ=-Infinity;
+    for(const m of matrices){
+        const x = m.elements[12], y = m.elements[13], z = m.elements[14];
+        if(!isFinite(x) || !isFinite(y) || !isFinite(z)) continue;
+        if(x<minX) minX=x; if(y<minY) minY=y; if(z<minZ) minZ=z;
+        if(x>maxX) maxX=x; if(y>maxY) maxY=y; if(z>maxZ) maxZ=z;
+    }
+    if(!isFinite(minX) || !isFinite(maxX)) return null;
+    return new THREE.Vector3(
+        (minX+maxX)/2,
+        maxY - (maxY-minY) * GUIDE_TOP_FRACTION, // 上端から全高の1/5だけ下
+        (minZ+maxZ)/2
+    );
+}
+
+// お手本の配置行列を計算する。
+//   ・基準点（上から1/5）を、目の位置からフル視線方向へ 0.7m の target に合わせる。
+//   ・お手本の正面法線 +Z が、プレイヤーのフル視線（上下の向き＝X軸回り回転を含む）の
+//     真正面を向くよう、Y軸回転 θ と X軸回転 φ を合成（R = Ry(θ)·Rx(φ)）。
+//       θ = atan2(-fx,-fz)（左右の向き）, φ = asin(fy)（上下の向き）
+//     → R·(+Z) = -forward（お手本の表がプレイヤーを向く）。ロール（Z軸回り）は入れない。
+//   ・G = T(target)·R·T(-anchor)。基準点を軸に回すので形状・上下・鏡像は不変。
+//   ・毎回 raw から計算するため再プレイで累積しない。保存時の立ち位置・向きに依存しない。
+function computeGuidePlacementMatrix(matrices){
+    const anchor = computeGuideAnchor(matrices);
+    if(!anchor) return new THREE.Matrix4(); // 空データは単位行列（無変換）
+    const { pos, forward } = getViewerPoseFull(); // フル3D視線（上下を含む・正規化済み）
+    const target = pos.clone().add(forward.clone().multiplyScalar(GUIDE_PLACE_DISTANCE));
+    const theta = Math.atan2(-forward.x, -forward.z);
+    const phi   = Math.asin(Math.max(-1, Math.min(1, forward.y)));
+    const Ry = new THREE.Matrix4().makeRotationY(theta);
+    const Rx = new THREE.Matrix4().makeRotationX(phi);
+    const R  = new THREE.Matrix4().multiplyMatrices(Ry, Rx); // R = Ry·Rx
+    const toOrigin = new THREE.Matrix4().makeTranslation(-anchor.x, -anchor.y, -anchor.z);
+    const toTarget = new THREE.Matrix4().makeTranslation(target.x, target.y, target.z);
+    // G = toTarget · R · toOrigin
+    return new THREE.Matrix4().multiplyMatrices(R, toOrigin).premultiply(toTarget);
+}
+
+// お手本を最初からアニメ再生する。呼ばれた時点のプレイヤーの位置・向きを基準に、
+// お手本の基準点（上から1/5）をフル視線方向 0.7m へ配置し、正面を向ける（textGroup は不変）。
+function startGuideReplay(){
+    if(!defaultGalleryData){ clearGuide(); return; }
+    const raw = defaultGalleryData.matrices;   // strokeOrder 適用済み
+    const n   = defaultGalleryData.count;
+
+    // お手本専用の配置行列でワールド座標へ焼き込む（guideMesh は scene 直下＝無変換）
+    const G = computeGuidePlacementMatrix(raw);
+    guideWorldMatrices = new Array(n);
+    for(let i = 0; i < n; i++){
+        guideWorldMatrices[i] = new THREE.Matrix4().multiplyMatrices(G, raw[i]);
+    }
+    guideColors     = defaultGalleryData.colors;
+    guideBoundaries = defaultGalleryData.strokeBoundaries || [];
+    guideTotal      = n;
+
+    ensureGuideMesh(n);
+    guideMesh.count  = 0;
+    guideRevealIndex = 0;
+    guideReplayFrame = 0;
+    guideWaitFrames  = REPLAY_START_DELAY_FRAMES;
+    guideReplayActive = true;
+}
+
+// 毎フレーム、お手本を少しずつ描き進める（本番の再生と同じ呼吸・間）。
+function tickGuideReplay(){
+    if(!guideReplayActive || !guideMesh) return;
+    if(guideWaitFrames > 0){ guideWaitFrames--; return; }
+    guideReplayFrame++;
+    if(guideReplayFrame < REPLAY_FRAME_PER_STAMP) return;
+    guideReplayFrame = 0;
+
+    const prev = guideRevealIndex;
+    const end  = Math.min(guideRevealIndex + replaySpeed, guideTotal);
+    for(let i = prev; i < end; i++){
+        guideMesh.setMatrixAt(i, guideWorldMatrices[i]);
+        guideMesh.setColorAt(i, guideColors[i]);
+    }
+    guideMesh.count = end;
+    guideMesh.instanceMatrix.needsUpdate = true;
+    if(guideMesh.instanceColor) guideMesh.instanceColor.needsUpdate = true;
+    guideRevealIndex = end;
+
+    // ストローク境界で少し“間”を置く
+    for(let bi = 1; bi < guideBoundaries.length; bi++){
+        const b = guideBoundaries[bi];
+        if(guideRevealIndex >= b && prev < b){
+            const before = b - 1, after = b;
+            if(before >= 0 && after < guideTotal){
+                const mB = guideWorldMatrices[before], mA = guideWorldMatrices[after];
+                const dx = mB.elements[12]-mA.elements[12];
+                const dy = mB.elements[13]-mA.elements[13];
+                const dz = mB.elements[14]-mA.elements[14];
+                guideWaitFrames = Math.round(Math.sqrt(dx*dx+dy*dy+dz*dz) * REPLAY_STROKE_PAUSE_FACTOR);
+            }
+            break;
+        }
+    }
+
+    if(guideRevealIndex >= guideTotal){
+        guideReplayActive = false;
+        guideWaitFrames = 0;
+        guideReplayFrame = 0;
+    }
+}
+
+// ===== 視点（ヘッドセット／カメラ）の位置と水平向きを取得 =====
+function getViewerPose(){
+    let cam = camera;
+    if(renderer.xr && renderer.xr.isPresenting){
+        const xrCam = renderer.xr.getCamera();
+        if(xrCam) cam = xrCam;
+    }
+    cam.updateMatrixWorld(true);
+    const pos = new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld);
+    const quat = new THREE.Quaternion().setFromRotationMatrix(cam.matrixWorld);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(quat);
+    forward.y = 0; // 水平方向のみ（絵を傾けず正面に出す）
+    if(forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+    forward.normalize();
+    return { pos, forward };
+}
+
+// ===== 視点の位置とフル3D視線方向（上下の向き＝X軸回りの回転を含む）=====
+// getViewerPose は水平のみ（絵を傾けない用）だが、お手本はプレイヤーの上下の向きにも
+// 追従させたいので、こちらは forward.y を残した正規化済みベクトルを返す。
+function getViewerPoseFull(){
+    let cam = camera;
+    if(renderer.xr && renderer.xr.isPresenting){
+        const xrCam = renderer.xr.getCamera();
+        if(xrCam) cam = xrCam;
+    }
+    cam.updateMatrixWorld(true);
+    const pos = new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld);
+    const quat = new THREE.Quaternion().setFromRotationMatrix(cam.matrixWorld);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(quat);
+    if(forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+    forward.normalize();
+    return { pos, forward };
+}
+
+// ===== 行列群（焼き込みワールド座標）の中心を求める =====
+function computeMatricesCenter(matrices){
+    let minX=Infinity, minY=Infinity, minZ=Infinity;
+    let maxX=-Infinity, maxY=-Infinity, maxZ=-Infinity;
+    for(const m of matrices){
+        const x = m.elements[12], y = m.elements[13], z = m.elements[14];
+        if(!isFinite(x) || !isFinite(y) || !isFinite(z)) continue;
+        if(x<minX) minX=x; if(y<minY) minY=y; if(z<minZ) minZ=z;
+        if(x>maxX) maxX=x; if(y>maxY) maxY=y; if(z>maxZ) maxZ=z;
+    }
+    if(!isFinite(minX) || !isFinite(maxX)) return null;
+    return new THREE.Vector3((minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2);
+}
+
+// ===== 与えた中心が視点正面に来るよう textGroup を平行移動 =====
+const REPLAY_PLACE_DISTANCE = 0.6; // 視点正面からの距離（m）
+function placeGroupInFrontOfViewer(center){
+    if(!center) return;
+    const { pos, forward } = getViewerPose();
+    const target = pos.clone().add(forward.multiplyScalar(REPLAY_PLACE_DISTANCE));
+    target.y = pos.y; // 目線の高さ
+    const offset = target.sub(center); // 中心 → 正面ターゲット への平行移動
+    if(!isFinite(offset.x) || !isFinite(offset.y) || !isFinite(offset.z)) return;
+    textGroup.matrix.makeTranslation(offset.x, offset.y, offset.z);
+    textGroup.updateMatrixWorld(true);
+}
+
+// ===== 読み込んだ描画を視点の正面へ再配置 =====
+// replayData.matrices（保存時に焼き込んだワールド座標）の中心を求め、textGroup を
+// 平行移動して、その中心が視点の正面・目線の高さ・一定距離に来るようにする。
+// これにより保存時の位置や現在の立ち位置に関わらず、毎回同じ見やすい場所に出る。
+function placeReplayInFrontOfViewer(){
+    if(!replayData || !replayData.matrices || replayData.matrices.length === 0) return;
+    placeGroupInFrontOfViewer(computeMatricesCenter(replayData.matrices));
+}
+
+// ===== コントローラ =====
+// 各コントローラから筆だけを除去（galleryGroupは残す）
+function detachBrushFrom(ctrl){
+    if(!ctrl) return;
+    // 後ろから走査して安全に削除
+    for(let i = ctrl.children.length - 1; i >= 0; i--){
+        const child = ctrl.children[i];
+        if(child === galleryGroup) continue; // ギャラリーは保持
+        ctrl.remove(child);
+    }
+}
+
+// connected/disconnected では inputSource→オブジェクトの対応表を更新するだけ。
+// 実際の左右バインド・筆/ギャラリーの付け替えは毎フレームの reconcileInputSources() が担う。
+// これにより、切替時にイベントを取りこぼしても次フレームで確実に復帰する。
+function onConnected(event){
+    if(event.data) srcCtrlMap.set(event.data, event.target);
+}
+
+function onDisconnected(event){
+    if(event.data) srcCtrlMap.delete(event.data);
+}
+
+// ===== 毎フレームの左右再バインド（コントローラー⇔ハンド切替の要） =====
+// session.inputSources を唯一の権威として handedness から右手/左手を確定し、
+// three.js のコントローラーオブジェクトへ筆・ギャラリーを結びつけ直す。
+// コントローラーを持てば必ずコントローラー操作、手に持ち替えれば必ずその手、へ
+// 追従する。srcCtrlMap を優先し、取りこぼし時は inputSources 順の index で補う。
+function reconcileInputSources(){
+    const session = renderer.xr.getSession();
+    if(!session){
+        rightController = null; leftController = null;
+        gamepad = null; leftGamepad = null;
+        return;
+    }
+
+    const srcs = session.inputSources;
+    let rightSrc = null, leftSrc = null, rightIdx = -1, leftIdx = -1;
+    for(let i = 0; i < srcs.length; i++){
+        if(srcs[i].handedness === "right"){ rightSrc = srcs[i]; rightIdx = i; }
+        else if(srcs[i].handedness === "left"){ leftSrc = srcs[i]; leftIdx = i; }
+    }
+
+    // ---- 右手（ふで）----
+    if(rightSrc){
+        let ctrl = srcCtrlMap.get(rightSrc);
+        if(!ctrl && rightIdx >= 0) ctrl = renderer.xr.getController(rightIdx);
+        if(ctrl){
+            if(!ctrl.parent) scene.add(ctrl);
+            if(ctrl !== rightController){
+                if(rightController) detachBrushFrom(rightController);
+                rightController = ctrl;
+                tipMesh = null; stickMesh = null; stickUsedMesh = null;
+                attachBrush();
+            } else if(!tipMesh){
+                attachBrush();
+            }
+        }
+        gamepad = rightSrc.gamepad || null;
+    } else {
+        if(rightController) detachBrushFrom(rightController);
+        rightController = null; tipMesh = null; stickMesh = null; stickUsedMesh = null;
+        gamepad = null;
+    }
+
+    // ---- 左手（ギャラリー）----
+    if(leftSrc){
+        let ctrl = srcCtrlMap.get(leftSrc);
+        if(!ctrl && leftIdx >= 0) ctrl = renderer.xr.getController(leftIdx);
+        if(ctrl){
+            if(!ctrl.parent) scene.add(ctrl);
+            if(ctrl !== leftController){
+                if(leftController && galleryGroup.parent === leftController){
+                    leftController.remove(galleryGroup);
+                }
+                leftController = ctrl;
+                if(rightController !== leftController) detachBrushFrom(leftController);
+                leftController.add(galleryGroup);
+            }
+        }
+        leftGamepad = leftSrc.gamepad || null;
+    } else {
+        if(leftController && galleryGroup.parent === leftController){
+            leftController.remove(galleryGroup);
+        }
+        leftController = null; leftGamepad = null;
+    }
+}
+
+// ===== 筆 =====
+let stickUsedMesh = null;
+const STICK_LENGTH = 0.25;
+const STICK_RADIUS = 0.012;
+const STICK_BASE_Z = 0.15;
+const OPACITY_REPLAY = 0.75;
+const OPACITY_USED = 0.30;
+
+function attachBrush(){
+    if(!rightController) return;
+
+    // galleryGroupを誤って消さないよう detachBrushFrom を使う
+    detachBrushFrom(rightController);
+
+    const brush = new THREE.Group();
+
+    // 墨残量ゲージ：総スタンプ上限に対する使用割合を柄で表示する。
+    // stickMesh＝残り（不透明）、stickUsedMesh＝使用済み（半透明）。
+    stickMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(STICK_RADIUS, STICK_RADIUS, STICK_LENGTH, 6),
+        new THREE.MeshStandardMaterial({ color: 0x884400, transparent: true, opacity: 1.0, depthWrite: true })
+    );
+
+    stickUsedMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(STICK_RADIUS, STICK_RADIUS, STICK_LENGTH, 6),
+        new THREE.MeshStandardMaterial({
+            color: 0x884400,
+            transparent: true,
+            opacity: OPACITY_USED,
+            depthWrite: false
+        })
+    );
+
+    tipMesh = new THREE.Mesh(
+        new THREE.ConeGeometry(0.015, 0.05, 6),
+        new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 1.0, depthWrite: true })
+    );
+
+    tipMesh.material.color.copy(currentColor);
+
+    stickMesh.rotation.x = Math.PI / 2;
+    stickUsedMesh.rotation.x = Math.PI / 2;
+    tipMesh.rotation.x = -Math.PI / 2;
+
+    stickMesh.position.z = STICK_BASE_Z;
+    stickUsedMesh.position.z = STICK_BASE_Z;
+
+    brush.add(stickMesh);
+    brush.add(stickUsedMesh);
+    brush.add(tipMesh);
+
+    // 太さプレビュー球：グリップ＋スティックで調整中、スタンプが打たれる位置
+    // （コントローラー原点）に最大太さの半透明球を表示する
+    brushSizeIndicator = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.4, depthWrite: false })
+    );
+    brushSizeIndicator.visible = false;
+    brush.add(brushSizeIndicator);
+
+    // はらいプレビューの尾：プレビュー球の前方（筆先の先、ローカル-Z）へ
+    // releaseTau に比例した長さの先細りコーンを表示する（尾が長い＝払いが長く伸びる）。
+    // ※柄はローカル+Z側にあるため、+Z向きだと柄の中に隠れてしまう。
+    // マテリアルを球と共有するのでフェードアウトも自動で同期する。
+    brushTailIndicator = new THREE.Mesh(
+        new THREE.ConeGeometry(1, 1, 10),
+        brushSizeIndicator.material
+    );
+    brushTailIndicator.rotation.x = -Math.PI / 2; // コーンの先端をローカル-Z（前方）へ
+    brushTailIndicator.visible = false;
+    brush.add(brushTailIndicator);
+    brush.rotation.set(-Math.PI / 3, 0, Math.PI / 2);
+
+    rightController.add(brush);
+    brushGroup = brush;
+    brush.visible = !operationLocked; // 固定化中は筆を非表示のまま引き継ぐ
+
+    // 念のため、leftController側に過去の筆が残っていれば除去
+    if(leftController && leftController !== rightController){
+        detachBrushFrom(leftController);
+    }
+
+    updateStickGauge();
+}
+
+// ===== 墨残量ゲージ更新 =====
+// 総スタンプ上限（totalStampLimit）に対する使用割合を柄で表示する。
+// 使った分が半透明になり、透明部分が増えるほど上限が近い。
+function updateStickGauge(){
+    if(!stickMesh || !stickUsedMesh) return;
+
+    const ratio = Math.min(stampIndex / totalStampLimit, 1.0);
+
+    if(ratio <= 0){
+        stickMesh.visible     = true;
+        stickMesh.scale.y     = 1;
+        stickMesh.position.z  = STICK_BASE_Z;
+        stickUsedMesh.visible = false;
+        stickUsedMesh.scale.y = 0.0001;
+        return;
+    }
+
+    const usedLen = STICK_LENGTH * ratio;
+    const restLen = STICK_LENGTH * (1.0 - ratio);
+
+    if(restLen < 0.0001){
+        stickMesh.visible     = false;
+        stickMesh.scale.y     = 0.0001;
+        stickUsedMesh.visible = true;
+        stickUsedMesh.scale.y = 1;
+        stickUsedMesh.position.z = STICK_BASE_Z;
+    } else {
+        stickUsedMesh.visible = true;
+        stickMesh.visible = true;
+        stickMesh.scale.y = (1.0 - ratio);
+        const restCenter = (STICK_BASE_Z - STICK_LENGTH / 2) + restLen / 2;
+        stickMesh.position.z = restCenter;
+
+        stickUsedMesh.scale.y = ratio;
+        const usedCenter = (STICK_BASE_Z - STICK_LENGTH / 2) + restLen + usedLen / 2;
+        stickUsedMesh.position.z = usedCenter;
+    }
+}
+
+// ===== インク =====
+
+// ===== 履歴ページのアクセサ =====
+// すべて割り当てフリー（描画中にGCを発生させない）。
+// 論理インデックス i → 物理位置 histStart + i。
+// ※ histScratchM / histScratchC の宣言はファイル冒頭にある
+
+function histWrite(i, matrix, color){
+    const p = histStart + i;
+    const pg = (p / HIST_PAGE) | 0;
+    while(histPagesM.length <= pg){
+        histPagesM.push(new Float32Array(HIST_PAGE * 16));
+        histPagesC.push(new Float32Array(HIST_PAGE * 3));
+    }
+    const off = p % HIST_PAGE;
+    histPagesM[pg].set(matrix.elements, off * 16);
+    const c = histPagesC[pg];
+    c[off * 3]     = color.r;
+    c[off * 3 + 1] = color.g;
+    c[off * 3 + 2] = color.b;
+}
+
+function histReadMatrix(i, target){
+    const p = histStart + i;
+    const pg = (p / HIST_PAGE) | 0;
+    return target.fromArray(histPagesM[pg], (p % HIST_PAGE) * 16);
+}
+
+function histReadColor(i, target){
+    const p = histStart + i;
+    const pg = (p / HIST_PAGE) | 0;
+    const off = (p % HIST_PAGE) * 3;
+    const c = histPagesC[pg];
+    return target.setRGB(c[off], c[off + 1], c[off + 2]);
+}
+
+// 履歴のスタンプiを転送先配列へ直接コピー（焼き込み用、割り当てなし）
+function histCopyMatrixTo(i, dst, dstOffset){
+    const p = histStart + i;
+    const src = histPagesM[(p / HIST_PAGE) | 0];
+    const off = (p % HIST_PAGE) * 16;
+    for(let k = 0; k < 16; k++) dst[dstOffset + k] = src[off + k];
+}
+
+function histCopyColorTo(i, dst, dstOffset){
+    const p = histStart + i;
+    const src = histPagesC[(p / HIST_PAGE) | 0];
+    const off = (p % HIST_PAGE) * 3;
+    dst[dstOffset]     = src[off];
+    dst[dstOffset + 1] = src[off + 1];
+    dst[dstOffset + 2] = src[off + 2];
+}
+
+// ===== 差分アップロード管理 =====
+// 書き換えたインデックスの範囲を記録し、render() でその範囲のみを
+// GPUへ転送する（three r159+ の updateRanges 機構）。
+// ※ inkDirtyMin / inkDirtyMax の宣言はファイル冒頭にある
+//   （init() が先に実行されるため、ここで let 宣言するとTDZエラーになる）
+
+function setInkMatrix(index, matrix){
+    instancedMesh.setMatrixAt(index, matrix);
+    if(index < inkDirtyMin) inkDirtyMin = index;
+    if(index > inkDirtyMax) inkDirtyMax = index;
+}
+function setInkColor(index, color){
+    instancedMesh.setColorAt(index, color);
+    if(index < inkDirtyMin) inkDirtyMin = index;
+    if(index > inkDirtyMax) inkDirtyMax = index;
+}
+
+// ===== 焼き込みチャンク管理 =====
+// ジオメトリとマテリアルは動的バッファと全チャンクで共有する（メモリ節約）
+// ※ inkGeometry / inkMaterial の宣言はファイル冒頭（ここでのlet宣言はTDZエラー）
+
+function ensureChunk(){
+    let chunk = bakedChunks[bakedChunks.length - 1];
+    if(!chunk || chunk.used >= CHUNK_CAPACITY){
+        // 事前確保済みのチャンクがあればそれを使う（書き出し中の生成コストを回避）
+        chunk = standbyChunk || makeChunk();
+        standbyChunk = null;
+        bakedChunks.push(chunk);
+    }
+    return chunk;
+}
+
+// チャンクを1個生成する（メッシュ生成＋GPUバッファ確保）
+function makeChunk(){
+    const mesh = new THREE.InstancedMesh(inkGeometry, inkMaterial, CHUNK_CAPACITY);
+    mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CHUNK_CAPACITY * 3), 3);
+    // 焼き込み後は書き換えない静的バッファ
+    mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    mesh.instanceColor.setUsage(THREE.StaticDrawUsage);
+    mesh.frustumCulled = false;
+    mesh.count = 0;
+    textGroup.add(mesh);
+    return { mesh, used: 0, freed: 0 }; // freed: ローリングモードで先頭から解放した数
+}
+
+// ===== チャンクの事前確保 =====
+// チャンクの新規作成（メッシュ生成＋初回のGPU全転送 約300KB）が
+// 書き出しの瞬間に起きるとカクつくため、描いていない間に先回りで作っておく。
+// renderループから、トリガーを引いていないフレームで呼ばれる。
+function preallocateChunkIfNeeded(){
+    if(standbyChunk || !inkGeometry) return;
+    const last = bakedChunks[bakedChunks.length - 1];
+    const needSoon =
+        (last && last.used >= CHUNK_CAPACITY * 0.8) ||               // 現チャンクが8割埋まった
+        (!last && (strokeStack.length - bakedStrokeCount) >= Math.max(1, keepStrokes - 1)); // 初回焼き込みが近い
+    if(needSoon){
+        standbyChunk = makeChunk();
+    }
+}
+
+// 最も古い生乾きストローク1本を焼き込む。
+// 処理内容は「履歴→チャンクへのFloat32コピー＋動的バッファの前詰め」だけなので
+// 数百スタンプのストロークでも1ミリ秒未満。フレーム分割は不要。
+function bakeOldestWetStroke(){
+    if(bakedStrokeCount >= strokeStack.length) return false;
+
+    const start = strokeStack[bakedStrokeCount];
+    const end = (bakedStrokeCount + 1 < strokeStack.length)
+        ? strokeStack[bakedStrokeCount + 1]
+        : stampIndex;
+    const n = end - start;
+    if(n < 0) return false;
+
+    // 履歴からチャンクへコピー（複数チャンクにまたがる場合あり）
+    const touched = new Map(); // chunk -> コピー開始時のused
+    for(let i = start; i < end; i++){
+        const chunk = ensureChunk();
+        if(!touched.has(chunk)) touched.set(chunk, chunk.used);
+        histCopyMatrixTo(i, chunk.mesh.instanceMatrix.array, chunk.used * 16);
+        histCopyColorTo(i, chunk.mesh.instanceColor.array, chunk.used * 3);
+        chunk.used++;
+        chunk.mesh.count = chunk.used;
+    }
+    // 追記した範囲だけをGPUへ転送
+    for(const [chunk, from] of touched){
+        const cnt = chunk.used - from;
+        chunk.mesh.instanceMatrix.clearUpdateRanges();
+        chunk.mesh.instanceMatrix.addUpdateRange(from * 16, cnt * 16);
+        chunk.mesh.instanceMatrix.needsUpdate = true;
+        chunk.mesh.instanceColor.clearUpdateRanges();
+        chunk.mesh.instanceColor.addUpdateRange(from * 3, cnt * 3);
+        chunk.mesh.instanceColor.needsUpdate = true;
+    }
+
+    // 動的バッファを前詰め（生乾き部分は常に小さいのでコピーは一瞬）
+    const wetBefore = stampIndex - bakedCount;
+    if(n > 0 && wetBefore - n > 0){
+        instancedMesh.instanceMatrix.array.copyWithin(0, n * 16, wetBefore * 16);
+        instancedMesh.instanceColor.array.copyWithin(0, n * 3, wetBefore * 3);
+    }
+    // 前詰めで空いた末尾領域をゼロ埋めする。
+    // 古いスタンプ行列を残すと、転送タイミングのずれや別経路の描画
+    // （サムネイル撮影など）で過去のスタンプが幽霊のように映る恐れがある。
+    // ゼロ行列は縮退して不可視なので安全。
+    if(n > 0){
+        instancedMesh.instanceMatrix.array.fill(0, (wetBefore - n) * 16, wetBefore * 16);
+        instancedMesh.instanceColor.array.fill(0, (wetBefore - n) * 3, wetBefore * 3);
+    }
+    bakedCount += n;
+    bakedStrokeCount++;
+    instancedMesh.count = stampIndex - bakedCount;
+
+    // 前詰めで内容が変わった [0, wetBefore) だけを差分転送対象にする
+    // （生乾きが少ないほど転送も小さい）。ゼロ埋めした末尾も範囲内。
+    inkDirtyMin = 0;
+    if(wetBefore - 1 > inkDirtyMax) inkDirtyMax = wetBefore - 1;
+    needsUpdate = true;
+    return true;
+}
+
+// 生乾きストローク数が maxWet 以下になるまで焼き込む。
+// 描き途中・最後のストロークは決して焼かない。
+function bakeDown(maxWet){
+    const keep = Math.max(1, maxWet);
+    while((strokeStack.length - bakedStrokeCount) > keep
+          && bakedStrokeCount < strokeStack.length - 1){
+        if(!bakeOldestWetStroke()) break;
+    }
+}
+
+// ===== 最古ストロークのFIFO削除（ローリングモード用） =====
+// 上限到達時、一番古いストロークをキャンバスから消して容量を空ける。
+// 最古が生乾きなら先に焼き込み、削除処理はチャンク側に一本化する。
+// チャンク内の該当インスタンスはゼロ行列化（不可視）し、チャンク全体が
+// 空になった時点でメッシュごと破棄してGPUコストも解放する。
+function dropOldestStroke(){
+    // 描き途中の最後のストロークだけは消せない
+    if(strokeStack.length <= 1) return false;
+
+    // 最古が生乾きなら先に焼き込む
+    if(bakedStrokeCount === 0){
+        if(!bakeOldestWetStroke()) return false;
+    }
+
+    const start = strokeStack[0]; // 先頭削除後は常に0に正規化されている
+    const end = strokeStack.length > 1 ? strokeStack[1] : stampIndex;
+    const n = end - start;
+
+    // チャンク側の先頭からn個をゼロ行列化（変更範囲のみ転送）
+    let remain = n;
+    for(const chunk of bakedChunks){
+        if(remain <= 0) break;
+        const avail = chunk.used - chunk.freed;
+        const take = Math.min(avail, remain);
+        if(take > 0){
+            chunk.mesh.instanceMatrix.array.fill(0, chunk.freed * 16, (chunk.freed + take) * 16);
+            chunk.mesh.instanceMatrix.clearUpdateRanges();
+            chunk.mesh.instanceMatrix.addUpdateRange(chunk.freed * 16, take * 16);
+            chunk.mesh.instanceMatrix.needsUpdate = true;
+            chunk.freed += take;
+            remain -= take;
+        }
+    }
+
+    // 完全に空いた先頭チャンクを破棄（GPU頂点コストも解放）
+    while(bakedChunks.length && bakedChunks[0].freed >= CHUNK_CAPACITY){
+        const c = bakedChunks.shift();
+        textGroup.remove(c.mesh);
+        c.mesh.dispose(); // インスタンス属性のみ破棄（geo/matは共有なので触らない）
+    }
+
+    // 履歴・カウンタ・ストローク境界をn個ぶん前へ詰める
+    // 履歴の論理先頭をずらし、丸ごと空いたページを解放する
+    histStart += n;
+    while(histStart >= HIST_PAGE && histPagesM.length > 0){
+        histPagesM.shift();
+        histPagesC.shift();
+        histStart -= HIST_PAGE;
+    }
+    stampIndex -= n;
+    bakedCount -= n;
+    bakedStrokeCount -= 1;
+    strokeStack.shift();
+    for(let i = 0; i < strokeStack.length; i++) strokeStack[i] -= n;
+    return true;
+}
+
+// ===== スタンプ追加の共通経路 =====
+// 通常の描画・リプレイ・ギャラリー/JSON読込はすべてここを通る。
+// 履歴へ追記し、動的バッファへ書き込む。満杯なら古い完了ストロークを焼いて空ける。
+function appendStamp(matrix, color){
+    // 総量の安全上限：超えるとGPU過負荷でクラッシュの恐れがある。
+    // ローリングモードなら最古のストロークを消して容量を空け、
+    // 停止モード（既定）なら長いバイブで「墨が尽きた」ことを知らせて打ち切る。
+    if(stampIndex >= totalStampLimit){
+        if(rollingInkMode){
+            let guard = 8; // 空ストロークが連続しても無限ループしない保険
+            while(stampIndex >= totalStampLimit && guard-- > 0){
+                if(!dropOldestStroke()) break;
+            }
+        }
+        if(stampIndex >= totalStampLimit){
+            if(!totalLimitNotified){
+                totalLimitNotified = true;
+                vibrate("right", 400, 1.0);
+            }
+            return false;
+        }
+    }
+
+    // データ不整合の保険：ストローク境界が無いまま打たれた場合は開始点を補う
+    if(strokeStack.length === 0) strokeStack.push(stampIndex);
+
+    while(stampIndex - bakedCount >= MAX_STAMPS){
+        if(bakedStrokeCount < strokeStack.length - 1){
+            if(!bakeOldestWetStroke()) return false;
+        } else {
+            // 1ストローク単独でバッファ超過（約12m分の連続線）：安全のため打ち切り
+            return false;
+        }
+    }
+    histWrite(stampIndex, matrix, color);
+    setInkMatrix(stampIndex - bakedCount, matrix);
+    setInkColor(stampIndex - bakedCount, color);
+    stampIndex++;
+    instancedMesh.count = stampIndex - bakedCount;
+    return true;
+}
+
+// ===== 一括追加（リプレイ・読込用） =====
+// 履歴インデックス [from, to) のデータを境界情報つきで追加する。
+// boundariesが空の古いデータは1000スタンプごとに擬似境界を切って焼き込み可能にする。
+function bulkAppend(matrices, colors, from, to, boundaries){
+    for(let i = from; i < to; i++){
+        const atBoundary =
+            (bulkBoundaryPtr < boundaries.length && boundaries[bulkBoundaryPtr] === i) ||
+            (boundaries.length === 0 && i % 1000 === 0);
+        if(atBoundary){
+            if(bulkBoundaryPtr < boundaries.length) bulkBoundaryPtr++;
+            bakeDown(keepStrokes - 1);
+            strokeStack.push(stampIndex);
+        }
+        appendStamp(matrices[i], colors[i]);
+    }
+}
+
+function createInkSystem(){
+    // 低ポリ（80ポリゴン）＋Lambert。スタンプは小さく密に重なるため
+    // この品質で十分で、VRの頂点・ピクセル負荷を大きく抑えられる。
+    // ジオメトリ/マテリアルは焼き込みチャンクと共有するためグローバルに保持。
+    inkGeometry = new THREE.IcosahedronGeometry(1, 1);
+    inkMaterial = new THREE.MeshLambertMaterial({
+        color: 0xffffff,
+    });
+    const geo = inkGeometry;
+    const mat = inkMaterial;
+
+    instancedMesh = new THREE.InstancedMesh(geo, mat, MAX_STAMPS);
+    instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+    const colors = new Float32Array(MAX_STAMPS * 3);
+    instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
+    instancedMesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    instancedMesh.instanceColor.needsUpdate = true;
+
+    instancedMesh.frustumCulled = false;
+
+    textGroup.add(instancedMesh);
+    instancedMesh.count = 0;
+
+    // ダーティ範囲を初期化
+    inkDirtyMin = Infinity;
+    inkDirtyMax = -1;
+
+    for(let i = 0; i < MAX_STAMPS; i++){
+        dummy.position.set(0, 0, 0);
+        dummy.scale.set(0, 0, 0);
+        dummy.updateMatrix();
+        setInkMatrix(i, dummy.matrix);
+    }
+    instancedMesh.instanceMatrix.needsUpdate = true;
+}
+
+// ===== インクシステム再初期化 =====
+// ===== Gamepad =====
+// ===== トリガー値の取得 =====
+function getTriggerValue(index){
+    return gamepad ? gamepad.buttons[index]?.value || 0 : 0;
+}
+
+// ===== バイブレーション =====
+function vibrate(hand, duration = 80, intensity = 0.8){
+    const session = renderer.xr.getSession();
+    if(!session) return;
+    for(const source of session.inputSources){
+        if(source.handedness !== hand) continue;
+        const actuators = source.gamepad?.hapticActuators;
+        if(actuators && actuators.length > 0){
+            actuators[0].pulse(intensity, duration);
+        }
+    }
+}
+
+// ===== 描画ハッシュ計算（重複保存チェック用） =====
+function computeDrawingHash(){
+    const count = stampIndex; // 焼き込み分を含む全スタンプ数
+    if(count === 0) return "empty";
+
+    const sampleIndices = [
+        0,
+        Math.floor(count * 0.25),
+        Math.floor(count * 0.5),
+        Math.floor(count * 0.75),
+        count - 1
+    ];
+
+    let hash = `n${count}_s${count}`;
+    for(const i of sampleIndices){
+        if(i >= count) continue;
+        const m = histReadMatrix(i, histScratchM);
+        const c = histReadColor(i, histScratchC);
+
+        hash += `|${i}:${m.elements[0].toFixed(4)},${m.elements[5].toFixed(4)},${m.elements[12].toFixed(4)},${m.elements[13].toFixed(4)},${m.elements[14].toFixed(4)},${c.r.toFixed(3)},${c.g.toFixed(3)},${c.b.toFixed(3)}`;
+    }
+    return hash;
+}
+
+// ===== 現在の描画を「見た目通り」のワールド座標で読み出す =====
+// 履歴は焼き込み済み分を含む全スタンプを保持しているため、
+// ここから読めばリプレイ・保存は常に1ストローク目から完全なデータになる。
+// 各行列は textGroup ローカル座標なので、保存・リプレイ取得の時点で
+// textGroup の変換を掛けてワールド座標へ焼き込み、読込側では textGroup を
+// 原点に戻すことで、セッション終了直前の見た目を完全に再現する。
+function readBakedInstanceData(){
+    textGroup.updateMatrixWorld(true);
+    const world = textGroup.matrixWorld;
+    const count = stampIndex;
+    const matrices = [];
+    const colors = [];
+    for(let i = 0; i < count; i++){
+        const m = histReadMatrix(i, new THREE.Matrix4()).premultiply(world);
+        matrices.push(m);
+        colors.push(histReadColor(i, new THREE.Color()));
+    }
+    return { count, matrices, colors };
+}
+
+// ===== クリア =====
+function clearAll(){
+    // 移動・回転で蓄積した textGroup の変換を原点に戻す。
+    // これにより保存時に焼き込んだワールド座標が、そのままの見た目で描画される。
+    textGroup.matrix.identity();
+    textGroup.updateMatrixWorld(true);
+
+    bbMin.set(+Infinity, +Infinity, +Infinity);
+    bbMax.set(-Infinity, -Infinity, -Infinity);
+    bbDirty = true;
+
+    stampIndex = 0;
+    instancedMesh.count = 0;
+    hasLast = false;
+    strokeStack = [];
+
+    // 履歴と焼き込みチャンクをすべて破棄
+    histPagesM = [];
+    histPagesC = [];
+    histStart = 0;
+    bakedCount = 0;
+    bakedStrokeCount = 0;
+    bulkBoundaryPtr = 0;
+    totalLimitNotified = false; // 上限通知をリセット
+    for(const chunk of bakedChunks){
+        textGroup.remove(chunk.mesh);
+        chunk.mesh.dispose(); // インスタンス属性のみ破棄（geo/matは共有なので触らない）
+    }
+    bakedChunks = [];
+
+    // 動的バッファはcount=0で非表示になるためゼロ埋め不要
+    inkDirtyMin = Infinity;
+    inkDirtyMax = -1;
+    inkFullUpload = true;
+    needsUpdate = true;
+    updateStickGauge();
+}
+
+function checkClear(){
+    if(!gamepad) return;
+    const pressed = !!gamepad.buttons[BTN_STICK]?.pressed;
+    const gripHeld = getTriggerValue(1) >= GRIP_PAN_THRESHOLD;
+    // スティック押し込み（グリップなし）を1回押すと、お手本をもう一度アニメ再生。
+    // グリップ＋押し込みは「太さ・はらいリセット」なので、グリップ中は反応させない。
+    // （この関数は固定化中は呼ばれないため、固定化中は自動的に無効になる）
+    if(pressed && !prevStickPressed && !gripHeld){
+        startGuideReplay();
+    }
+    prevStickPressed = pressed;
+}
+
+// ===== 再描画開始 / 再描画中はスキップして即完成 =====
+function startReplay(){
+    if(replayActive && replayData){
+        finishReplayImmediately();
+        return;
+    }
+
+    if(stampIndex === 0) return;
+
+    // 履歴全体（焼き込み済み分を含む）を textGroup の変換を焼き込んだ
+    // ワールド座標で取得（clearAll で原点に戻る前に確定）。
+    // これにより1ストローク目からの完全なリプレイになる。
+    const { count, matrices: savedMatrices, colors: savedColors } = readBakedInstanceData();
+
+    const strokeBoundaries = strokeStack.slice();
+
+    replayData = { count, matrices: savedMatrices, colors: savedColors, strokeBoundaries };
+
+    clearAll();
+
+    replayIndex = 0;
+    replayFrameCount = 0;
+    replayActive = true;
+    replayWaitFrames = REPLAY_START_DELAY_FRAMES;
+}
+
+// ===== 再描画を即完成 =====
+function finishReplayImmediately(){
+    if(!replayData) return;
+
+    // 残りを一括追加（境界処理と焼き込みはbulkAppend内で自動的に行われる）
+    bulkAppend(replayData.matrices, replayData.colors,
+               replayIndex, replayData.count,
+               replayData.strokeBoundaries || []);
+    needsUpdate = true;
+
+    replayActive = false;
+    replayData = null;
+    replayWaitFrames = 0;
+    replayFrameCount = 0;
+    updateStickGauge();
+}
+
+// ===== 再描画ティック =====
+function tickReplay(){
+    if(!replayActive || !replayData) return;
+
+    if(replayWaitFrames > 0){
+        replayWaitFrames--;
+        return;
+    }
+
+    replayFrameCount++;
+    if(replayFrameCount < REPLAY_FRAME_PER_STAMP) return;
+    replayFrameCount = 0;
+
+    const prevIndex = replayIndex;
+    const total = replayData.count; // 上限キャップなし（焼き込みで何個でも再生可能）
+    const end = Math.min(replayIndex + replaySpeed, total);
+
+    bulkAppend(replayData.matrices, replayData.colors,
+               replayIndex, end,
+               replayData.strokeBoundaries || []);
+
+    replayIndex = end;
+    needsUpdate = true;
+
+    const boundaries = replayData.strokeBoundaries;
+    for(let bi = 1; bi < boundaries.length; bi++){
+        const boundary = boundaries[bi];
+        if(replayIndex >= boundary && prevIndex < boundary){
+            const idxBefore = boundary - 1;
+            const idxAfter  = boundary;
+            if(idxBefore >= 0 && idxAfter < replayData.count){
+                const mB = replayData.matrices[idxBefore];
+                const mA = replayData.matrices[idxAfter];
+                const px = mB.elements[12] - mA.elements[12];
+                const py = mB.elements[13] - mA.elements[13];
+                const pz = mB.elements[14] - mA.elements[14];
+                const dist = Math.sqrt(px*px + py*py + pz*pz);
+                replayWaitFrames = Math.round(dist * REPLAY_STROKE_PAUSE_FACTOR);
+            }
+            break;
+        }
+    }
+
+    if(replayIndex >= total){
+        // strokeStackはbulkAppendが履歴インデックスで構築済みなので上書き不要
+        replayActive = false;
+        replayData = null;
+        replayWaitFrames = 0;
+        replayFrameCount = 0;
+    }
+}
+
+// ===== 取り消し =====
+// 生乾き（未焼き込み）のストロークだけ取り消せる。
+// 焼き込み済みの墨は「乾いて紙に染み込んだ」ものとして取り消し不可。
+function undoLastStroke(){
+    if(strokeStack.length - bakedStrokeCount <= 0) return; // 生乾きなし
+
+    const startIndex = strokeStack.pop();
+
+    // 履歴と動的バッファの末尾を切り詰める
+    const wetBefore = stampIndex - bakedCount;
+    stampIndex = startIndex;
+
+    instancedMesh.count = stampIndex - bakedCount;
+
+    // 解放した領域をゼロ埋め（「countの外は常にゼロ行列」の不変条件を維持し、
+    // 転送タイミングや別描画経路での幽霊スタンプを構造的に防ぐ）
+    const wetAfter = stampIndex - bakedCount;
+    if(wetBefore > wetAfter){
+        instancedMesh.instanceMatrix.array.fill(0, wetAfter * 16, wetBefore * 16);
+        instancedMesh.instanceColor.array.fill(0, wetAfter * 3, wetBefore * 3);
+        inkFullUpload = true; // ゼロ埋めもGPUへ反映
+    }
+
+    // 上限を下回ったら再度書けるように通知ラッチをリセット
+    if(stampIndex < totalStampLimit) totalLimitNotified = false;
+
+    hasLast = false;
+    bbDirty = true;
+    needsUpdate = true;
+}
+
+function checkUndo(){
+    if(!gamepad) return;
+
+    const pressed = gamepad.buttons[BTN_B]?.pressed;
+    const now = performance.now();
+
+    // ラッチ中（回転ジェスチャに使われたB）は、完全に離すまで通常機能をロック。
+    if(abGestureLatchB){
+        if(!pressed) abGestureLatchB = false; // 離したらロック解除
+        bBtnHoldStart = 0;
+        bBtnLongFired = false;
+        bBtnWarnFired = false;
+        prevBUndoPressed = pressed;
+        return;
+    }
+
+    if(suppressBButton){
+        // グリップ＋Bで回転中：Bの既存機能（Undo／全消去）は発火させない。
+        // ホールド状態を消し、prevBUndoPressedを更新して離した瞬間の誤Undoも防ぐ。
+        bBtnHoldStart = 0;
+        bBtnLongFired = false;
+        bBtnWarnFired = false;
+        prevBUndoPressed = pressed;
+        return;
+    }
+
+    if(pressed){
+        if(!prevBUndoPressed){
+            bBtnHoldStart = now;
+            bBtnLongFired = false;
+            bBtnWarnFired = false;
+        } else {
+            const held = now - bBtnHoldStart;
+            if(!bBtnWarnFired && held >= LONG_PRESS_WARNING_MS){
+                bBtnWarnFired = true;
+                vibrate("right", 40, 0.5);
+            }
+            if(!bBtnLongFired && held >= LONG_PRESS_TRIGGER_MS){
+                bBtnLongFired = true;
+                if(replayActive) finishReplayImmediately();
+                clearAll();
+                colorMode = COLOR_MODE.BW;
+                colorChanged = false;
+                isWhite = false;
+                currentColor.set(0x111111);
+                blackLockFrames = BLACK_LOCK_DURATION;
+                vibrate("right", 120, 0.9);
+            }
+        }
+    } else {
+        if(prevBUndoPressed && !bBtnLongFired){
+            undoLastStroke();
+        }
+        bBtnHoldStart = 0;
+        bBtnLongFired = false;
+        bBtnWarnFired = false;
+    }
+
+    prevBUndoPressed = pressed;
+}
+
+// ===== 保存 =====
+function saveCurrentDrawing(){
+    if(stampIndex === 0) return; // 焼き込み分を含む全スタンプ数で判定
+
+    const currentHash = computeDrawingHash();
+    if(currentHash === lastSavedHash) return;
+
+    // textGroup の移動・回転を焼き込んだワールド座標で保存（見た目通りに復元するため）
+    const baked = readBakedInstanceData();
+    const data = {
+        matrices: baked.matrices,
+        colors: baked.colors,
+        count: baked.count,
+        thumbnail: null,
+        strokeBoundaries: strokeStack.slice()
+    };
+    renderer.render(scene, camera);
+    data.thumbnail = createThumbnail();
+
+    const userStart = defaultGalleryData ? 1 : 0;
+    const maxSlots = defaultGalleryData ? MAX_USER_GALLERY : MAX_GALLERY;
+    const userCount = gallery.length - userStart;
+    const isFull = userCount >= maxSlots; 
+
+    if(!isFull){
+        insertAtSlot(userStart, data);
+
+    } else {
+        let targetIndex = pendingSlotIndex >= 0
+            ? pendingSlotIndex
+            : currentGalleryIndex;
+
+        const isTargetDefault = defaultGalleryData && targetIndex === DEFAULT_SLOT;
+
+        if(isTargetDefault){
+            const lastIdx = gallery.length - 1;
+            removeGallerySlotInternal(lastIdx);
+            insertAtSlot(userStart, data);
+        } else if(targetIndex >= 0 && targetIndex < gallery.length){
+            overwriteSlot(targetIndex, data);
+        } else {
+            overwriteSlot(gallery.length - 1, data);
+        }
+    }
+
+    lastSavedHash = currentHash;
+
+    vibrate("left", 100, 0.75);
+
+    pendingSlotIndex = -1;
+    blinkTimer = 0;
+    blinkVisible = true;
+}
+
+// ===== 指定インデックスに挿入して後ろをずらす =====
+function insertAtSlot(index, data){
+    gallery.splice(index, 0, data);
+
+    rebuildGalleryUI();
+
+    currentGalleryIndex = index;
+    updateGalleryHighlight();
+}
+
+// ===== 指定インデックスを上書き =====
+function overwriteSlot(index, data){
+    gallery[index] = data;
+
+    rebuildGalleryUI();
+
+    currentGalleryIndex = index;
+    updateGalleryHighlight();
+}
+
+// ===== ギャラリーUIを gallery[] から全再構築 =====
+function rebuildGalleryUI(){
+    while(galleryGroup.children.length > 0){
+        const mesh = galleryGroup.children[0];
+        if(mesh.material.map) mesh.material.map.dispose();
+        mesh.material.dispose();
+        mesh.geometry.dispose();
+        galleryGroup.remove(mesh);
+    }
+    for(let i = 0; i < gallery.length; i++){
+        const thumb = createThumbnailMesh(gallery[i], i);
+        galleryGroup.add(thumb);
+    }
+    galleryGroup.children.forEach((mesh, i) => { mesh.userData.index = i; });
+    layoutGalleryCircle();
+}
+
+// ===== 内部用：UIごとスロット削除 =====
+function removeGallerySlotInternal(index){
+    if(defaultGalleryData && index === DEFAULT_SLOT) return;
+    if(index < 0 || index >= gallery.length) return;
+
+    gallery.splice(index, 1);
+
+    const mesh = galleryGroup.children[index];
+    if(mesh){
+        if(mesh.material.map) mesh.material.map.dispose();
+        mesh.material.dispose();
+        mesh.geometry.dispose();
+        galleryGroup.remove(mesh);
+    }
+    galleryGroup.children.forEach((m, i) => { m.userData.index = i; });
+    layoutGalleryCircle();
+
+    if(currentGalleryIndex >= gallery.length){
+        currentGalleryIndex = gallery.length - 1;
+    }
+}
+
+// ===== 読み込み処理 =====
+function loadDrawing(index){
+    if(index < 0 || index >= gallery.length) return;
+
+    const data = gallery[index];
+
+    if(defaultGalleryData && index === DEFAULT_SLOT){
+        // お手本スロットは編集不可のガイド。自分の線はそのまま、お手本だけ再アニメ。
+        startGuideReplay();
+        currentGalleryIndex = index;
+        updateGalleryHighlight();
+        return;
+    }
+
+    // お手本以外（自分の作品）を読み込むときは、お手本ガイドは隠す
+    clearGuide();
+    clearAll();
+
+    // 履歴＋焼き込み経由で全量を復元（上限キャップなし）
+    bulkAppend(data.matrices, data.colors, 0, data.count, data.strokeBoundaries || []);
+    needsUpdate = true;
+
+    // ★視点正面へ再配置（保存時の位置や立ち位置に依存せず同じ場所に出す）
+    placeGroupInFrontOfViewer(computeMatricesCenter(data.matrices.slice(0, data.count)));
+    bbDirty = true;
+
+    currentGalleryIndex = index;
+    updateGalleryHighlight();
+    updateStickGauge();
+}
+
+// ===== 左コントローラー =====
+function handleLeftController(){
+    if(!leftGamepad) return;
+
+    const trigger = leftGamepad.buttons[0]?.pressed;
+    const squeeze = leftGamepad.buttons[1]?.pressed;
+    const xBtn = leftGamepad.buttons[4]?.pressed;
+    const yBtn = leftGamepad.buttons[5]?.pressed;
+
+    galleryVisible = squeeze;
+
+    if(trigger && !prevLeftTrigger){
+        if(replayActive) finishReplayImmediately();
+        saveCurrentDrawing();
+    }
+
+    if(xBtn && !prevLeftA){
+        if(gallery.length > 0){
+            if(replayActive) finishReplayImmediately();
+
+            const baseIndex = pendingSlotIndex >= 0
+                ? pendingSlotIndex
+                : (currentGalleryIndex >= 0 ? currentGalleryIndex : 0);
+            const next = (baseIndex + 1) % gallery.length;
+
+            loadDrawing(next);
+
+            pendingSlotIndex = -1;
+            blinkTimer = 0;
+            blinkVisible = true;
+            updateGalleryHighlight();
+        }
+    }
+
+    if(yBtn && !prevLeftB){
+        if(gallery.length > 0){
+            if(replayActive) finishReplayImmediately();
+
+            const baseIndex = pendingSlotIndex >= 0
+                ? pendingSlotIndex
+                : (currentGalleryIndex >= 0 ? currentGalleryIndex : 0);
+            const prev = (baseIndex - 1 + gallery.length) % gallery.length;
+
+            loadDrawing(prev);
+
+            pendingSlotIndex = -1;
+            blinkTimer = 0;
+            blinkVisible = true;
+            updateGalleryHighlight();
+        }
+    }
+
+    prevLeftTrigger = trigger;
+    prevLeftA = xBtn;
+    prevLeftB = yBtn;
+}
+
+// ===== サムネイル画像生成 =====
+function createThumbnail(size = 512){
+
+    const wasPresenting = renderer.xr.isPresenting;
+    if(wasPresenting){
+        renderer.xr.enabled = false;
+    }
+
+    const rt = new THREE.WebGLRenderTarget(size, size, { 
+        format: THREE.RGBAFormat, 
+        type: THREE.UnsignedByteType, 
+        depthBuffer: true, 
+        stencilBuffer: false, 
+        alpha: false 
+    });
+
+    const oldBg = scene.background;
+    scene.background = new THREE.Color(0xffffff);
+
+    const exhibitWasVisible = exhibitHideForCapture(); // ★作品展示：サムネイルに展示物を写さない
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    exhibitRestoreAfterCapture(exhibitWasVisible);
+
+    scene.background = oldBg;
+
+    const pixels = new Uint8Array(size * size * 4);
+    renderer.readRenderTargetPixels(rt, 0, 0, size, size, pixels);
+
+    if(wasPresenting){
+        renderer.xr.enabled = true;
+    }
+
+    rt.dispose();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    const imageData = ctx.createImageData(size, size);
+    for (let y = 0; y < size; y++) {
+        const srcRow = y * size * 4;
+        const dstRow = (size - 1 - y) * size * 4;
+        imageData.data.set(pixels.subarray(srcRow, srcRow + size * 4), dstRow);
+    }
+
+    for(let i = 0; i < imageData.data.length; i += 4){
+        const alpha = imageData.data[i + 3] / 255;
+        if(alpha === 0){
+            imageData.data[i] = 255;
+            imageData.data[i+1] = 255;
+            imageData.data[i+2] = 255;
+            imageData.data[i+3] = 255;
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas.toDataURL("image/png");
+}
+
+// ===== サムネイルメッシュ生成 =====
+function createThumbnailMesh(data, index){
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load(data.thumbnail);
+
+    const geo = new THREE.PlaneGeometry(0.12, 0.12);
+    const mat = new THREE.MeshBasicMaterial({
+        map: texture,
+        side: THREE.DoubleSide,
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(index * 0.12, 0, 0);
+    mesh.userData.index = index;
+
+    return mesh;
+}
+
+// ===== サムネイルメッシュ円形配置 =====
+function layoutGalleryCircle(){
+
+    const radius = 0.18;
+    const count = galleryGroup.children.length;
+
+    galleryGroup.children.forEach((mesh, i) => {
+
+        const angle = (i / count) * Math.PI * 2;
+
+        const x = Math.sin(angle) * radius;
+        const z = -Math.cos(angle) * radius;
+
+        mesh.position.set(x, 0, z);
+    });
+}
+
+// ===== ハイライト =====
+function updateGalleryHighlight(){
+    galleryGroup.children.forEach(mesh => {
+        const idx = mesh.userData.index;
+        const isSelected = idx === currentGalleryIndex;
+        const isPending  = idx === pendingSlotIndex;
+
+        if(isSelected){
+            mesh.scale.set(1.5, 1.5, 1.5);
+            mesh.material.color.set(0xffffff);
+        } else if(isPending){
+            mesh.scale.set(1.5, 1.5, 1.5);
+            mesh.material.color.set(blinkVisible ? 0xff8800 : 0x884400);
+        } else {
+            mesh.scale.set(1, 1, 1);
+            mesh.material.color.set(0xaaaaaa);
+        }
+    });
+}
+
+// ===== 点滅タイマー更新 =====
+function tickBlink(){
+    if(pendingSlotIndex < 0) return;
+    blinkTimer++;
+    if(blinkTimer >= 30){
+        blinkVisible = !blinkVisible;
+        blinkTimer = 0;
+        updateGalleryHighlight();
+    }
+}
+
+// ===== 描画開始 =====
+function startNewDrawing(){
+    bbMin.set(+Infinity, +Infinity, +Infinity);
+    bbMax.set(-Infinity, -Infinity, -Infinity);
+
+    pos.setFromMatrixPosition(rightController.matrixWorld);
+    tempVec1.copy(pos);
+    textGroup.worldToLocal(tempVec1);
+
+    lastPos.copy(tempVec1);
+    hasLast = false;
+    lastSize = MIN_SIZE;
+    releaseActive = false;
+    releaseFade = 0;
+
+    strokeStart = true;
+    startProgress = 0;
+    strokeBeginTime = performance.now();
+    smoothVelocity = 0;
+    strokeAngle = 0;
+    strokeAngleY = 0;
+    // プライミング：平滑化トリガーを生値×プライミング率まで即座に引き上げる。
+    // 初動だけ素早く反応し、以降の強弱は筆圧モデルの平滑化がそのまま効く。
+    smoothTrigger = Math.max(smoothTrigger,
+        getTriggerValue(BTN_TRIGGER) * Math.min(1, 0.5 + strokeStartResponse));
+    // 新しいストロークを始める前に、古いストロークを焼き込んで
+    // 生乾き（とりけし可能）本数を keepStrokes 以内に保つ。
+    // 焼き込みはFloat32コピーのみで1ms未満なので、書き始めのカクつきは生じない。
+    bakeDown(keepStrokes - 1);
+    strokeStack.push(stampIndex); // 履歴インデックスで境界を記録
+}
+
+// ===== 描画 =====
+function draw(){
+    if(!rightController) return;
+
+    const trigger = getTriggerValue(BTN_TRIGGER);
+    if(trigger < 0.05){
+        drawing = false;
+        return;
+    }
+
+    if(!drawing){
+        startNewDrawing();
+        drawing = true;
+    }
+
+    pos.setFromMatrixPosition(rightController.matrixWorld);
+    tempVec1.copy(pos);
+    textGroup.worldToLocal(tempVec1);
+
+    if(!hasLast){
+        lastPos.copy(tempVec1);
+        hasLast = true;
+        return;
+    }
+
+    const dist = tempVec1.distanceTo(lastPos);
+
+    smoothVelocity = THREE.MathUtils.lerp(smoothVelocity, dist, VELOCITY_SMOOTH);
+
+    const velocityRatio = THREE.MathUtils.clamp(
+        (smoothVelocity - VELOCITY_FAST_THRESHOLD) / VELOCITY_FAST_THRESHOLD,
+        0.0, 1.0
+    );
+    const adaptiveStep = THREE.MathUtils.lerp(STEP_DISTANCE, STEP_DISTANCE_FAST, velocityRatio);
+    const steps = Math.max(1, Math.floor(dist / adaptiveStep));
+
+    // サイズ追従は「1フレームあたりの収束率」を基準にし、それをステップ数で分配する。
+    // （ステップ毎に固定値でlerpすると、ステップ数が増えた瞬間に1フレーム内で
+    //   ほぼ収束してしまい、太さがカクッと変わる原因になる）
+    // サイズ追従率：「かきはじめの反応」による引き上げは書き始めの250msだけに
+    // 限定し、以降は基準値へ戻す。ストローク全体に効かせると手ぶれ由来の
+    // 太さノイズが濾過されず、線の滑らかさが落ちるため。
+    const sizeBoost = Math.max(0, strokeStartResponse - 0.5) * 0.8;
+    const boostW = THREE.MathUtils.clamp(1 - (performance.now() - strokeBeginTime) / 250, 0, 1);
+    const lerpPerFrame = SIZE_LERP_PER_FRAME + sizeBoost * boostW;
+    const sizeLerp = 1 - Math.pow(1 - lerpPerFrame, 1 / steps);
+
+    tempVec2.subVectors(tempVec1, lastPos);
+    if(tempVec2.length() > 0.0001){
+        strokeAngle = Math.atan2(tempVec2.x, tempVec2.z);
+        strokeAngleY = Math.atan2(tempVec2.y, Math.sqrt(tempVec2.x*tempVec2.x + tempVec2.z*tempVec2.z));
+        lastMoveDir.copy(tempVec2).normalize();
+    }
+
+    for(let i = 1; i <= steps; i++){
+        const t = i/steps;
+        interp.lerpVectors(lastPos, tempVec1, t);
+
+        const speedFactor = THREE.MathUtils.clamp(1.0 - smoothVelocity * 35.0, 0.15, 1.0);
+
+        // 生のトリガー値ではなく筆圧モデルの平滑化値を使う。
+        // 押す/離す方向・操作速度に応じた遅れが入り、太さがなだらかに変化する。
+        let targetSize = maxBrushSize * smoothTrigger * speedFactor;
+        targetSize = THREE.MathUtils.clamp(targetSize, MIN_SIZE, maxBrushSize);
+
+        let size = THREE.MathUtils.lerp(lastSize, targetSize, sizeLerp);
+
+        if(strokeStart){
+            startProgress += (0.06 + (0.5 + strokeStartResponse) * 0.16) + smoothTrigger * 0.15; // 起筆テーパー速度
+            if(startProgress >= 1){
+                startProgress = 1;
+                strokeStart = false;
+            }
+            size *= Math.pow(startProgress, 0.7);
+        }
+
+        lastSize = size;
+        stamp(interp, size, strokeAngle, strokeAngleY);
+    }
+    lastMoveDir.subVectors(tempVec1, lastPos).normalize();
+    lastPos.copy(tempVec1);
+    hasLast = true;
+}
+
+// ===== 固定化 発動/解除（右グリップ＋右トリガー＋Aボタン10連打） =====
+// 右手グリップと右手トリガーを一緒に引いたまま、Aボタンを続けて10回押すと
+// 「固定化」（新しく書いたり消したりできない状態）になる。もう一度同じ操作で解除。
+// 連打はAの押下エッジで数え、押下間隔（LOCK_TAP_TIMEOUT_MS）が空くとリセットされる。
+// この関数は固定化中も毎フレーム走るので、固定化中でも解除ジェスチャは受け付けられる。
+// ※ 定数・状態の宣言はファイル冒頭にある
+
+function checkLockGesture(){
+    if(!gamepad || !rightController) return;
+    const gripHeld = getTriggerValue(1) >= GRIP_PAN_THRESHOLD;
+    const trigHeld = getTriggerValue(BTN_TRIGGER) >= LOCK_TRIGGER_THRESHOLD;
+    const aHeld = !!gamepad.buttons[BTN_A]?.pressed;
+    const aEdge = aHeld && !prevAForLock; // 押した瞬間だけ
+    prevAForLock = aHeld;
+
+    // グリップとトリガーの両方を引いている姿勢のときだけカウントする
+    if(!(gripHeld && trigHeld)){ lockTapCount = 0; return; }
+
+    if(aEdge){
+        const now = performance.now();
+        if(now - lockTapLastTime > LOCK_TAP_TIMEOUT_MS) lockTapCount = 0;
+        lockTapLastTime = now;
+        lockTapCount++;
+        if(lockTapCount >= LOCK_TOGGLE_TAPS){
+            lockTapCount = 0;
+            operationLocked = !operationLocked;
+            if(brushGroup) brushGroup.visible = !operationLocked;
+            if(operationLocked){
+                drawing = false;
+                hasLast = false;
+                releaseActive = false;
+                // 発動直後の誤バイブ防止：今の入力状態を「押されている」扱いで記録
+                syncLockFeedbackPrev(true);
+            }
+            vibrate("right", 200, 1.0); // 発動/解除の手応え（通常より長め）
+        }
+    }
+}
+
+// 固定化中に「操作しようとした瞬間」だけバイブで知らせる。
+// 押しっぱなしでは鳴らさず（立ち上がりエッジのみ）、操作した側の手を鳴らす。
+// 解除ジェスチャ姿勢（右グリップ＋右トリガー）の間は、解除操作の一部なので鳴らさない。
+function syncLockFeedbackPrev(setPressed){
+    // setPressed=true のとき、現在の入力を「押下中」として記録し直す（発動直後の誤発火防止）
+    const rGrip = getTriggerValue(1) >= GRIP_PAN_THRESHOLD;
+    const rTrigV = getTriggerValue(BTN_TRIGGER);
+    if(gamepad){
+        lockFbPrev.rTrig = setPressed ? true : (rTrigV >= 0.4);
+        lockFbPrev.rGrip = setPressed ? true : rGrip;
+        lockFbPrev.rA = setPressed ? true : !!gamepad.buttons[BTN_A]?.pressed;
+        lockFbPrev.rB = setPressed ? true : !!gamepad.buttons[BTN_B]?.pressed;
+        lockFbPrev.rStickBtn = setPressed ? true : !!gamepad.buttons[BTN_STICK]?.pressed;
+        lockFbPrev.rStickAx = setPressed ? true : (Math.hypot(gamepad.axes[AXIS_X]||0, gamepad.axes[AXIS_Y]||0) > 0.5);
+    }
+    if(leftGamepad){
+        lockFbPrev.lTrig = setPressed ? true : !!leftGamepad.buttons[0]?.pressed;
+        lockFbPrev.lGrip = setPressed ? true : !!leftGamepad.buttons[1]?.pressed;
+        lockFbPrev.lX = setPressed ? true : !!leftGamepad.buttons[4]?.pressed;
+        lockFbPrev.lY = setPressed ? true : !!leftGamepad.buttons[5]?.pressed;
+        lockFbPrev.lStickBtn = setPressed ? true : !!leftGamepad.buttons[BTN_STICK]?.pressed;
+        lockFbPrev.lStickAx = setPressed ? true : (Math.hypot(leftGamepad.axes[2]||0, leftGamepad.axes[3]||0) > 0.5);
+    }
+}
+
+function handleLockedFeedback(){
+    // 解除ジェスチャ姿勢（右グリップ＋右トリガー）中は checkLockGesture が担当するので鳴らさない
+    const rGrip = getTriggerValue(1) >= GRIP_PAN_THRESHOLD;
+    const rTrigV = getTriggerValue(BTN_TRIGGER);
+    const unlockPosture = rGrip && (rTrigV >= LOCK_TRIGGER_THRESHOLD);
+
+    // ---- 右手 ----
+    if(gamepad){
+        const rTrig = rTrigV >= 0.4;
+        const rA = !!gamepad.buttons[BTN_A]?.pressed;
+        const rB = !!gamepad.buttons[BTN_B]?.pressed;
+        const rStickBtn = !!gamepad.buttons[BTN_STICK]?.pressed;
+        const rStickAx = Math.hypot(gamepad.axes[AXIS_X]||0, gamepad.axes[AXIS_Y]||0) > 0.5;
+
+        if(!unlockPosture){
+            const edge = (rTrig && !lockFbPrev.rTrig) || (rGrip && !lockFbPrev.rGrip)
+                      || (rA && !lockFbPrev.rA) || (rB && !lockFbPrev.rB)
+                      || (rStickBtn && !lockFbPrev.rStickBtn) || (rStickAx && !lockFbPrev.rStickAx);
+            if(edge) vibrate("right", 60, 0.7);
+        }
+        lockFbPrev.rTrig = rTrig; lockFbPrev.rGrip = rGrip; lockFbPrev.rA = rA;
+        lockFbPrev.rB = rB; lockFbPrev.rStickBtn = rStickBtn; lockFbPrev.rStickAx = rStickAx;
+    }
+
+    // ---- 左手 ----
+    if(leftGamepad){
+        const lTrig = !!leftGamepad.buttons[0]?.pressed;
+        const lGrip = !!leftGamepad.buttons[1]?.pressed;
+        const lX = !!leftGamepad.buttons[4]?.pressed;
+        const lY = !!leftGamepad.buttons[5]?.pressed;
+        const lStickBtn = !!leftGamepad.buttons[BTN_STICK]?.pressed;
+        const lStickAx = Math.hypot(leftGamepad.axes[2]||0, leftGamepad.axes[3]||0) > 0.5;
+
+        const edge = (lTrig && !lockFbPrev.lTrig) || (lGrip && !lockFbPrev.lGrip)
+                  || (lX && !lockFbPrev.lX) || (lY && !lockFbPrev.lY)
+                  || (lStickBtn && !lockFbPrev.lStickBtn) || (lStickAx && !lockFbPrev.lStickAx);
+        if(edge) vibrate("left", 60, 0.7);
+
+        lockFbPrev.lTrig = lTrig; lockFbPrev.lGrip = lGrip; lockFbPrev.lX = lX;
+        lockFbPrev.lY = lY; lockFbPrev.lStickBtn = lStickBtn; lockFbPrev.lStickAx = lStickAx;
+    }
+}
+
+// ===== スタンプ =====
+function stamp(position, size, angleY = 0, angleX = 0){
+    dummy.position.copy(position);
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(size, size * 0.6, size);
+    dummy.updateMatrix();
+
+    if(!appendStamp(dummy.matrix, currentColor)) return;
+
+    bbMin.min(position);
+    bbMax.max(position);
+    bbDirty = true;
+    needsUpdate = true;
+}
+
+// ===== 払い（トリガーを離した後のフェード） =====
+// 離した後も実際のコントローラーの動きに追従して描き続け、
+// 太さだけを時定数 releaseTau でなだらかに減衰させる。
+// ・手を振り抜く → その速度・軌跡どおりに長くカーブした払いができる
+// ・手を止める   → その場で素早く細って終わる（余計な線は出ない）
+function releaseStroke(){
+    if(!releaseActive) return;
+    if(!rightController){ releaseActive = false; return; }
+
+    const now = performance.now();
+    let dt = (now - releasePrevTime) / 1000;
+    releasePrevTime = now;
+    if(!(dt > 0) || dt > 0.1) dt = 1 / 72;
+
+    // 最大時間を超えたら強制終了（描き残し防止の保険）
+    if(now - releaseStartTime > RELEASE_MAX_TIME_MS){
+        releaseActive = false;
+        return;
+    }
+
+    // 太さの減衰（フレームレート非依存の指数減衰）
+    releaseFade *= Math.exp(-dt / releaseTau);
+    const targetSize = releaseStartSize * Math.pow(releaseFade, 1.4);
+
+    // 実際のコントローラー位置に追従（textGroupローカル座標）
+    pos.setFromMatrixPosition(rightController.matrixWorld);
+    tempVec1.copy(pos);
+    textGroup.worldToLocal(tempVec1);
+
+    const dist = tempVec1.distanceTo(lastPos);
+
+    // ---- 空中への点付き防止ゲート ----
+    // 払いとして許すのは「直前のストローク方向への振り抜き」だけ。
+    // 手が別方向へ動き出したら（＝次の文字への移動）即終了し、
+    // 移動経路の空中に点列が残るのを防ぐ。
+    tempVec2.subVectors(tempVec1, lastPos);
+    if(tempVec2.length() > 0.002){
+        const dirDot = tempVec2.dot(lastMoveDir) / tempVec2.length();
+        if(dirDot < RELEASE_DIR_DOT_MIN){
+            releaseActive = false;
+            return;
+        }
+    }
+    releaseDist += dist;
+    if(releaseDist > RELEASE_MAX_DIST){
+        releaseActive = false;
+        return;
+    }
+
+    const steps = Math.min(Math.max(1, Math.floor(dist / STEP_DISTANCE)), 40);
+
+    // 進行方向を更新（払いのカーブにも追従する）
+    if(tempVec2.length() > 0.0005){
+        strokeAngle  = Math.atan2(tempVec2.x, tempVec2.z);
+        strokeAngleY = Math.atan2(tempVec2.y, Math.sqrt(tempVec2.x*tempVec2.x + tempVec2.z*tempVec2.z));
+        lastMoveDir.copy(tempVec2).normalize();
+    }
+
+    // 1フレームで45%収束する減衰をステップ数に分配（draw()と同じ考え方）
+    const sizeLerp = 1 - Math.pow(1 - 0.45, 1 / steps);
+    const endSize = Math.max(MIN_SIZE * 0.5, releaseStartSize * RELEASE_END_RATIO);
+
+    for(let i = 1; i <= steps; i++){
+        interp.lerpVectors(lastPos, tempVec1, i / steps);
+        const size = THREE.MathUtils.lerp(lastSize, targetSize, sizeLerp);
+
+        if(size < endSize){
+            releaseActive = false;
+            return;
+        }
+        stamp(interp, size, strokeAngle, strokeAngleY);
+        lastSize = size;
+    }
+    lastPos.copy(tempVec1);
+}
+
+// ===== オブジェクトの境界計算 =====
+function recomputeBoundingBox(){
+    bbMin.set(+Infinity, +Infinity, +Infinity);
+    bbMax.set(-Infinity, -Infinity, -Infinity);
+
+    const m = new THREE.Matrix4();
+    const p = new THREE.Vector3();
+    const s = new THREE.Vector3();
+    const q = new THREE.Quaternion();
+
+    const count = instancedMesh.count;
+
+    for(let i = 0; i < count; i++){
+        instancedMesh.getMatrixAt(i, m);
+        m.decompose(p, q, s);
+        const r = Math.max(s.x, s.y, s.z);
+
+        const min = p.clone().addScalar(-r);
+        const max = p.clone().addScalar(r);
+
+        bbMin.min(min);
+        bbMax.max(max);
+    }
+
+    // スタンプが1つも無い場合、bbMin/bbMaxはInfinityのままになり
+    // bbCenterがNaNになる。その状態で回転を行うとtextGroupの行列が
+    // NaNに汚染され、以降すべての描画が見えなくなる（=書けない/リプレイも見えない）。
+    // 空のときは原点を中心とみなして安全側に倒す。
+    if(count === 0 || !isFinite(bbMin.x) || !isFinite(bbMax.x)){
+        bbMin.set(0, 0, 0);
+        bbMax.set(0, 0, 0);
+    }
+
+    bbCenter.addVectors(bbMin, bbMax).multiplyScalar(0.5);
+}
+
+// ===== 回転中心更新 =====
+function updateBBCenterIfNeeded(){
+    if(!bbDirty) return;
+    if(!isFinite(bbMin.x) || !isFinite(bbMax.x)){
+        bbMin.set(0, 0, 0);
+        bbMax.set(0, 0, 0);
+    }
+    bbCenter.addVectors(bbMin, bbMax).multiplyScalar(0.5);
+    bbDirty = false;
+}
+
+// ===== 移動・回転 =====
+let rotationActive=false;
+let prevControllerPos = new THREE.Vector3();
+let prevControllerQuat = new THREE.Quaternion();   // ★回転を向き連動にするための前フレーム姿勢
+let smoothedPanDelta = new THREE.Vector3();         // ★パンの弧つき・手ぶれを抑える平滑化デルタ
+let smoothedRotDelta = new THREE.Quaternion();      // ★回転のカクつき・手ぶれを抑える平滑化デルタ
+
+// パン：感度1.5。デルタを平滑化して弧・手ぶれを抑える
+const panSensitivity = 1.5;
+const PAN_SMOOTH = 0.35; // 0=動かない / 1=平滑化なし。小さいほど直線的で安定
+// 回転：コントローラーの向きに連動（掴んで回す）。感度2.0＋平滑化でなめらかに
+const rotSensitivity = 2.0;
+const ROT_SMOOTH = 0.15; // 0=止まる / 1=平滑化なし。小さいほどなめらか（微小な手の動きを吸収）
+
+// 一時オブジェクト（毎フレームの new を避ける）
+const _curCtrlQuat = new THREE.Quaternion();
+const _deltaQuat   = new THREE.Quaternion();
+const _rotMat      = new THREE.Matrix4();
+const _IDENTITY_QUAT = new THREE.Quaternion(); // 無回転（感度スケーリング・平滑化の基準）
+
+// ===== グリップ閾値 =====
+const GRIP_PAN_THRESHOLD = 0.15;
+const GRIP_ROT_THRESHOLD = 0.85; // （新方式では未使用。互換のため残置）
+
+// グリップ＋A/B での移動・回転中は、A/Bの既存機能（墨色・リプレイ・Undo・全消去）を抑制する。
+// handleRotationAndPan() が毎フレーム先頭で設定し、updateColor()/checkUndo() が参照する。
+let suppressAButton = false;
+let suppressBButton = false;
+
+// 移動・回転ジェスチャに使われたA/Bは、ボタンを完全に離すまで通常機能をロックする。
+// これがないと「回転をやめてBを離す瞬間」の立ち下がりでUndoが誤発火する。
+let abGestureLatchA = false;
+let abGestureLatchB = false;
+
+function handleRotationAndPan(){
+    if(!moveRotateEnabled) return; // トグルで無効化されている
+    if(!rightController) return;
+    if(!gamepad) return;
+
+    const midTrigger = getTriggerValue(1);
+    const aHeld = gamepad.buttons[BTN_A]?.pressed;
+    const bHeld = gamepad.buttons[BTN_B]?.pressed;
+
+    // グリップを握っていない、またはA/Bどちらも押していなければモード解除。
+    // （クセでグリップだけ握っても、A/Bを押さない限り何も動かない）
+    const gripHeld = midTrigger >= GRIP_PAN_THRESHOLD;
+    const wantPan    = gripHeld && aHeld;
+    const wantRotate = gripHeld && bHeld;
+
+    // 同時押し（A+B）の場合は移動を優先し、回転は行わない。
+    const mode = wantPan ? "pan" : (wantRotate ? "rotate" : "none");
+
+    if(mode === "none"){
+        rotationActive = false;
+        prevControllerPos.set(0,0,0);
+        smoothedPanDelta.set(0,0,0);
+        return;
+    }
+
+    // 移動・回転を行うフレームでは、押している側のボタンの既存機能を抑制する。
+    // さらにラッチを立て、ボタンを完全に離すまで通常機能をロックする。
+    if(mode === "pan"){    suppressAButton = true; abGestureLatchA = true; }
+    if(mode === "rotate"){ suppressBButton = true; abGestureLatchB = true; }
+
+    hasLast = false;
+
+    // コントローラーの現在の位置・姿勢（ワールド）
+    tempVec1.setFromMatrixPosition(rightController.matrixWorld);
+    _curCtrlQuat.setFromRotationMatrix(rightController.matrixWorld);
+
+    if(!rotationActive){
+        // ジェスチャ開始フレーム：基準を記録するだけで動かさない
+        prevControllerPos.copy(tempVec1);
+        prevControllerQuat.copy(_curCtrlQuat);
+        smoothedPanDelta.set(0,0,0);
+        smoothedRotDelta.copy(_IDENTITY_QUAT); // 平滑化を無回転からやり直す
+        rotationActive = true;
+        if(bbDirty){
+            recomputeBoundingBox();
+            updateBBCenterIfNeeded();
+            bbDirty = false;
+        }
+        return;
+    }
+
+    if(mode === "pan"){
+        // ---- 平行移動：コントローラー位置の差分を平滑化してから適用 ----
+        tempVec2.copy(tempVec1).sub(prevControllerPos); // 生のフレームデルタ
+        // 平滑化（指数移動平均）。素早い手首のひねりに伴う弧を吸収して直線的にする
+        smoothedPanDelta.lerp(tempVec2, PAN_SMOOTH);
+
+        if(isFinite(smoothedPanDelta.x) && isFinite(smoothedPanDelta.y) && isFinite(smoothedPanDelta.z)){
+            const move = new THREE.Matrix4().makeTranslation(
+                smoothedPanDelta.x * panSensitivity,
+                smoothedPanDelta.y * panSensitivity,
+                smoothedPanDelta.z * panSensitivity
+            );
+            textGroup.applyMatrix4(move); // 平行移動（回転は混入しない）
+        }
+    } else {
+        // ---- 回転：コントローラーの「向きの変化」を絵に反映（掴んで回す）----
+        // このフレームの生の回転デルタ ＝ 現在の向き × 前フレームの向きの逆（ワールド座標）
+        _deltaQuat.copy(_curCtrlQuat).multiply(prevControllerQuat.clone().invert());
+
+        // 感度を掛ける（無回転からの球面外挿で角度を rotSensitivity 倍に）
+        if(rotSensitivity !== 1.0){
+            _deltaQuat.slerp(_IDENTITY_QUAT, 1.0 - rotSensitivity);
+            _deltaQuat.normalize();
+        }
+
+        // 平滑化：平滑デルタを生デルタへ少しずつ近づけて適用（微小な手の揺れを吸収）
+        smoothedRotDelta.slerp(_deltaQuat, ROT_SMOOTH);
+        smoothedRotDelta.normalize();
+
+        // 回転中心（バウンディングボックス中心）のワールド座標
+        const worldCenter = bbCenter.clone().applyMatrix4(textGroup.matrixWorld);
+
+        // NaN/Infinity ガード（textGroup の行列を汚染して全描画が消えるのを防ぐ）
+        if(!isFinite(worldCenter.x) || !isFinite(worldCenter.y) || !isFinite(worldCenter.z) ||
+           !isFinite(smoothedRotDelta.x) || !isFinite(smoothedRotDelta.y) ||
+           !isFinite(smoothedRotDelta.z) || !isFinite(smoothedRotDelta.w)){
+            prevControllerPos.copy(tempVec1);
+            prevControllerQuat.copy(_curCtrlQuat);
+            return;
+        }
+
+        const toOrigin = new THREE.Matrix4().makeTranslation(
+            -worldCenter.x, -worldCenter.y, -worldCenter.z
+        );
+        const back = new THREE.Matrix4().makeTranslation(
+            worldCenter.x, worldCenter.y, worldCenter.z
+        );
+        _rotMat.makeRotationFromQuaternion(smoothedRotDelta);
+
+        // 中心まわりに平滑デルタを適用： back · R · toOrigin · old
+        textGroup.applyMatrix4(toOrigin);
+        textGroup.applyMatrix4(_rotMat);
+        textGroup.applyMatrix4(back);
+    }
+
+    textGroup.updateMatrixWorld(true);
+    // 次フレーム用に基準を更新（位置・姿勢とも常に更新し、A↔B切替も滑らかに）
+    prevControllerPos.copy(tempVec1);
+    prevControllerQuat.copy(_curCtrlQuat);
+}
+
+// ===== グリップ＋スティック上下で太さ調整 =====
+// 右手の中指グリップを握りながら親指スティックを上下に倒すと、
+// 太さが指数スケールで連続的に変化する（上＝太く、下＝細く）。
+// A/Bボタン併用時は移動・回転ジェスチャなので調整しない。
+// 調整中は筆先に最大太さの半透明球を表示し、約1秒で消える。
+function updateBrushSizeAdjust(){
+    const now = performance.now();
+    let dt = (now - brushAdjustPrevTime) / 1000;
+    brushAdjustPrevTime = now;
+    if(!(dt > 0) || dt > 0.1) dt = 1 / 72;
+
+    if(gamepad && rightController){
+        const gripHeld = getTriggerValue(1) >= GRIP_PAN_THRESHOLD;
+        const aHeld = gamepad.buttons[BTN_A]?.pressed;
+        const bHeld = gamepad.buttons[BTN_B]?.pressed;
+        const stickPressed = gamepad.buttons[BTN_STICK]?.pressed;
+
+        if(gripHeld && !aHeld && !bHeld){
+            // グリップ＋スティック押し込み：太さ・はらいをデフォルトへリセット
+            if(stickPressed && !prevGripStickPressed){
+                if(brushSizeAdjustEnabled)  maxBrushSize = BRUSH_SIZE_DEFAULT;
+                if(releaseTauAdjustEnabled) releaseTau = RELEASE_TAU_DEFAULT;
+                brushIndicatorTimer = 80;
+                brushAtLimit = false;
+                syncBrushSizeUI();
+                syncReleaseTauUI();
+                vibrate("right", 70, 0.7); // リセット完了の手応え
+            }
+
+            const x = gamepad.axes[AXIS_X] || 0;
+            const y = gamepad.axes[AXIS_Y] || 0;
+
+            // 軸優勢判定：傾きの大きい軸だけを有効にし、斜め入力で
+            // 太さとはらいが同時に動く混線を防ぐ。
+            if(brushSizeAdjustEnabled && Math.abs(y) > 0.25 && Math.abs(y) >= Math.abs(x)){
+                // 上下＝太さ（上で太く、下で細く）。指数スケールで滑らかに変化。
+                maxBrushSize *= Math.exp(-y * BRUSH_ADJUST_RATE * dt);
+                const clamped = THREE.MathUtils.clamp(maxBrushSize, BRUSH_SIZE_MIN, BRUSH_SIZE_MAX);
+                // 上限/下限に到達した瞬間だけ短くバイブして知らせる
+                if(clamped !== maxBrushSize){
+                    if(!brushAtLimit) vibrate("right", 35, 0.4);
+                    brushAtLimit = true;
+                } else {
+                    brushAtLimit = false;
+                }
+                maxBrushSize = clamped;
+                brushIndicatorTimer = 80; // 約1.1秒間プレビュー表示
+                syncBrushSizeUI();
+            } else if(releaseTauAdjustEnabled && Math.abs(x) > 0.25 && Math.abs(x) > Math.abs(y)){
+                // 左右＝はらいの長さ（右で長く、左で短く）
+                releaseTau *= Math.exp(x * RELEASE_ADJUST_RATE * dt);
+                const clamped = THREE.MathUtils.clamp(releaseTau, RELEASE_TAU_MIN, RELEASE_TAU_MAX);
+                if(clamped !== releaseTau){
+                    if(!brushAtLimit) vibrate("right", 35, 0.4);
+                    brushAtLimit = true;
+                } else {
+                    brushAtLimit = false;
+                }
+                releaseTau = clamped;
+                brushIndicatorTimer = 80;
+                syncReleaseTauUI();
+            } else {
+                brushAtLimit = false;
+            }
+        }
+        prevGripStickPressed = gripHeld && stickPressed;
+    }
+
+    // 太さプレビュー球＋はらいテールの表示更新
+    if(brushSizeIndicator){
+        if(brushIndicatorTimer > 0){
+            brushIndicatorTimer--;
+            const s = maxBrushSize;
+            brushSizeIndicator.visible = true;
+            brushSizeIndicator.scale.set(s, s * 0.6, s); // スタンプと同じ扁平率
+            // 最後の0.35秒でフェードアウト（マテリアル共有でテールも同期）
+            brushSizeIndicator.material.opacity = 0.4 * Math.min(1, brushIndicatorTimer / 25);
+
+            if(brushTailIndicator){
+                // 尾の長さ ∝ releaseTau（0.03→約4cm、0.25→約30cm）
+                const tailLen = releaseTau * 1.2;
+                // 細い筆でも見えるよう尾の太さに下限を設ける
+                const tailR = Math.max(s * 0.7, 0.004);
+                brushTailIndicator.visible = true;
+                brushTailIndicator.scale.set(tailR, tailLen, tailR * 0.6);
+                // 球の少し前（ローカル-Z）から前方へ伸ばす（+Z側は柄に隠れるため）
+                brushTailIndicator.position.set(0, 0, -(tailLen / 2) - s * 0.5);
+            }
+        } else {
+            brushSizeIndicator.visible = false;
+            if(brushTailIndicator) brushTailIndicator.visible = false;
+        }
+    }
+}
+
+// VR操作で変わったはらいの長さをブラウザ側のスライダー表示にも反映する
+function syncReleaseTauUI(){
+    const slider  = document.getElementById("releaseTauSlider");
+    const valDisp = document.getElementById("releaseTauVal");
+    if(slider) slider.value = releaseTau;
+    if(valDisp) valDisp.textContent = releaseTau.toFixed(2);
+}
+
+// VR操作で変わった太さをブラウザ側のスライダー表示にも反映する
+function syncBrushSizeUI(){
+    const slider  = document.getElementById("brushSizeSlider");
+    const valDisp = document.getElementById("brushSizeVal");
+    if(slider) slider.value = maxBrushSize;
+    if(valDisp) valDisp.textContent = Math.round(maxBrushSize * 1000);
+}
+
+// ===== 色変更 =====
+function updateColor(){
+    if(!gamepad) return;
+
+    if(blackLockFrames > 0){
+        blackLockFrames--;
+        colorMode = COLOR_MODE.BW;
+        colorChanged = false;
+        isWhite = false;
+        currentColor.set(0x111111);
+        if(tipMesh){
+            tipMesh.material.color.copy(currentColor);
+        }
+        return;
+    }
+
+    const stickBeingPressed = gamepad.buttons[BTN_STICK]?.pressed;
+    // グリップ（中指）を握っている間はスティックを太さ調整に使うため色変更しない
+    const gripHeldForSize = getTriggerValue(1) >= GRIP_PAN_THRESHOLD;
+
+    if(!stickBeingPressed && !gripHeldForSize){
+        const x = gamepad.axes[AXIS_X];
+        const y = gamepad.axes[AXIS_Y];
+
+        if(Math.abs(x) > 0.2 || Math.abs(y) > 0.2){
+            colorMode = COLOR_MODE.FREE;
+
+            let angle = Math.atan2(y, x);
+            let hue = (angle + Math.PI) / (Math.PI * 2);
+
+            currentColor.setHSL(hue, 1, 0.5);
+            colorChanged = true;
+        }
+    }
+
+    const pressed = gamepad.buttons[BTN_A]?.pressed;
+    const now = performance.now();
+
+    // 右グリップ＋右トリガーを一緒に引いている間は「固定化」ジェスチャの姿勢なので、
+    // Aの通常機能（墨色トグル／リピート）は発火させない（Aは連打カウント専用）。
+    const lockGesturePosture = (getTriggerValue(1) >= GRIP_PAN_THRESHOLD)
+                            && (getTriggerValue(BTN_TRIGGER) >= LOCK_TRIGGER_THRESHOLD);
+
+    // ラッチ中（移動ジェスチャに使われたA）は、完全に離すまで通常機能をロック。
+    if(lockGesturePosture){
+        aBtnHoldStart = 0;
+        aBtnLongFired = false;
+        aBtnWarnFired = false;
+        prevAPressed = pressed;
+    } else if(abGestureLatchA){
+        if(!pressed) abGestureLatchA = false; // 離したらロック解除
+        aBtnHoldStart = 0;
+        aBtnLongFired = false;
+        aBtnWarnFired = false;
+        prevAPressed = pressed;
+    } else if(suppressAButton){
+        // グリップ＋Aで移動中：Aの既存機能（墨色トグル／リプレイ）は発火させない。
+        // ホールド状態を消し、prevAPressedを更新して離した瞬間の誤トグルも防ぐ。
+        aBtnHoldStart = 0;
+        aBtnLongFired = false;
+        aBtnWarnFired = false;
+        prevAPressed = pressed;
+    } else if(pressed){
+        if(!prevAPressed){
+            aBtnHoldStart = now;
+            aBtnLongFired = false;
+            aBtnWarnFired = false;
+        } else if(repeatEnabled){
+            // リピート「する」のときだけ長押しで「もういちど見る」（リプレイ）
+            const held = now - aBtnHoldStart;
+            if(!aBtnWarnFired && held >= LONG_PRESS_WARNING_MS){
+                aBtnWarnFired = true;
+                vibrate("right", 40, 0.5);
+            }
+            if(!aBtnLongFired && held >= LONG_PRESS_TRIGGER_MS){
+                aBtnLongFired = true;
+                if(replayActive){
+                    finishReplayImmediately();
+                } else {
+                    startReplay();
+                }
+                vibrate("right", 80, 0.7);
+            }
+        }
+        prevAPressed = pressed;
+    } else {
+        if(prevAPressed && !aBtnLongFired){
+            if(!replayActive){
+                colorMode = COLOR_MODE.BW;
+                if(colorChanged){
+                    isWhite = false;
+                    currentColor.set(0x111111);
+                    colorChanged = false;
+                } else {
+                    isWhite = !isWhite;
+                    currentColor.set(isWhite ? 0xffffff : 0x111111);
+                }
+            }
+        }
+        aBtnHoldStart = 0;
+        aBtnLongFired = false;
+        aBtnWarnFired = false;
+        prevAPressed = pressed;
+    }
+
+    if(tipMesh){
+        const bPressed = leftGamepad ? leftGamepad.buttons[5]?.pressed : false;
+        const canDraw = !replayActive && !bPressed;
+        const opacity = canDraw ? 1.0 : OPACITY_REPLAY;
+        const needsTransparent = !canDraw;
+
+        tipMesh.material.color.copy(currentColor);
+        tipMesh.material.opacity     = opacity;
+        tipMesh.material.transparent = needsTransparent;
+        tipMesh.material.depthWrite  = !needsTransparent;
+        tipMesh.material.needsUpdate = true;
+
+        if(stickMesh){
+            stickMesh.material.opacity     = opacity;
+            stickMesh.material.transparent = needsTransparent;
+            stickMesh.material.depthWrite  = !needsTransparent;
+            stickMesh.material.needsUpdate = true;
+        }
+        if(stickUsedMesh){
+            stickUsedMesh.material.opacity = canDraw ? OPACITY_USED : OPACITY_REPLAY * 0.8;
+            stickUsedMesh.material.needsUpdate = true;
+        }
+    }
+}
+
+function render(){
+    reconcileInputSources();
+
+    // textGroupの行列がNaN/Infinityに汚染されていたら原点にリセットして自己修復する。
+    // （万一の行列破損で「描いても見えない／リプレイも見えない」状態が永続するのを防ぐ）
+    if(!isFinite(textGroup.matrix.elements[12]) ||
+       !isFinite(textGroup.matrix.elements[13]) ||
+       !isFinite(textGroup.matrix.elements[14]) ||
+       !isFinite(textGroup.matrix.elements[0])){
+        textGroup.matrix.identity();
+        textGroup.updateMatrixWorld(true);
+        bbDirty = true;
+    }
+
+    // ★作品展示：展示物の配置・表示更新と ①作品選択／②作品調整／③描画 の入力処理。
+    //   true のフレームは、既存の入力処理（描画・色・取り消し・ギャラリー・固定化など）を丸ごと止める。
+    const exhibitBlocksInput = exhibitUpdate();
+
+    if(!rightController){
+        renderer.render(scene,camera);
+        return;
+    }
+
+    const trigger = getTriggerValue(BTN_TRIGGER);
+
+    // 筆圧モデルを毎フレーム更新（描画していない間も穂先の状態を連続的に保つ）
+    updateSmoothTrigger(trigger);
+
+    // グリップ＋A/B移動回転の抑制フラグを毎フレーム先頭でクリア。
+    // handleRotationAndPan() は描画中・リプレイ中には呼ばれないため、ここで確実にリセットする。
+    suppressAButton = false;
+    suppressBButton = false;
+
+    // ★作品展示：ここから既存の入力処理。①②中（と③に入った直後の「ボタンを離すまで」）はスキップ。
+    //   （差分を小さくするため、内側のインデントは既存のまま）
+    if(!exhibitBlocksInput){
+    // 固定化の発動/解除ジェスチャ判定は固定化中も毎フレーム走らせる（解除を受け付けるため）
+    checkLockGesture();
+
+    if(operationLocked){
+        // 固定化中：新しく書く・消す・動かす等すべての操作をブロックし、
+        // 操作しようとした瞬間だけバイブで知らせる（何もしなければ鳴らない）。
+        drawing = false;
+        hasLast = false;
+        releaseActive = false;
+        handleLockedFeedback();
+    } else {
+        // 右グリップ＋右トリガーの姿勢は固定化ジェスチャ中なので描画させない
+        const lockGesturePosture = (getTriggerValue(1) >= GRIP_PAN_THRESHOLD)
+                                && (trigger >= LOCK_TRIGGER_THRESHOLD);
+
+        if(trigger > 0.05 && !replayActive && !lockGesturePosture){
+            releaseActive = false;
+            draw();
+        } else {
+            if(drawing){
+                // 払いフェーズ開始：離した瞬間の太さと時刻を記録
+                releaseActive = true;
+                releaseFade = 1.0;
+                releaseStartSize = lastSize;
+                releaseStartTime = performance.now();
+                releasePrevTime  = releaseStartTime;
+                releaseDist = 0;
+            }
+            drawing = false;
+            hasLast = false;
+            if(releaseActive) releaseStroke();
+            // 払い中（最大0.35秒）はパン/回転ジェスチャと干渉しないよう抑制する。
+            // 固定化ジェスチャ姿勢（グリップ＋トリガー）中も、Aが移動ジェスチャと重なるため抑制。
+            if(!replayActive && !releaseActive && !lockGesturePosture) handleRotationAndPan();
+            // 描いていない間に次のチャンクを先回りで確保（書き出しのカクつき防止）
+            if(!releaseActive) preallocateChunkIfNeeded();
+        }
+        updateBrushSizeAdjust();
+        updateColor();
+        checkClear();
+        checkUndo();
+        handleLeftController();
+        tickReplay();
+    }
+    } // ★作品展示：既存の入力処理ここまで
+    tickGuideReplay(); // お手本アニメは独立レイヤー。固定化中でも進行させる（操作ではない）
+    tickBlink();
+    updateStickGauge();
+
+    // GPUへの転送指定は必ず renderer.render の「前」に行うこと。
+    // 後に置くと転送が次フレームまでずれ、最新スタンプが1フレームだけ
+    // 古いGPUデータで描画される（幽霊スタンプ）。
+    if(needsUpdate){
+        if(inkFullUpload){
+            // 前詰め（焼き込み）後などバッファ全体が変わった場合は全転送
+            instancedMesh.instanceMatrix.clearUpdateRanges();
+            instancedMesh.instanceColor.clearUpdateRanges();
+            inkFullUpload = false;
+        } else {
+            // 書き換えられた範囲だけをGPUへ転送する。
+            // （undo/クリアなど範囲が空の場合は全転送になり安全側に倒れる）
+            const hi = Math.min(inkDirtyMax, MAX_STAMPS - 1);
+            if(inkDirtyMin <= hi){
+                const lo = Math.max(0, inkDirtyMin);
+                const n  = hi - lo + 1;
+                instancedMesh.instanceMatrix.clearUpdateRanges();
+                instancedMesh.instanceMatrix.addUpdateRange(lo * 16, n * 16);
+                instancedMesh.instanceColor.clearUpdateRanges();
+                instancedMesh.instanceColor.addUpdateRange(lo * 3, n * 3);
+            }
+        }
+        instancedMesh.instanceMatrix.needsUpdate = true;
+        instancedMesh.instanceColor.needsUpdate = true;
+        needsUpdate = false;
+        inkDirtyMin = Infinity;
+        inkDirtyMax = -1;
+    }
+
+    renderer.render(scene,camera);
+
+    if(leftController){
+        galleryGroup.children.forEach(mesh => {
+            mesh.lookAt(camera.position);
+        });
+    }
+    galleryGroup.visible = galleryVisible;
+}
+
+// ===== リサイズ =====
+function resize(){
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ===== タイムスタンプ付きファイル名生成 =====
+function buildTimestampedFilename(){
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    return `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}_ink.json`;
+}
+
+// ===== JSONダウンロード関数 =====
+function downloadCurrentDrawingAsJSON() {
+    let matrices, colors, count, strokeBoundaries;
+
+    if(stampIndex > 0){ // 焼き込み分を含む全スタンプ数で判定
+        // textGroup の移動・回転を焼き込んだワールド座標で出力（見た目通りに復元するため）
+        const baked = readBakedInstanceData();
+        count    = baked.count;
+        matrices = baked.matrices;
+        colors   = baked.colors;
+        strokeBoundaries = strokeStack.slice();
+    } else if(currentGalleryIndex >= 0 && currentGalleryIndex < gallery.length){
+        const data = gallery[currentGalleryIndex];
+        count = data.count;
+        matrices = data.matrices;
+        colors = data.colors;
+        strokeBoundaries = data.strokeBoundaries || [];
+    } else {
+        alert("ダウンロードできる描画がありません。");
+        return;
+    }
+
+    const json = {
+        count,
+        replaySpeed,
+        strokeBoundaries,
+        strokeOrder: Array.from({ length: count }, (_, i) => i),
+        matrices: matrices.map(m => m.elements),
+        colors: colors.map(c => [c.r, c.g, c.b])
+    };
+
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = buildTimestampedFilename();
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ===== DLボタンにイベント登録 =====
+document.getElementById("downloadJsonBtn").addEventListener("click", downloadCurrentDrawingAsJSON);
+
+// ===== すみの多さ（総スタンプ上限）スライダー =====
+// GPU描画コストは総スタンプ数に比例するため、機種の性能に合わせて調整する。
+(function(){
+    const slider  = document.getElementById("limitSlider");
+    const valDisp = document.getElementById("limitVal");
+    const warning = document.getElementById("limitWarning");
+
+    function warnText(v){
+        return v >= 35000 ? "⚠️ Quest 2などではクラッシュする場合があります"
+             : v <= 10000 ? "✨ 軽量モード" : "";
+    }
+    function updateSliderBg(el){
+        const pct = (el.value - el.min) / (el.max - el.min) * 100;
+        el.style.setProperty("--pct", pct + "%");
+    }
+
+    slider.addEventListener("input", () => {
+        const v = parseInt(slider.value);
+        valDisp.textContent = v.toLocaleString();
+        warning.textContent = warnText(v);
+        updateSliderBg(slider);
+    });
+    slider.addEventListener("change", () => {
+        totalStampLimit = parseInt(slider.value);
+        // 上限を引き上げた場合は再び書けるように通知ラッチを解除
+        if(stampIndex < totalStampLimit) totalLimitNotified = false;
+    });
+    updateSliderBg(slider);
+})();
+
+// ===== とりけしできる筆数（焼き込み閾値）スライダー =====
+// この本数を超えた古いストロークは「乾いた墨」として焼き込まれ、
+// 取り消せなくなる代わりに、どれだけ書いても描画中の負荷が一定になる。
+(function(){
+    const slider  = document.getElementById("stampsSlider");
+    const valDisp = document.getElementById("stampsVal");
+    const warning = document.getElementById("stampsWarning");
+
+    function warnText(v){
+        return v <= 3  ? "🖌️ 書いたそばから乾いていきます"
+             : v >= 20 ? "⚠️ 長い線が多いと、この数より早く乾くことがあります" : "";
+    }
+    function updateSliderBg(el){
+        const pct = (el.value - el.min) / (el.max - el.min) * 100;
+        el.style.setProperty("--pct", pct + "%");
+    }
+
+    slider.addEventListener("input", () => {
+        const v = parseInt(slider.value);
+        valDisp.textContent = v.toLocaleString();
+        warning.textContent = warnText(v);
+        updateSliderBg(slider);
+    });
+    slider.addEventListener("change", () => {
+        const v = parseInt(slider.value);
+        keepStrokes = v;
+        // 減らした場合は即座に焼き込んで反映（描き途中の最後のストロークは焼かない）
+        bakeDown(keepStrokes);
+    });
+    updateSliderBg(slider);
+})();
+
+// ===== ふでの太さスライダー =====
+// トリガー全押し時の最大の太さ（値はスタンプの半径m、表示はmm）
+(function(){
+    const slider  = document.getElementById("brushSizeSlider");
+    const valDisp = document.getElementById("brushSizeVal");
+    const warning = document.getElementById("brushSizeWarning");
+
+    function warnText(v){
+        return v <= 0.016 ? "✒️ 細筆（ペンのような線になります）"
+             : v >= 0.052 ? "🖌️ 極太筆" : "";
+    }
+    function updateSliderBg(el){
+        const pct = (el.value - el.min) / (el.max - el.min) * 100;
+        el.style.setProperty("--pct", pct + "%");
+    }
+
+    slider.addEventListener("input", () => {
+        const v = parseFloat(slider.value);
+        valDisp.textContent = Math.round(v * 1000);
+        warning.textContent = warnText(v);
+        updateSliderBg(slider);
+    });
+    slider.addEventListener("change", () => {
+        maxBrushSize = parseFloat(slider.value);
+    });
+    updateSliderBg(slider);
+})();
+
+// ===== はらいの長さ（払いの減衰時定数）スライダー =====
+// 大きいほどトリガーを離した後の払いが長く伸びる。
+(function(){
+    const slider  = document.getElementById("releaseTauSlider");
+    const valDisp = document.getElementById("releaseTauVal");
+    const warning = document.getElementById("releaseTauWarning");
+
+    function warnText(v){
+        return v <= 0.05 ? "✂️ 払いはほとんど出ません"
+             : v >= 0.18 ? "🖌️ 長い払い（勢いが強く残ります）" : "";
+    }
+    function updateSliderBg(el){
+        const pct = (el.value - el.min) / (el.max - el.min) * 100;
+        el.style.setProperty("--pct", pct + "%");
+    }
+
+    slider.addEventListener("input", () => {
+        const v = parseFloat(slider.value);
+        valDisp.textContent = v.toFixed(2);
+        warning.textContent = warnText(v);
+        updateSliderBg(slider);
+    });
+    slider.addEventListener("change", () => {
+        releaseTau = parseFloat(slider.value);
+    });
+    updateSliderBg(slider);
+})();
+
+// ===== すみがきれたら（上限到達時の挙動）トグル =====
+// とまる（既定）: 上限で書けなくなる（バイブで通知、undo/全消去で復帰）
+// ふるい墨から消える: 一番古い筆画から自動的に消えて書き続けられる
+(function(){
+    const btn = document.getElementById("inkLimitModeToggle");
+
+    function refresh(){
+        btn.textContent = rollingInkMode ? "🍂 ふるい墨から消える" : "🛑 とまる";
+    }
+    btn.addEventListener("click", () => {
+        rollingInkMode = !rollingInkMode;
+        // ローリングに切り替えたら墨切れ状態を解除（次の追加で自動削除が働く）
+        if(rollingInkMode) totalLimitNotified = false;
+        refresh();
+    });
+    refresh();
+})();
+
+// ===== かきはじめの反応スライダー =====
+// 書き始めの立ち上がり速度（プライミング率・起筆テーパー・押し込み時定数を連動制御）
+(function(){
+    const slider  = document.getElementById("startResponseSlider");
+    const valDisp = document.getElementById("startResponseVal");
+    const warning = document.getElementById("startResponseWarning");
+
+    function warnText(v){
+        return v <= 0.15 ? "🐢 じわっと立ち上がる（起筆をしっかり作りたい人向け）"
+             : v >= 0.85 ? "⚡ 押した瞬間に太くなる（ペンに近い感覚）" : "";
+    }
+    function updateSliderBg(el){
+        const pct = (el.value - el.min) / (el.max - el.min) * 100;
+        el.style.setProperty("--pct", pct + "%");
+    }
+
+    slider.addEventListener("input", () => {
+        const v = parseFloat(slider.value);
+        valDisp.textContent = Math.round(v * 100);
+        warning.textContent = warnText(v);
+        updateSliderBg(slider);
+    });
+    slider.addEventListener("change", () => {
+        strokeStartResponse = parseFloat(slider.value);
+    });
+    updateSliderBg(slider);
+})();
+
+// ===== 太さ・はらいの「ちょうせい」行内トグル =====
+// VRのグリップ＋スティックによる調整を項目ごとにオン/オフする。
+// OFFのときはスライダー行を淡色化し、VRでもその軸の調整が効かなくなる
+// （もう一方の軸の調整には影響しない）。
+function setupInlineToggle(btnId, rowId, getEnabled, setEnabled){
+    const btn = document.getElementById(btnId);
+    const row = document.getElementById(rowId);
+    function refresh(){
+        const on = getEnabled();
+        btn.textContent = on ? "ちょうせい" : "こてい";
+        btn.classList.toggle("off", !on);
+        row.classList.toggle("disabled", !on);
+    }
+    btn.addEventListener("click", () => { setEnabled(!getEnabled()); refresh(); });
+    refresh();
+}
+setupInlineToggle("brushSizeToggle", "brushSizeRow",
+    () => brushSizeAdjustEnabled,  v => brushSizeAdjustEnabled = v);
+setupInlineToggle("releaseTauToggle", "releaseTauRow",
+    () => releaseTauAdjustEnabled, v => releaseTauAdjustEnabled = v);
+
+// ===== 絵をうごかす・まわす トグル =====
+// グリップ＋A（移動）／グリップ＋B（回転）を有効/無効にする。
+// 「しない」にすると、書くことに集中でき、誤って絵を動かす事故も防げる。
+// グリップ＋スティックの太さ・はらい調整は影響を受けない。
+(function(){
+    const btn = document.getElementById("moveRotateToggle");
+
+    function refresh(){
+        btn.textContent = moveRotateEnabled ? "✋ する" : "🔒 しない";
+    }
+    btn.addEventListener("click", () => {
+        moveRotateEnabled = !moveRotateEnabled;
+        refresh();
+    });
+    refresh();
+})();
+
+// ===== おてほんの文字 表示/非表示トグル =====
+// 「非表示」にすると次のARセッション開始時にお手本の自動リプレイをスキップして
+// 白紙から始まる。ギャラリーのサムネイルからはいつでも呼び出せる。
+(function(){
+    const btn = document.getElementById("defaultTextToggle");
+
+    function refresh(){
+        btn.textContent = showDefaultText ? "✒️ ひょうじする" : "⬜ ひょうじしない";
+        btn.style.opacity = showDefaultText ? "1.0" : "0.55";
+    }
+    btn.addEventListener("click", () => {
+        showDefaultText = !showDefaultText;
+        refresh();
+    });
+    refresh();
+})();
+
+// ===== リピート（Aながおし）する/しない トグル =====
+// 「する」のとき、右手Aボタンを長押しすると描いた絵を最初から再生（もういちど見る）。
+// 「しない」のとき、Aは墨色の切り替え（くろ↔しろ）だけになり、長押ししても再生しない。
+(function(){
+    const btn = document.getElementById("repeatToggle");
+
+    function refresh(){
+        btn.textContent = repeatEnabled ? "🔁 する" : "🚫 しない";
+        btn.style.opacity = repeatEnabled ? "1.0" : "0.55";
+    }
+    btn.addEventListener("click", () => {
+        repeatEnabled = !repeatEnabled;
+        refresh();
+    });
+    refresh();
+})();
+
+// ===== かんたん設定（プリセット） =====
+// 各プリセットは「完全な設定一式」を表す（下位プリセットからの積み上げを解決済みの値で保持）。
+// ここで管理する項目：すみの多さ／とりけしできる筆数／ふでの太さ調整／はらいの長さ調整／
+// 　　　　　　　　　　絵をうごかす・まわす／リピート。
+// これら以外（おてほんの文字・すみがきれたら・かきはじめの反応・太さ/はらいの数値）は
+// プリセットでは変更せず、利用者の個別設定を残す。押した後の個別変更も自由。
+(function(){
+    const PRESETS = {
+        // ビギナー＝初期値ベース＋おてほんの文字ひょうじする
+        beginner: { limit: 12000, keep: 10, brushSizeAdjust: false, releaseTauAdjust: false, moveRotate: false, repeat: false, defaultText: true  },
+        // スタンダード＝ビギナー＋（すみ18000／リピートする）。おてほんの文字ひょうじする
+        standard: { limit: 18000, keep: 10, brushSizeAdjust: false, releaseTauAdjust: false, moveRotate: false, repeat: true,  defaultText: true  },
+        // クリエイター＝スタンダード＋（すみ25000／筆数15／太さちょうせい／はらいちょうせい）。おてほんの文字ひょうじしない
+        creator:  { limit: 25000, keep: 15, brushSizeAdjust: true,  releaseTauAdjust: true,  moveRotate: false, repeat: true,  defaultText: false },
+        // スーパークリエイター＝クリエイター＋（すみ35000／筆数20／うごかす・まわすする）。おてほんの文字ひょうじしない
+        super:    { limit: 35000, keep: 20, brushSizeAdjust: true,  releaseTauAdjust: true,  moveRotate: true,  repeat: true,  defaultText: false }
+    };
+
+    // スライダーは値を入れて input/change を発火し、既存の表示更新・状態反映をそのまま使う
+    function setSlider(id, value){
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.value = value;
+        el.dispatchEvent(new Event("input",  { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    // トグルは「今の状態と違うときだけクリック」で目的の状態にする（クリックで反転＋再描画）
+    function setToggle(id, current, desired){
+        if(current !== desired) document.getElementById(id)?.click();
+    }
+
+    function applyPreset(name){
+        const p = PRESETS[name];
+        if(!p) return;
+        setSlider("limitSlider", p.limit);
+        setSlider("stampsSlider", p.keep);
+        setToggle("brushSizeToggle",  brushSizeAdjustEnabled,  p.brushSizeAdjust);
+        setToggle("releaseTauToggle", releaseTauAdjustEnabled, p.releaseTauAdjust);
+        setToggle("moveRotateToggle", moveRotateEnabled,       p.moveRotate);
+        setToggle("repeatToggle",     repeatEnabled,           p.repeat);
+        setToggle("defaultTextToggle", showDefaultText,        p.defaultText);
+    }
+
+    document.querySelectorAll(".ssl-preset-btn").forEach(btn => {
+        btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
+    });
+})();
+
+// ===== Loadボタンにイベント登録 =====
+document.getElementById("loadJsonBtn").addEventListener("click", () => {
+    document.getElementById("jsonFileInput").click();
+});
+
+// ===== ファイル選択時の処理 =====
+document.getElementById("jsonFileInput").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if(file) loadDrawingFromJSON(file);
+});
+
+// ===== モーダル（コントローラーガイド）開閉 =====
+const guideModal = document.getElementById("guideModal");
+document.getElementById("openGuideBtn").addEventListener("click", () => guideModal.classList.add("open"));
+document.getElementById("guideModalClose").addEventListener("click", () => guideModal.classList.remove("open"));
+guideModal.addEventListener("click", (e) => {
+    if(e.target === guideModal) guideModal.classList.remove("open");
+});
+
+// ===== JSON読み込み関数 =====
+function loadDrawingFromJSON(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const json = JSON.parse(e.target.result);
+
+            const userStart  = defaultGalleryData ? 1 : 0;
+            const maxSlots = defaultGalleryData ? MAX_USER_GALLERY : MAX_GALLERY;
+            const userCount = gallery.length - userStart;
+            const isFull = userCount >= maxSlots;
+
+            if(isFull){
+                const prevIndex = currentGalleryIndex;
+                const isDefault = defaultGalleryData && prevIndex === DEFAULT_SLOT;
+
+                if(isDefault){
+                    alert("default のスロットが選択中のため読み込みできません。\n別の描画を選択してから読み込んでください。");
+                    document.getElementById("jsonFileInput").value = "";
+                    return;
+                }
+
+                pendingSlotIndex = prevIndex;
+                blinkTimer   = 0;
+                blinkVisible = true;
+
+            } else {
+                pendingSlotIndex = -1;
+            }
+
+            clearGuide(); // ファイルを読み込むときはお手本ガイドを隠す
+            clearAll();
+
+            if(typeof json.replaySpeed === "number"){
+                replaySpeed = json.replaySpeed;
+            }
+
+            const savedMatrices = [];
+            const savedColors = [];
+            const m = new THREE.Matrix4();
+            const c = new THREE.Color();
+
+            const order = Array.isArray(json.strokeOrder)
+                ? json.strokeOrder
+                : Array.from({ length: json.count }, (_, i) => i);
+
+            const safeLength = order.length; // 上限キャップなし（焼き込みで何個でも読込可能）
+            for(let si = 0; si < safeLength; si++){
+                const i = order[si];
+                m.fromArray(json.matrices[i]);
+                savedMatrices.push(m.clone());
+                const col = json.colors[i];
+                c.setRGB(col[0], col[1], col[2]);
+                savedColors.push(c.clone());
+            }
+
+            replayData = {
+                count: safeLength,
+                matrices: savedMatrices,
+                colors: savedColors,
+                strokeBoundaries: Array.isArray(json.strokeBoundaries) ? json.strokeBoundaries : []
+            };
+            placeReplayInFrontOfViewer(); // ★読み込んだ絵を視点正面へ再配置
+            replayIndex = 0;
+            replayFrameCount = 0;
+            replayActive = true;
+            replayWaitFrames = REPLAY_START_DELAY_FRAMES;
+
+            stampIndex = 0;
+            instancedMesh.count = 0;
+            currentGalleryIndex = -1;
+            galleryVisible = true;
+            updateGalleryHighlight();
+            updateStickGauge();
+
+            document.getElementById("jsonFileInput").value = "";
+            alert("読み込み完了！リプレイ再生を開始します。\n保存前に別の描画に移動するとキャンセルされます。");
+        } catch (err) {
+            console.error(err);
+            alert("JSON読み込みに失敗しました。");
+        }
+    };
+    reader.readAsText(file);
+}
+
+// =====================================================================
+// ===== 作品展示 =====
+// works フォルダの書道作品（image001〜image036）を、入室した位置を中心とする
+// 半径5mの円周上に360°展示する。右コントローラーで作品を選び（①）、
+// 目の前に置いて位置・角度・大きさを調整し（②）、それをお手本にして既存の書道描画を行う（③）。
+//
+// 状態：
+//   EX_OFF    … 作品展示なし（従来どおり）
+//   EX_WAIT   … 入室直後。入室時の位置・向きの確定と、作品の読み込み完了を待つ（描画できない）
+//   EX_SELECT … ① 作品選択   ─A／レイ＋トリガー→ EX_ADJUST
+//   EX_ADJUST … ② 配置・調整 ─A→ EX_DRAW ／ ─B→ EX_SELECT
+//   EX_DRAW   … ③ 書道描画   ─「おわる」を指してA→ EX_SELECT ／ ─「もどる」を指してA→ EX_ADJUST
+// 状態を切り替えるたびに exGate を立て、トリガー・A・B・スティックをすべて離すまで
+// 新しい状態の入力を受け付けない（押しっぱなしが次の状態に持ち越されないように）。
+//
+// 既存コードとの接点は3か所だけ：
+//   render()           … exhibitUpdate() を呼び、true のフレームは既存の入力処理をスキップ
+//   onARSessionStart() … 作品展示ONのときは お手本の自動再生をしない
+//   createThumbnail()  … ギャラリーのサムネイルに展示物を写さない
+// =====================================================================
+
+// ----- 画像ファイル -----
+const EXHIBIT_DIR = "./works/";
+const EXHIBIT_NAME_PREFIX = "image";               // image001, image002, …
+const EXHIBIT_NAME_DIGITS = 3;
+const EXHIBIT_MAX_WORKS = 36;
+const EXHIBIT_EXTS = ["png", "jpg", "jpeg"];      // 小文字のみ（GitHub Pages はファイル名の大文字・小文字を区別する）
+const EXHIBIT_FETCH_TIMEOUT_MS = 10000;
+const EXHIBIT_FETCH_RETRY_DELAYS_MS = [700];       // 通信エラー時の再試行（404 は再試行しない）
+const EXHIBIT_MAX_CONSEC_ERRORS = 2;               // 通信エラーの番号がこれだけ続いたら読み込みを打ち切る（オフライン時に長く待たせない）
+const EXHIBIT_TEX_MAX = 768;     // 展示用テクスチャの長辺(px)。5m先・高さ約1mの表示には十分
+const EXHIBIT_HIRES_MAX = 2048;  // ②③で目の前に置く作品の長辺(px)
+
+// ----- 展示の配置 -----
+const EXHIBIT_RADIUS = 5.0;
+const EXHIBIT_PER_TIER = 12;
+const EXHIBIT_MAX_TIERS = 3;
+const EXHIBIT_TIER_Y = [1.2, 2.5, 3.8];  // 各段の中心の高さ（床から, m）
+const EXHIBIT_FIT_W = 1.0;               // 展示作品は縦横比を保ってこの枠（m）に収める
+const EXHIBIT_FIT_H = 1.1;
+const EXHIBIT_SEL_SCALE = 1.06;          // 選択中の作品を少し大きく見せる
+
+// ----- ① 作品選択 -----
+const EXHIBIT_STICK_ON = 0.6;            // スティックをこれ以上倒したら1つ動かす
+const EXHIBIT_STICK_OFF = 0.3;           // これ未満に戻したら「離した」とみなす（ヒステリシス）
+const EXHIBIT_STICK_DELAY_MS = 450;      // 倒し続けたときの最初のリピートまで
+const EXHIBIT_STICK_REPEAT_MS = 220;     // 以降のリピート間隔
+const EXHIBIT_RAY_LEN = 6.0;             // 何にも当たっていないときのレイの長さ（m）
+
+// ----- ② 作品の配置・調整 -----
+const EXHIBIT_ADJ_DIST = 0.7;            // 目の前に置く距離（m）
+const EXHIBIT_ADJ_DROP = 0.15;           // 目の高さからこれだけ下に置く（m）
+const EXHIBIT_SIZE_MIN = 0.334;          // 最小：半紙（24.3×33.4cm）の長辺（m）
+const EXHIBIT_SIZE_MAX = EXHIBIT_SIZE_MIN * 3;
+const EXHIBIT_TILT_MAX = Math.PI / 2;    // 0＝垂直に立つ ／ π/2＝水平（上端が奥へ倒れ、机に置いた紙の向き）
+const EXHIBIT_TILT_RATE = EXHIBIT_TILT_MAX / 1.5;  // 全倒し1.5秒で 垂直→水平
+const EXHIBIT_SIZE_RATE = Math.log(3) / 1.5;       // 全倒し1.5秒で 最小→最大
+const EXHIBIT_STICK_DEADZONE = 0.2;
+const EXHIBIT_ADJ_OPACITY = 0.55;
+const EXHIBIT_GRAB_SMOOTH_TAU = 0.035;   // 移動の手ぶれ吸収（秒）。小さいほど追従が速い
+
+// ----- ③「もどる」「おわる」ボタン -----
+const EXHIBIT_BTN_W = 0.20, EXHIBIT_BTN_H = 0.10, EXHIBIT_BTN_GAP = 0.05; // m
+const EXHIBIT_BTN_DIST = 0.5;            // 頭からの水平距離（m）
+const EXHIBIT_BTN_BELOW_EYE = 0.55;      // 目の高さからこれだけ下（腰の高さ）
+const EXHIBIT_BTN_CLEARANCE = 0.12;      // 作品（の外形）からボタンの端までこれ以上離す（m）
+
+const EXHIBIT_FONT = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif";
+
+const EX_OFF = 0, EX_WAIT = 1, EX_SELECT = 2, EX_ADJUST = 3, EX_DRAW = 4;
+
+let exhibitEnabled = false;  // 開始画面の「作品展示」トグル
+let exState = EX_OFF;
+
+// ----- 読み込み -----
+let exLoadStatus = "idle";   // idle | loading | done | error
+let exLoadPromise = null;
+let exLoadedCount = 0;
+let exSkippedCount = 0;
+let exWorks = [];            // { no, url, imgW, imgH, aspect, texture, w, h, group, mesh, tier, idx, angle }
+let exWorkMeshes = [];       // レイ判定の対象（展示作品の板だけ）
+let exTiers = [];            // 段ごとの exWorks インデックス（下の段から）
+
+// ----- シーン上のオブジェクト（初回だけ生成して使い回す）-----
+let exRoot = null, exCircleGroup = null, exUnitPlane = null;
+let exFrame = null, exFrameInnerMat = null, exFrameOuterMat = null;
+const exFrameInner = [], exFrameOuter = [];
+let exRayMesh = null, exRayDot = null;
+let exAdjMesh = null;
+let exHintMesh = null, exMsgMesh = null;
+let exBtnGroup = null, exBtnBack = null, exBtnEnd = null;
+let exBtnMeshes = [];
+let exMsgUntil = 0;
+
+// ----- 入室時の基準（展示の中心と向き）-----
+const exCenter = new THREE.Vector3();
+const exForward = new THREE.Vector3(0, 0, -1);
+let exEyeY = 1.4;
+let exPoseReady = false;
+let exWaitFrames = 0;
+
+// ----- 入力 -----
+const exIn = { trig: 0, grip: 0, a: false, b: false, stickBtn: false, x: 0, y: 0 };
+let exPrevTrigDown = false, exPrevA = false, exPrevB = false;
+let exGate = false;          // true の間は「全部離す」まで新しい状態の入力を受け付けない
+let exPrevTime = 0;
+let exLastTickBuzz = 0;
+
+// ----- ① -----
+let exSelIdx = -1, exHoverIdx = -1;
+let exStickDir = null, exStickNext = 0;
+
+// ----- ② -----
+let exAdjIdx = -1;
+const exAdjPos = new THREE.Vector3();
+let exAdjYaw = 0, exAdjTilt = 0, exAdjSize = EXHIBIT_SIZE_MIN;
+let exGrabbing = false;
+const exGrabOffset = new THREE.Vector3();
+let exAdjAtLimit = false;
+let exHiResTex = null, exHiResToken = 0;
+
+// ----- ③ -----
+let exHoverBtn = null;
+
+// ----- 使い回しの一時オブジェクト（毎フレームの new を避ける）-----
+const exHeadPos = new THREE.Vector3();
+const exCtrlMat = new THREE.Matrix4();
+const exRayOrigin = new THREE.Vector3();
+const exRayDir = new THREE.Vector3();
+let exCtrlValid = false;
+const exRaycaster = new THREE.Raycaster();
+const exHits = [];
+const exTmpV1 = new THREE.Vector3();
+const exTmpM = new THREE.Matrix4();
+const exBox = new THREE.Box3();
+
+// ===== 開始画面の状態表示 =====
+function exUpdateStartStatus(){
+    const el = document.getElementById("exhibitStatus");
+    if(!el) return;
+    let t = "";
+    if(exhibitEnabled){
+        if(exLoadStatus === "loading"){
+            t = `⏳ よみこみ中…（${exLoadedCount}まい）`;
+        } else if(exLoadStatus === "done"){
+            t = exWorks.length > 0
+                ? `🖼️ ${exWorks.length}まい よみこみました` + (exSkippedCount ? `（${exSkippedCount}まい よめず）` : "")
+                : "⚠️ さくひんが ありません";
+        } else if(exLoadStatus === "error"){
+            t = "⚠️ よみこめませんでした";
+        }
+    }
+    el.textContent = t;
+}
+
+// ===== 作品画像の読み込み =====
+function exSleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+// 1ファイルを取得する。404/410 と HTML（存在しないページ）は "missing"、それ以外の失敗は "error"。
+async function exFetchImage(url, cacheMode){
+    const ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), EXHIBIT_FETCH_TIMEOUT_MS) : 0;
+    try {
+        const res = await fetch(url, { cache: cacheMode, signal: ctrl ? ctrl.signal : undefined });
+        if(res.status === 404 || res.status === 410) return { status: "missing" };
+        if(!res.ok) return { status: "error", code: res.status };
+        const type = res.headers.get("content-type") || "";
+        if(type.indexOf("text/html") >= 0) return { status: "missing" };
+        const blob = await res.blob();
+        return { status: "ok", blob };
+    } catch(e){
+        return { status: "error", error: e };
+    } finally {
+        if(timer) clearTimeout(timer);
+    }
+}
+
+async function exFetchWithRetry(url, cacheMode){
+    let r = await exFetchImage(url, cacheMode);
+    for(let i = 0; r.status === "error" && i < EXHIBIT_FETCH_RETRY_DELAYS_MS.length; i++){
+        await exSleep(EXHIBIT_FETCH_RETRY_DELAYS_MS[i]);
+        r = await exFetchImage(url, cacheMode);
+    }
+    return r;
+}
+
+// 画像をデコードし、長辺 maxSide 以下に縮小したキャンバスにする（巨大な写真でもメモリを食わない）。
+// 透過PNGは白い紙の上に置いた見た目にする（ARの背景に墨が溶け込まないように）。
+async function exDecodeToCanvas(blob, maxSide){
+    let src = null, w = 0, h = 0, release = null;
+    if(typeof createImageBitmap === "function"){
+        try {
+            const bmp = await createImageBitmap(blob);
+            src = bmp; w = bmp.width; h = bmp.height;
+            release = () => { try { bmp.close(); } catch(e){ /* 無視 */ } };
+        } catch(e){ src = null; }
+    }
+    if(!src){
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.src = objectUrl;
+        try { await img.decode(); }
+        catch(e){ URL.revokeObjectURL(objectUrl); throw e; }
+        src = img; w = img.naturalWidth; h = img.naturalHeight;
+        release = () => URL.revokeObjectURL(objectUrl);
+    }
+    try {
+        if(!(w > 0 && h > 0)) throw new Error("画像の大きさが取得できません");
+        const s = Math.min(1, maxSide / Math.max(w, h));
+        const cw = Math.max(1, Math.round(w * s));
+        const ch = Math.max(1, Math.round(h * s));
+        const canvas = document.createElement("canvas");
+        canvas.width = cw;
+        canvas.height = ch;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(src, 0, 0, cw, ch);
+        return { canvas, w, h };
+    } finally {
+        if(release) release();
+    }
+}
+
+function exMakeTexture(canvas){
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    return tex;
+}
+
+// image001 から順に取得し、番号が途切れたところで止める（最大 EXHIBIT_MAX_WORKS 枚）。
+// 拡張子は png → jpg → jpeg の順に試し、見つかった拡張子を次の番号で最初に試す（無駄な404を減らす）。
+// 取得とデコードは並行して進め、デコードは1枚ずつ順番に行う（メモリの急増を防ぐ）。
+async function exLoadWorks(){
+    const loaded = [];
+    let extOrder = EXHIBIT_EXTS.slice();
+    let consecErrors = 0;
+    let skipped = 0;
+    let decodeChain = Promise.resolve();
+
+    for(let n = 1; n <= EXHIBIT_MAX_WORKS; n++){
+        const base = EXHIBIT_DIR + EXHIBIT_NAME_PREFIX + String(n).padStart(EXHIBIT_NAME_DIGITS, "0");
+        let found = null;
+        let hadError = false;
+        for(const ext of extOrder){
+            const url = `${base}.${ext}`;
+            // no-cache：毎回サーバーに更新を確認する（変わっていなければ 304 で軽い）。
+            // これでリロード時に、差し替えた画像が反映される。
+            const r = await exFetchWithRetry(url, "no-cache");
+            if(r.status === "ok"){ found = { url, ext, blob: r.blob }; break; }
+            if(r.status === "error") hadError = true;
+        }
+
+        if(found){
+            consecErrors = 0;
+            extOrder = [found.ext, ...EXHIBIT_EXTS.filter(e => e !== found.ext)];
+            const no = n, item = found;
+            decodeChain = decodeChain.then(async () => {
+                try {
+                    const { canvas, w, h } = await exDecodeToCanvas(item.blob, EXHIBIT_TEX_MAX);
+                    const texture = exMakeTexture(canvas);
+                    // 入室前にGPUへ転送しておき、展示開始時のカクつきを防ぐ
+                    if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
+                    loaded.push({ no, url: item.url, imgW: w, imgH: h, aspect: w / h, texture });
+                    exLoadedCount = loaded.length;
+                    exUpdateStartStatus();
+                } catch(e){
+                    skipped++;
+                    console.warn(`作品展示：${item.url} を画像として読み込めませんでした（スキップします）`, e);
+                }
+            });
+            continue;
+        }
+
+        if(!hadError) break; // どの拡張子も見つからない＝連番の終わり
+
+        // 通信エラー：この番号は飛ばして次へ。続くようなら打ち切る
+        skipped++;
+        consecErrors++;
+        console.warn(`作品展示：${base}.(${EXHIBIT_EXTS.join("/")}) を取得できませんでした（通信エラー）`);
+        if(consecErrors >= EXHIBIT_MAX_CONSEC_ERRORS){
+            console.warn("作品展示：通信エラーが続いたため、読み込みを打ち切りました");
+            break;
+        }
+    }
+
+    await decodeChain;
+    loaded.sort((p, q) => p.no - q.no);
+    return { loaded, skipped };
+}
+
+function exNeedsLoad(){
+    return exLoadStatus === "idle" || exLoadStatus === "error"
+        || (exLoadStatus === "done" && exWorks.length === 0);
+}
+
+function exStartLoading(){
+    if(exLoadStatus === "loading") return exLoadPromise;
+    exDisposeWorks();
+    exLoadStatus = "loading";
+    exLoadedCount = 0;
+    exSkippedCount = 0;
+    exUpdateStartStatus();
+    exLoadPromise = exLoadWorks().then(({ loaded, skipped }) => {
+        exSkippedCount = skipped;
+        exBuildWorks(loaded);
+        exLoadStatus = (loaded.length === 0 && skipped > 0) ? "error" : "done";
+    }).catch(e => {
+        console.warn("作品展示：作品の読み込みに失敗しました", e);
+        exLoadStatus = exWorks.length > 0 ? "done" : "error";
+    }).finally(() => {
+        exUpdateStartStatus();
+    });
+    return exLoadPromise;
+}
+
+// 読み込んだ作品から展示用の板を作る（配置は入室時に exLayout で決める）
+function exBuildWorks(loaded){
+    exEnsureScene();
+    exWorks = loaded;
+    exWorkMeshes = [];
+    exWorks.forEach((w, i) => {
+        // 縦横比を保って EXHIBIT_FIT_W × EXHIBIT_FIT_H の枠に収める
+        w.w = Math.min(EXHIBIT_FIT_W, EXHIBIT_FIT_H * w.aspect);
+        w.h = w.w / w.aspect;
+        const mesh = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({ map: w.texture, toneMapped: false }));
+        mesh.scale.set(w.w, w.h, 1);
+        mesh.userData.exIndex = i;
+        const group = new THREE.Group();
+        group.add(mesh);
+        exCircleGroup.add(group);
+        w.mesh = mesh;
+        w.group = group;
+        w.tier = 0; w.idx = i; w.angle = 0;
+        exWorkMeshes.push(mesh);
+    });
+}
+
+function exDisposeWorks(){
+    if(exFrame && exRoot) exRoot.add(exFrame); // 作品に付けていた選択枠を外す
+    for(const w of exWorks){
+        if(w.group && w.group.parent) w.group.parent.remove(w.group);
+        if(w.mesh) w.mesh.material.dispose();   // ジオメトリは共有なので破棄しない
+        if(w.texture) w.texture.dispose();
+    }
+    exWorks = [];
+    exWorkMeshes = [];
+    exTiers = [];
+    exSelIdx = -1;
+    exHoverIdx = -1;
+}
+
+// ===== シーン上のオブジェクト生成（初回のみ）=====
+function exEnsureScene(){
+    if(exRoot) return;
+    exRoot = new THREE.Group();
+    exRoot.name = "exhibitRoot";
+    exRoot.visible = false;
+    scene.add(exRoot);
+
+    exUnitPlane = new THREE.PlaneGeometry(1, 1);
+
+    exCircleGroup = new THREE.Group();
+    exRoot.add(exCircleGroup);
+
+    // --- 選択枠（発光）：内側の金の縁 ＋ 外側へぼけていく光 ---
+    exFrame = new THREE.Group();
+    exFrameInnerMat = new THREE.MeshBasicMaterial({ color: 0xffcc33, toneMapped: false });
+    const glowCanvas = document.createElement("canvas");
+    glowCanvas.width = 4;
+    glowCanvas.height = 64;
+    const gctx = glowCanvas.getContext("2d");
+    const grad = gctx.createLinearGradient(0, 64, 0, 0); // 下（内側）が濃く、上（外側）へ消える
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    gctx.fillStyle = grad;
+    gctx.fillRect(0, 0, 4, 64);
+    exFrameOuterMat = new THREE.MeshBasicMaterial({
+        color: 0xffd860, map: new THREE.CanvasTexture(glowCanvas),
+        transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending,
+        depthWrite: false, toneMapped: false
+    });
+    for(let i = 0; i < 4; i++){
+        const inner = new THREE.Mesh(exUnitPlane, exFrameInnerMat);
+        const outer = new THREE.Mesh(exUnitPlane, exFrameOuterMat);
+        outer.renderOrder = 5;
+        exFrameInner.push(inner);
+        exFrameOuter.push(outer);
+        exFrame.add(inner);
+        exFrame.add(outer);
+    }
+    exFrame.visible = false;
+    exRoot.add(exFrame);
+
+    // --- レイ（右コントローラーの前方 -Z へ伸びる細い棒）と当たり点 ---
+    const rayMat = new THREE.MeshBasicMaterial({
+        color: 0xffd34d, transparent: true, opacity: 0.85, depthWrite: false, toneMapped: false
+    });
+    const rayGeo = new THREE.CylinderGeometry(0.0025, 0.0025, 1, 6, 1, true);
+    rayGeo.rotateX(-Math.PI / 2);   // 円柱の軸を Z 方向へ
+    rayGeo.translate(0, 0, -0.5);   // 原点から -Z へ長さ1（スケールzで長さを変える）
+    exRayMesh = new THREE.Mesh(rayGeo, rayMat);
+    exRayMesh.matrixAutoUpdate = false;
+    exRayMesh.frustumCulled = false;
+    exRayMesh.visible = false;
+    exRoot.add(exRayMesh);
+    exRayDot = new THREE.Mesh(new THREE.SphereGeometry(0.012, 12, 8), rayMat);
+    exRayDot.visible = false;
+    exRoot.add(exRayDot);
+
+    // --- ②③ で目の前に置く作品（展示中の作品とは別の調整用オブジェクト）---
+    exAdjMesh = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
+        side: THREE.DoubleSide, transparent: true, opacity: EXHIBIT_ADJ_OPACITY,
+        depthWrite: false, toneMapped: false
+    }));
+    exAdjMesh.visible = false;
+    exRoot.add(exAdjMesh);
+
+    // --- 案内パネル・メッセージ ---
+    exHintMesh = exMakePanel(1024, 320);
+    exMsgMesh = exMakePanel(1024, 256);
+    exRoot.add(exHintMesh);
+    exRoot.add(exMsgMesh);
+
+    // --- ③「もどる」「おわる」ボタン ---
+    exBtnGroup = new THREE.Group();
+    exBtnBack = exMakeButton("もどる", "いち・おおきさを なおす");
+    exBtnEnd  = exMakeButton("おわる", "べつの さくひんを えらぶ");
+    exBtnBack.position.x = -(EXHIBIT_BTN_W + EXHIBIT_BTN_GAP) / 2;
+    exBtnEnd.position.x  =  (EXHIBIT_BTN_W + EXHIBIT_BTN_GAP) / 2;
+    exBtnGroup.add(exBtnBack);
+    exBtnGroup.add(exBtnEnd);
+    exBtnMeshes = [exBtnBack, exBtnEnd];
+    exBtnGroup.visible = false;
+    exRoot.add(exBtnGroup);
+}
+
+function exRoundRectPath(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+function exMakePanel(cw, ch){
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mesh = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
+        map: tex, transparent: true, depthWrite: false, toneMapped: false
+    }));
+    mesh.renderOrder = 10;
+    mesh.visible = false;
+    mesh.userData.canvas = canvas;
+    mesh.userData.key = "";
+    return mesh;
+}
+
+// パネルに文字を描く（内容が変わったときだけ描き直す）。lines: [{ text, size, bold, color }]
+function exDrawPanel(mesh, key, lines, widthM){
+    const c = mesh.userData.canvas;
+    mesh.scale.set(widthM, widthM * c.height / c.width, 1);
+    if(mesh.userData.key === key) return;
+    mesh.userData.key = key;
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, c.width, c.height);
+    exRoundRectPath(ctx, 6, 6, c.width - 12, c.height - 12, 40);
+    ctx.fillStyle = "rgba(12, 10, 24, 0.86)";
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(200, 168, 74, 0.9)";
+    ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const lh = (c.height - 40) / lines.length;
+    lines.forEach((ln, i) => {
+        ctx.font = `${ln.bold ? "bold " : ""}${ln.size}px ${EXHIBIT_FONT}`;
+        ctx.fillStyle = ln.color || "#f0e8d0";
+        ctx.fillText(ln.text, c.width / 2, 20 + lh * (i + 0.5), c.width - 70);
+    });
+    mesh.material.map.needsUpdate = true;
+}
+
+function exMakeButton(label, sub){
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    exRoundRectPath(ctx, 8, 8, 496, 240, 48);
+    ctx.fillStyle = "rgba(40, 26, 8, 0.92)";
+    ctx.fill();
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = "#e8c86a";
+    ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#fff4d0";
+    ctx.font = `bold 110px ${EXHIBIT_FONT}`;
+    ctx.fillText(label, 256, 110, 450);
+    ctx.fillStyle = "#e8d8a8";
+    ctx.font = `40px ${EXHIBIT_FONT}`;
+    ctx.fillText(sub, 256, 200, 450);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const btn = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
+        map: tex, transparent: true, depthWrite: false, toneMapped: false, color: 0xcfcfcf
+    }));
+    btn.scale.set(EXHIBIT_BTN_W, EXHIBIT_BTN_H, 1);
+    btn.renderOrder = 11;
+    // 指しているときだけ光る板（ボタンの少し後ろ）
+    const glow = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
+        color: 0xffcc33, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending,
+        depthWrite: false, toneMapped: false
+    }));
+    glow.scale.set(1.12, 1.24, 1);   // 親（ボタン）のスケールに対する倍率
+    glow.position.z = -0.002;
+    glow.visible = false;
+    glow.renderOrder = 10;
+    btn.add(glow);
+    btn.userData.glow = glow;
+    return btn;
+}
+
+// 選択枠を作品の大きさ（w×h）に合わせる
+function exResizeFrame(w, h){
+    const ti = 0.035, to = 0.09, z = 0.002;
+    const [it, ib, il, ir] = exFrameInner;
+    it.position.set(0,  h / 2 + ti / 2, z); it.scale.set(w + ti * 2, ti, 1);
+    ib.position.set(0, -h / 2 - ti / 2, z); ib.scale.set(w + ti * 2, ti, 1);
+    il.position.set(-w / 2 - ti / 2, 0, z); il.scale.set(ti, h, 1);
+    ir.position.set( w / 2 + ti / 2, 0, z); ir.scale.set(ti, h, 1);
+    // 外側の光：帯の +Y 側（外側）へ消えるグラデーション。向きを回して四辺に置く
+    const W = w + ti * 2, H = h + ti * 2;
+    const [ot, ob, ol, or] = exFrameOuter;
+    ot.position.set(0,  H / 2 + to / 2, z); ot.rotation.z = 0;            ot.scale.set(W + to * 2, to, 1);
+    ob.position.set(0, -H / 2 - to / 2, z); ob.rotation.z = Math.PI;      ob.scale.set(W + to * 2, to, 1);
+    ol.position.set(-W / 2 - to / 2, 0, z); ol.rotation.z = Math.PI / 2;  ol.scale.set(H, to, 1);
+    or.position.set( W / 2 + to / 2, 0, z); or.rotation.z = -Math.PI / 2; or.scale.set(H, to, 1);
+}
+
+// ===== 展示の配置（入室時の位置・向きが基準。以後プレイヤーに追従しない）=====
+// 12枚以下は1段、13〜24枚は2段、25〜36枚は3段。段数で均等に分け（例：13枚→7＋6）、
+// ファイル番号順に下の段から、正面を起点にプレイヤーから見て右回りに並べる。
+// 上の段は半間隔ずらして、上下の作品が重なって見えにくいようにする。
+function exLayout(){
+    const n = exWorks.length;
+    exTiers = [];
+    if(n === 0) return;
+    const tiers = Math.min(EXHIBIT_MAX_TIERS, Math.ceil(n / EXHIBIT_PER_TIER));
+    const base = Math.floor(n / tiers), extra = n % tiers;
+    const fx = exForward.x, fz = exForward.z;
+    const rx = -fz, rz = fx;   // 入室時のプレイヤーから見て右方向
+    let k = 0;
+    for(let t = 0; t < tiers; t++){
+        const cnt = base + (t < extra ? 1 : 0);
+        const offset = (t % 2 === 1) ? Math.PI / cnt : 0;
+        const list = [];
+        for(let i = 0; i < cnt; i++, k++){
+            const w = exWorks[k];
+            const ang = offset + i * Math.PI * 2 / cnt;
+            const c = Math.cos(ang), s = Math.sin(ang);
+            w.tier = t;
+            w.idx = i;
+            w.angle = ang;
+            w.group.position.set(
+                exCenter.x + (fx * c + rx * s) * EXHIBIT_RADIUS,
+                EXHIBIT_TIER_Y[t],
+                exCenter.z + (fz * c + rz * s) * EXHIBIT_RADIUS
+            );
+            w.group.scale.setScalar(1);
+            w.group.lookAt(exCenter.x, exEyeY, exCenter.z); // 円の中心（目の高さ）に表を向ける
+            list.push(k);
+        }
+        exTiers.push(list);
+    }
+    exCircleGroup.updateMatrixWorld(true); // 直後のレイ判定に新しい位置を使う
+}
+
+// ===== ① 選択の表示 =====
+function exSetSelection(i){
+    if(i < 0 || i >= exWorks.length) return;
+    const prev = exWorks[exSelIdx];
+    if(prev && prev.group) prev.group.scale.setScalar(1);
+    exSelIdx = i;
+    const w = exWorks[i];
+    w.group.scale.setScalar(EXHIBIT_SEL_SCALE);
+    w.group.add(exFrame);
+    exResizeFrame(w.w, w.h);
+    exFrame.visible = true;
+}
+
+function exClearSelectionHighlight(){
+    const w = exWorks[exSelIdx];
+    if(w && w.group) w.group.scale.setScalar(1);
+    if(exFrame) exFrame.visible = false;
+}
+
+function exAnimateFrame(now){
+    const p = 0.5 + 0.5 * Math.sin(now * 0.006);   // 約1秒周期でゆっくり明滅
+    exFrameOuterMat.opacity = 0.35 + 0.45 * p;
+    exFrameInnerMat.color.setRGB(1.0, 0.78 + 0.17 * p, 0.2 + 0.5 * p);
+}
+
+// ===== 振動 =====
+function exBuzzTick(){
+    const now = performance.now();
+    if(now - exLastTickBuzz < 70) return;  // 短時間に何度も鳴らさない
+    exLastTickBuzz = now;
+    vibrate("right", 12, 0.25);
+}
+function exBuzzLimit(){ vibrate("right", 30, 0.4); }
+function exBuzzDecide(){ vibrate("right", 60, 0.75); }
+
+// ===== 入力・姿勢 =====
+function exReadInput(){
+    const gp = gamepad;
+    if(!gp){
+        exIn.trig = 0; exIn.grip = 0; exIn.a = false; exIn.b = false;
+        exIn.stickBtn = false; exIn.x = 0; exIn.y = 0;
+        return;
+    }
+    exIn.trig = gp.buttons[BTN_TRIGGER]?.value || 0;
+    exIn.grip = gp.buttons[1]?.value || 0;
+    exIn.a = !!gp.buttons[BTN_A]?.pressed;
+    exIn.b = !!gp.buttons[BTN_B]?.pressed;
+    exIn.stickBtn = !!gp.buttons[BTN_STICK]?.pressed;
+    exIn.x = gp.axes[AXIS_X] || 0;
+    exIn.y = gp.axes[AXIS_Y] || 0;
+}
+
+function exAllReleased(){
+    return exIn.trig < 0.1 && !exIn.a && !exIn.b && !exIn.stickBtn
+        && Math.abs(exIn.x) < EXHIBIT_STICK_OFF && Math.abs(exIn.y) < EXHIBIT_STICK_OFF;
+}
+
+function exUpdatePoses(){
+    exHeadPos.copy(renderer.xr.getCamera().position);
+    exCtrlValid = !!rightController && rightController.visible !== false;
+    if(exCtrlValid){
+        // WebXR がこのフレームに書き込んだ姿勢から組み立てる（既存の matrixWorld には触れない）
+        exCtrlMat.compose(rightController.position, rightController.quaternion, rightController.scale);
+        exRayOrigin.setFromMatrixPosition(exCtrlMat);
+        exRayDir.set(0, 0, -1).transformDirection(exCtrlMat);
+        exRaycaster.set(exRayOrigin, exRayDir);
+    }
+}
+
+// 既存の入力処理が持っている「前フレームの押下状態」を今の状態に合わせる。
+// 押したまま③に入ってきたボタンは、既存の「ジェスチャ後のラッチ」と同じ仕組みで離すまで無効にする。
+function exSyncExistingInputState(){
+    const gp = gamepad;
+    const aHeld = !!gp?.buttons[BTN_A]?.pressed;
+    const bHeld = !!gp?.buttons[BTN_B]?.pressed;
+    const stickHeld = !!gp?.buttons[BTN_STICK]?.pressed;
+    prevAPressed = aHeld;
+    abGestureLatchA = aHeld;
+    prevBUndoPressed = bHeld;
+    abGestureLatchB = bHeld;
+    prevStickPressed = stickHeld;
+    prevAForLock = aHeld;
+    prevGripStickPressed = (getTriggerValue(1) >= GRIP_PAN_THRESHOLD) && stickHeld;
+    aBtnHoldStart = 0; aBtnLongFired = false; aBtnWarnFired = false;
+    bBtnHoldStart = 0; bBtnLongFired = false; bBtnWarnFired = false;
+    lockTapCount = 0;
+    rotationActive = false;
+    drawing = false;
+    hasLast = false;
+    releaseActive = false;
+    if(leftGamepad){
+        prevLeftTrigger = !!leftGamepad.buttons[0]?.pressed;
+        prevLeftA = !!leftGamepad.buttons[4]?.pressed;
+        prevLeftB = !!leftGamepad.buttons[5]?.pressed;
+    }
+}
+
+// ===== レイ・案内の表示 =====
+function exShowRay(len, withDot){
+    if(!exCtrlValid){ exHideRay(); return; }
+    exTmpM.makeScale(1, 1, len);
+    exRayMesh.matrix.multiplyMatrices(exCtrlMat, exTmpM);
+    exRayMesh.matrixWorldNeedsUpdate = true;
+    exRayMesh.visible = true;
+    if(withDot){
+        exRayDot.position.copy(exRayOrigin).addScaledVector(exRayDir, len);
+        exRayDot.visible = true;
+    } else {
+        exRayDot.visible = false;
+    }
+}
+
+function exHideRay(){
+    if(!exRayMesh) return;
+    exRayMesh.visible = false;
+    exRayDot.visible = false;
+}
+
+function exPlaceHintNearController(){
+    if(exCtrlValid){
+        exTmpV1.set(0, 0.08, -0.05).applyMatrix4(exCtrlMat);    // コントローラーの少し上
+    } else {
+        exTmpV1.set(0, -0.25, -0.9).applyQuaternion(renderer.xr.getCamera().quaternion).add(exHeadPos);
+    }
+    exHintMesh.position.copy(exTmpV1);
+    exHintMesh.lookAt(exHeadPos);
+    exHintMesh.visible = true;
+}
+
+function exShowLoadingHint(){
+    exDrawPanel(exHintMesh, "loading" + exLoadedCount, [
+        { text: "さくひんを よみこみちゅう…", size: 74, bold: true },
+        { text: `${exLoadedCount} まい`, size: 60, color: "#e8c86a" }
+    ], 0.17);
+    exPlaceHintNearController();
+}
+
+function exShowSelectHint(){
+    exDrawPanel(exHintMesh, "select", [
+        { text: "さくひんを えらんでね", size: 80, bold: true },
+        { text: "レイ＋トリガー ／ スティック＋A", size: 58, color: "#e8c86a" }
+    ], 0.17);
+    exPlaceHintNearController();
+}
+
+// ② 作品のすぐ手前・下側に案内を出す（作品が低すぎるときは上側）
+function exShowAdjustHint(){
+    exDrawPanel(exHintMesh, "adjust", [
+        { text: "トリガー：つかんで うごかす", size: 64 },
+        { text: "スティック 上下：たおす ／ 左右：おおきさ", size: 64 },
+        { text: "A：かきはじめる ／ B：えらびなおす", size: 64, bold: true, color: "#e8c86a" }
+    ], 0.34);
+    exAdjMesh.updateMatrixWorld(true);
+    exBox.setFromObject(exAdjMesh);
+    const hh = exHintMesh.scale.y;
+    let y = exBox.min.y - 0.04 - hh / 2;
+    if(y < exHeadPos.y - 1.1) y = exBox.max.y + 0.04 + hh / 2;
+    // 作品の中心からプレイヤー側へ、作品の外形＋少しだけ寄せる（水平に倒した作品の下に隠れないように）
+    let dx = exHeadPos.x - exAdjPos.x, dz = exHeadPos.z - exAdjPos.z;
+    const len = Math.hypot(dx, dz);
+    if(len > 1e-4){ dx /= len; dz /= len; } else { dx = 0; dz = 1; }
+    const reach = Math.abs(dx) * (exBox.max.x - exBox.min.x) / 2
+                + Math.abs(dz) * (exBox.max.z - exBox.min.z) / 2 + 0.06;
+    exHintMesh.position.set(exAdjPos.x + dx * reach, y, exAdjPos.z + dz * reach);
+    exHintMesh.lookAt(exHeadPos);
+    exHintMesh.visible = true;
+}
+
+function exShowMessage(lines, ms){
+    exEnsureScene();
+    exDrawPanel(exMsgMesh, "msg:" + lines.map(l => l.text).join("|"), lines, 0.7);
+    const { pos, forward } = getViewerPose();
+    exMsgMesh.position.copy(pos).addScaledVector(forward, 1.0);
+    exMsgMesh.position.y = pos.y - 0.1;
+    exMsgMesh.lookAt(pos);
+    exMsgMesh.visible = true;
+    exRoot.visible = true;
+    exMsgUntil = performance.now() + ms;
+}
+
+function exUpdateMessage(now){
+    if(exMsgUntil && now > exMsgUntil){
+        exMsgUntil = 0;
+        if(exMsgMesh) exMsgMesh.visible = false;
+        if(exState === EX_OFF && exRoot) exRoot.visible = false;
+    }
+}
+
+function exHideAll(){
+    if(!exRoot) return;
+    exCircleGroup.visible = false;
+    exClearSelectionHighlight();
+    exHideRay();
+    exAdjMesh.visible = false;
+    exHintMesh.visible = false;
+    exMsgMesh.visible = false;
+    exBtnGroup.visible = false;
+    exRoot.visible = false;
+}
+
+// ===== ② 調整用オブジェクト =====
+function exApplyAdjustTransform(){
+    const w = exWorks[exAdjIdx];
+    if(!w) return;
+    const sw = w.aspect >= 1 ? exAdjSize : exAdjSize * w.aspect;   // 長辺 = exAdjSize（縦横比は常に維持）
+    const sh = w.aspect >= 1 ? exAdjSize / w.aspect : exAdjSize;
+    exAdjMesh.position.copy(exAdjPos);
+    // まずY軸回りでプレイヤーの方を向け、次に作品自身の横軸（X）回りで上端を奥へ倒す
+    exAdjMesh.rotation.set(-exAdjTilt, exAdjYaw, 0, "YXZ");
+    exAdjMesh.scale.set(sw, sh, 1);
+}
+
+function exSetAdjustTranslucent(on){
+    const m = exAdjMesh.material;
+    m.transparent = on;
+    m.opacity = on ? EXHIBIT_ADJ_OPACITY : 1.0;
+    m.depthWrite = !on;
+    m.needsUpdate = true;
+}
+
+function exDisposeHiRes(){
+    if(!exHiResTex) return;
+    if(exAdjMesh && exAdjMesh.material.map === exHiResTex){
+        const w = exWorks[exAdjIdx];
+        exAdjMesh.material.map = w ? w.texture : null;
+        exAdjMesh.material.needsUpdate = true;
+    }
+    exHiResTex.dispose();
+    exHiResTex = null;
+}
+
+function exCancelHiRes(){
+    exHiResToken++;   // 読み込み途中のものは、終わっても使わずに捨てる
+    exDisposeHiRes();
+}
+
+// 目の前に置く作品だけ高解像度で読み直す（一覧取得時にブラウザのキャッシュに入っているので通常は通信しない）
+async function exLoadHiRes(w){
+    const token = ++exHiResToken;
+    try {
+        const r = await exFetchImage(w.url, "force-cache");
+        if(r.status !== "ok" || token !== exHiResToken) return;
+        const { canvas } = await exDecodeToCanvas(r.blob, EXHIBIT_HIRES_MAX);
+        if(token !== exHiResToken) return;
+        const tex = exMakeTexture(canvas);
+        exDisposeHiRes();
+        exHiResTex = tex;
+        exAdjMesh.material.map = tex;
+        exAdjMesh.material.needsUpdate = true;
+    } catch(e){
+        console.warn("作品展示：高解像度画像を読み込めませんでした（展示用の画像で続けます）", e);
+    }
+}
+
+// ===== ③ ボタンの配置 =====
+// 腰の高さ・左前方を第一候補にし、調整した作品に近すぎるときは別の候補へずらす。
+function exPlaceButtons(){
+    const { pos: head, forward: f } = getViewerPose();
+    const rx = -f.z, rz = f.x;
+    exAdjMesh.updateMatrixWorld(true);
+    exBox.setFromObject(exAdjMesh);
+    const y = Math.max(0.55, head.y - EXHIBIT_BTN_BELOW_EYE);
+    const halfW = EXHIBIT_BTN_W + EXHIBIT_BTN_GAP / 2;  // ボタン2つ分の半幅
+    const degs = [-35, 35, -50, 50, -65, 65, -80, 80]; // 負＝左。正面に近い候補から順に試す
+    let best = null, bestDist = -Infinity;
+    for(const d of degs){
+        const a = d * Math.PI / 180;
+        const c = Math.cos(a), s = Math.sin(a);
+        const p = new THREE.Vector3(
+            head.x + (f.x * c + rx * s) * EXHIBIT_BTN_DIST, y,
+            head.z + (f.z * c + rz * s) * EXHIBIT_BTN_DIST);
+        const dist = exBox.distanceToPoint(p) - halfW;
+        if(dist >= EXHIBIT_BTN_CLEARANCE){ best = p; break; }
+        if(dist > bestDist){ bestDist = dist; best = p; }
+    }
+    exBtnGroup.position.copy(best);
+    exBtnGroup.lookAt(head);
+    exBtnGroup.updateMatrixWorld(true);
+}
+
+function exUpdateButtonVisuals(){
+    for(const b of exBtnMeshes){
+        const on = b === exHoverBtn;
+        b.material.color.setHex(on ? 0xffffff : 0xcfcfcf);
+        const k = on ? 1.08 : 1.0;
+        b.scale.set(EXHIBIT_BTN_W * k, EXHIBIT_BTN_H * k, 1);
+        b.userData.glow.visible = on;
+    }
+}
+
+// ===== 状態の切り替え =====
+function exEnterSelect(){
+    exState = EX_SELECT;
+    exGate = true;
+    exStickDir = null;
+    exHoverIdx = -1;
+    exGrabbing = false;
+    exCancelHiRes();
+    exAdjMesh.visible = false;
+    exAdjMesh.material.map = null;
+    exAdjMesh.material.needsUpdate = true;
+    exBtnGroup.visible = false;
+    exHoverBtn = null;
+    exCircleGroup.visible = true;
+    exRoot.visible = true;
+    exSetSelection(exSelIdx >= 0 && exSelIdx < exWorks.length ? exSelIdx : 0);
+}
+
+function exEnterAdjust(index, fresh){
+    exState = EX_ADJUST;
+    exGate = true;
+    exGrabbing = false;
+    exAdjAtLimit = false;
+    exHideRay();
+    exClearSelectionHighlight();
+    exBtnGroup.visible = false;
+    exHoverBtn = null;
+    if(fresh){
+        // ①から来たとき：選んだ作品を目の前に、プレイヤーの方を向けて垂直・最小サイズで置く
+        exCancelHiRes();
+        exAdjIdx = index;
+        const w = exWorks[index];
+        const { pos, forward } = getViewerPose();
+        exAdjPos.copy(pos).addScaledVector(forward, EXHIBIT_ADJ_DIST);
+        exAdjPos.y = pos.y - EXHIBIT_ADJ_DROP;
+        exAdjYaw = Math.atan2(-forward.x, -forward.z); // 作品の表（+Z）をプレイヤーへ向ける
+        exAdjTilt = 0;
+        exAdjSize = EXHIBIT_SIZE_MIN;
+        exAdjMesh.material.map = w.texture;
+        exAdjMesh.material.needsUpdate = true;
+        if(Math.max(w.imgW, w.imgH) > EXHIBIT_TEX_MAX) exLoadHiRes(w);
+    }
+    // ③から「もどる」で来たときは、位置・角度・大きさをそのまま引き継ぐ
+    exSetAdjustTranslucent(true);
+    exApplyAdjustTransform();
+    exAdjMesh.visible = true;
+}
+
+function exEnterDraw(){
+    exState = EX_DRAW;
+    exGate = true;
+    exGrabbing = false;
+    exSetAdjustTranslucent(false);  // お手本として不透明で表示
+    exHintMesh.visible = false;
+    exHideRay();
+    exPlaceButtons();
+    exBtnGroup.visible = true;
+    exHoverBtn = null;
+    exUpdateButtonVisuals();
+    if(brushGroup) brushGroup.visible = !operationLocked;
+}
+
+// ③を出るとき：描きかけ・払いの途中を確実に終わらせる（描いた線そのものは消さない）
+function exLeaveDraw(){
+    drawing = false;
+    hasLast = false;
+    releaseActive = false;
+    rotationActive = false;
+    galleryVisible = false;
+    exBtnGroup.visible = false;
+    exHoverBtn = null;
+    exHideRay();
+}
+
+function exCancelToSelect(){
+    vibrate("right", 40, 0.5);
+    exGrabbing = false;
+    exHintMesh.visible = false;
+    exEnterSelect();
+}
+
+function exDecide(i){
+    exBuzzDecide();
+    exSetSelection(i);   // ①に戻ったときもこの作品から選べるように
+    exEnterAdjust(i, true);
+}
+
+// 作品が0枚・読み込み失敗のとき：案内を出し、作品展示なしの従来どおりの描画で始める
+function exFallbackToNormal(isError){
+    exState = EX_OFF;
+    exHideAll();
+    exShowMessage([
+        { text: isError ? "さくひんを よみこめませんでした" : "てんじする さくひんが ありません", size: 72, bold: true },
+        { text: "このまま ふつうに かけます", size: 60, color: "#e8c86a" }
+    ], 6000);
+    if(brushGroup) brushGroup.visible = !operationLocked;
+    exSyncExistingInputState();
+    // 作品展示OFFのときと同じく、設定に応じてお手本を再生する
+    if(showDefaultText && defaultGalleryData){
+        startGuideReplay();
+        currentGalleryIndex = DEFAULT_SLOT;
+        updateGalleryHighlight();
+    }
+}
+
+// ===== 状態ごとの毎フレーム処理 =====
+function exTickWait(){
+    exWaitFrames++;
+    if(!exPoseReady){
+        // 頭の姿勢が届いた（原点のままではない）数フレーム後に、入室時の位置・向きとして確定する。
+        // 姿勢が届かない場合も約2.5秒で確定して先へ進む（固まらないように）。
+        if((exHeadPos.lengthSq() > 1e-8 && exWaitFrames >= 3) || exWaitFrames > 180){
+            const { pos, forward } = getViewerPose();
+            exCenter.copy(pos);
+            exForward.copy(forward);
+            // 展示作品が向く「目の高さ」。異常値でも作品が極端に傾かないよう範囲を絞る
+            exEyeY = THREE.MathUtils.clamp(pos.y, 0.8, 2.0);
+            exPoseReady = true;
+        }
+    }
+    if(!exPoseReady || exLoadStatus === "loading" || exLoadStatus === "idle"){
+        exShowLoadingHint();
+        return;
+    }
+    exHintMesh.visible = false;
+    if(exWorks.length > 0){
+        exLayout();
+        exEnterSelect();
+    } else {
+        exFallbackToNormal(exLoadStatus === "error");
+    }
+}
+
+function exTickSelect(now, trigEdge, aEdge){
+    // レイ：展示作品の板だけを判定対象にする
+    let hitIdx = -1, hitDist = EXHIBIT_RAY_LEN;
+    if(exCtrlValid){
+        exHits.length = 0;
+        exRaycaster.intersectObjects(exWorkMeshes, false, exHits);
+        if(exHits.length > 0){
+            hitIdx = exHits[0].object.userData.exIndex;
+            hitDist = exHits[0].distance;
+        }
+        exShowRay(hitDist, hitIdx >= 0);
+    } else {
+        exHideRay();
+    }
+    // レイが別の作品に乗った瞬間だけ選択を移す（スティックで選んだ後、レイが上書きし続けないように）
+    if(hitIdx !== exHoverIdx){
+        exHoverIdx = hitIdx;
+        if(hitIdx >= 0 && hitIdx !== exSelIdx){
+            exSetSelection(hitIdx);
+            exBuzzTick();
+        }
+    }
+    exAnimateFrame(now);
+    exShowSelectHint();
+
+    if(exGate) return;
+    if(trigEdge && hitIdx >= 0){ exDecide(hitIdx); return; }
+    if(aEdge && exSelIdx >= 0){ exDecide(exSelIdx); return; }
+    exHandleStickSelect(now);
+}
+
+// スティック：倒した瞬間に1つ動き、倒し続けると一定間隔でリピート（高速な暴走を防ぐ）
+function exHandleStickSelect(now){
+    const x = exIn.x, y = exIn.y;
+    const ax = Math.abs(x), ay = Math.abs(y);
+    if(exStickDir){
+        const along = (exStickDir === "L" || exStickDir === "R") ? ax : ay;
+        if(along < EXHIBIT_STICK_OFF){ exStickDir = null; return; }
+        if(now >= exStickNext){
+            exStickMove(exStickDir, true);
+            exStickNext = now + EXHIBIT_STICK_REPEAT_MS;
+        }
+        return;
+    }
+    if(Math.max(ax, ay) >= EXHIBIT_STICK_ON){
+        exStickDir = ax >= ay ? (x > 0 ? "R" : "L") : (y < 0 ? "U" : "D");  // 上に倒すと y は負
+        exStickMove(exStickDir, false);
+        exStickNext = now + EXHIBIT_STICK_DELAY_MS;
+    }
+}
+
+function exStickMove(dir, isRepeat){
+    const cur = exWorks[exSelIdx];
+    if(!cur){ exSetSelection(0); return; }
+    if(dir === "L" || dir === "R"){
+        // 同じ段の中で左右へ（円なので端はつながっている）
+        const list = exTiers[cur.tier];
+        if(!list || list.length <= 1){ if(!isRepeat) exBuzzLimit(); return; }
+        const ni = (cur.idx + (dir === "R" ? 1 : -1) + list.length) % list.length;
+        exSetSelection(list[ni]);
+        exBuzzTick();
+    } else {
+        // 上下の段へ。いまの作品にいちばん近い角度の作品を選ぶ。作品のない段へは動かない
+        const nt = cur.tier + (dir === "U" ? 1 : -1);
+        if(nt < 0 || nt >= exTiers.length){ if(!isRepeat) exBuzzLimit(); return; }
+        let best = -1, bestD = Infinity;
+        for(const wi of exTiers[nt]){
+            const diff = exWorks[wi].angle - cur.angle;
+            const d = Math.abs(Math.atan2(Math.sin(diff), Math.cos(diff)));
+            if(d < bestD){ bestD = d; best = wi; }
+        }
+        if(best >= 0){ exSetSelection(best); exBuzzTick(); }
+    }
+}
+
+function exNotifyLimit(atLimit){
+    if(atLimit && !exAdjAtLimit) exBuzzLimit();  // 端に着いた瞬間だけ知らせる
+    exAdjAtLimit = atLimit;
+}
+
+function exTickAdjust(dt, trigDown, trigEdge, aEdge, bEdge){
+    if(!exGate){
+        if(bEdge){ exCancelToSelect(); return; }
+        if(aEdge){ vibrate("right", 80, 0.7); exEnterDraw(); return; }
+
+        // 位置：トリガーを押した瞬間の「作品 − コントローラー」の差を保ったまま動かす（急に飛ばない）
+        if(!exGrabbing && trigEdge && exCtrlValid){
+            exGrabbing = true;
+            exGrabOffset.copy(exAdjPos).sub(exRayOrigin);
+            vibrate("right", 25, 0.4);
+        } else if(exGrabbing && (!trigDown || !exCtrlValid)){
+            exGrabbing = false;   // 離したらその位置で固定
+            vibrate("right", 15, 0.3);
+        }
+        if(exGrabbing){
+            exTmpV1.copy(exRayOrigin).add(exGrabOffset);
+            exAdjPos.lerp(exTmpV1, 1 - Math.exp(-dt / EXHIBIT_GRAB_SMOOTH_TAU));
+        }
+
+        // スティック：傾きの大きい軸だけ有効（上下＝たおす／左右＝おおきさ）。離せばその値で止まる
+        const x = exIn.x, y = exIn.y;
+        const ax = Math.abs(x), ay = Math.abs(y);
+        const dz = EXHIBIT_STICK_DEADZONE;
+        if(ay > dz && ay >= ax){
+            const v = -Math.sign(y) * (ay - dz) / (1 - dz);   // 上に倒す（y<0）と水平へ、下で垂直へ
+            const t = exAdjTilt + v * EXHIBIT_TILT_RATE * dt;
+            exAdjTilt = THREE.MathUtils.clamp(t, 0, EXHIBIT_TILT_MAX);
+            exNotifyLimit(t !== exAdjTilt);
+        } else if(ax > dz){
+            const v = Math.sign(x) * (ax - dz) / (1 - dz);    // 右で大きく、左で小さく
+            const s = exAdjSize * Math.exp(v * EXHIBIT_SIZE_RATE * dt);
+            exAdjSize = THREE.MathUtils.clamp(s, EXHIBIT_SIZE_MIN, EXHIBIT_SIZE_MAX);
+            exNotifyLimit(s !== exAdjSize);
+        } else {
+            exAdjAtLimit = false;
+        }
+    }
+    exApplyAdjustTransform();
+    exShowAdjustHint();
+}
+
+// ③：既存の描画はそのまま。「もどる」「おわる」を指しているときだけレイを出し、Aで決定する。
+// 戻り値 true のフレームは既存の入力処理を止める（ボタン決定に使ったAが色切替に流れないように）。
+function exTickDraw(aEdge){
+    // 書いている間・払いの途中・トリガーやグリップを握っている間は指せない（描画・固定化・移動と競合させない）
+    const canPoint = exCtrlValid && !operationLocked && !drawing && !releaseActive
+                  && exIn.trig < 0.2 && exIn.grip < GRIP_PAN_THRESHOLD;
+    let hover = null, dist = 0;
+    if(canPoint){
+        exHits.length = 0;
+        exRaycaster.intersectObjects(exBtnMeshes, false, exHits);
+        if(exHits.length > 0){ hover = exHits[0].object; dist = exHits[0].distance; }
+    }
+    if(hover !== exHoverBtn){
+        exHoverBtn = hover;
+        exUpdateButtonVisuals();
+        if(hover) exBuzzTick();
+    }
+    if(hover) exShowRay(dist, true); else exHideRay();
+
+    if(hover && aEdge){
+        exBuzzDecide();
+        const toAdjust = (hover === exBtnBack);
+        exLeaveDraw();
+        if(toAdjust) exEnterAdjust(exAdjIdx, false); // もどる：②へ（位置・角度・大きさはそのまま）
+        else exEnterSelect();                         // おわる：①へ（描いた線はそのまま残す）
+        return true;
+    }
+    return false;
+}
+
+// ===== 毎フレームの入口（render() から呼ばれる）=====
+// 戻り値 true のフレームは、既存の入力処理をスキップする。
+function exhibitUpdate(){
+    const now = performance.now();
+    if(exState === EX_OFF){
+        exUpdateMessage(now);
+        return false;
+    }
+    if(!renderer.xr.isPresenting) return false;
+
+    let dt = (now - exPrevTime) / 1000;
+    exPrevTime = now;
+    if(!(dt > 0) || dt > 0.1) dt = 1 / 72;
+
+    exReadInput();
+    exUpdatePoses();
+
+    let gateOpened = false;
+    if(exGate && exAllReleased()){ exGate = false; gateOpened = true; }
+
+    // トリガーはヒステリシス付きで判定（半押しのふらつきで押す・離すを繰り返さない）
+    const trigDown = exPrevTrigDown ? exIn.trig > 0.25 : exIn.trig > 0.55;
+    const trigEdge = trigDown && !exPrevTrigDown;
+    const aEdge = exIn.a && !exPrevA;
+    const bEdge = exIn.b && !exPrevB;
+
+    let block = true;
+    switch(exState){
+        case EX_WAIT:   exTickWait(); break;
+        case EX_SELECT: exTickSelect(now, trigEdge, aEdge); break;
+        case EX_ADJUST: exTickAdjust(dt, trigDown, trigEdge, aEdge, bEdge); break;
+        case EX_DRAW:
+            if(exGate){
+                exHideRay();   // ③に入った直後：ボタンを全部離すまで既存の描画も止めておく
+            } else {
+                if(gateOpened) exSyncExistingInputState();
+                block = exTickDraw(aEdge);
+            }
+            break;
+    }
+
+    exPrevTrigDown = trigDown;
+    exPrevA = exIn.a;
+    exPrevB = exIn.b;
+
+    // ①②（と入室直後）は筆を隠し、左手のギャラリー一覧も出さない
+    if(exState === EX_WAIT || exState === EX_SELECT || exState === EX_ADJUST){
+        if(brushGroup) brushGroup.visible = false;
+        galleryVisible = false;
+    }
+    exUpdateMessage(now);
+    return block;
+}
+
+// ===== セッション開始・終了 =====
+function exhibitOnSessionStart(){
+    exMsgUntil = 0;
+    exHideAll();
+    if(!exhibitEnabled){ exState = EX_OFF; return; }
+    exEnsureScene();
+    exState = EX_WAIT;
+    exGate = true;
+    exPoseReady = false;
+    exWaitFrames = 0;
+    exSelIdx = 0;          // 入室ごとに正面の作品から
+    exHoverIdx = -1;
+    exStickDir = null;
+    exGrabbing = false;
+    exHoverBtn = null;
+    exPrevTrigDown = false;
+    exPrevA = false;
+    exPrevB = false;
+    exPrevTime = performance.now();
+    exRoot.visible = true;
+    if(exNeedsLoad()) exStartLoading();
+}
+
+function exhibitOnSessionEnd(){
+    exState = EX_OFF;
+    exCancelHiRes();
+    exGrabbing = false;
+    exMsgUntil = 0;
+    exHideAll();
+    if(exAdjMesh){
+        exAdjMesh.material.map = null;
+        exAdjMesh.material.needsUpdate = true;
+    }
+}
+
+// ===== ギャラリーのサムネイル撮影中は展示物を隠す =====
+function exhibitHideForCapture(){
+    if(!exRoot) return false;
+    const v = exRoot.visible;
+    exRoot.visible = false;
+    return v;
+}
+function exhibitRestoreAfterCapture(v){
+    if(exRoot) exRoot.visible = v;
+}
+
+// ===== 開始画面の「作品展示」トグル =====
+(function(){
+    const btn = document.getElementById("exhibitToggle");
+    function refresh(){
+        btn.textContent = exhibitEnabled ? "🖼️ する" : "🚫 しない";
+        btn.style.opacity = exhibitEnabled ? "1.0" : "0.55";
+        exUpdateStartStatus();
+    }
+    btn.addEventListener("click", () => {
+        exhibitEnabled = !exhibitEnabled;
+        // ONにした時点で読み込みを始める（入室までに終わっていれば待ち時間なし）
+        if(exhibitEnabled && exNeedsLoad()) exStartLoading();
+        refresh();
+    });
+    refresh();
+})();
+
+// リスナーはページ読み込み時に1回だけ登録する（入室・退室を繰り返しても重複しない）
+renderer.xr.addEventListener("sessionstart", exhibitOnSessionStart);
+renderer.xr.addEventListener("sessionend", exhibitOnSessionEnd);
+
+</script>
+
+</body>
+</html>
