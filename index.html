@@ -4026,7 +4026,7 @@ function loadDrawingFromJSON(file) {
 // works フォルダの書道作品（image001〜image036）を、入室した位置を中心とする
 // 半径2.5mの円周上に360°展示する（番号が抜けていれば、その枠だけ空けて残りを表示）。右コントローラーで作品を選び（①）、
 // 目の前に置いて位置・角度・大きさを調整し（②）、それをお手本にして既存の書道描画を行う（③）。
-// 目の前の作品は「半紙はうっすら白・墨は灰色」で表示し、なぞって書いた自分の線（黒）と見分けられるようにする。
+// 目の前の作品は「半紙は透明・墨は灰色」で表示し、なぞって書いた自分の線（黒）が見えるようにする。
 // 「おわる」では、描いた絵をギャラリーに保存（満杯なら古い順に上書き）してから全部消して、作品選択に戻る。
 //
 // 状態：
@@ -4063,11 +4063,13 @@ const EXHIBIT_HIRES_MAX = 2048;  // ②③で目の前に置く作品の長辺(p
 const EXHIBIT_RADIUS = 2.5;
 const EXHIBIT_PER_TIER = 12;
 const EXHIBIT_MAX_TIERS = 3;
-// 各段の中心の高さ（床から, m）。[0]が最上段。作品が少ないときは上の段（目の高さ）から使う
-const EXHIBIT_TIER_Y = [1.1, 0.7, 0.3];
-const EXHIBIT_FIT_W = 0.5;               // 展示作品は縦横比を保ってこの枠（m）に収める（高さは半紙の実寸程度）
-const EXHIBIT_FIT_H = 0.35;
-const EXHIBIT_SEL_SCALE = 1.08;          // 選択中の作品を少し大きく見せる
+// 段の高さは入室時の目線が基準：1段＝作品の中央が目線、2段＝目線が1段目と2段目の間、
+// 3段＝中央の段の作品の中央が目線。段は上から 0,1,2 と数え、番号は上の段から並べる。
+// （3段のとき、背の低い人では最下段の下の方が床より下になるが、そのまま表示する）
+const EXHIBIT_TIER_SPACING = 1.1;        // 段の中心どうしの間隔（m）。作品の高さ0.9m＋すき間0.2m
+const EXHIBIT_FIT_W = 0.8;               // 展示作品は縦横比を保ってこの枠（m）に収める
+const EXHIBIT_FIT_H = 0.9;
+const EXHIBIT_SEL_SCALE = 1.06;          // 選択中の作品を少し大きく見せる
 
 // ----- ① 作品選択 -----
 const EXHIBIT_STICK_ON = 0.6;            // スティックをこれ以上倒したら1つ動かす
@@ -4080,14 +4082,14 @@ const EXHIBIT_RAY_LEN = 3.5;             // 何にも当たっていないとき
 const EXHIBIT_ADJ_DIST = 0.7;            // 目の前に置く距離（m）
 const EXHIBIT_ADJ_DROP = 0.15;           // 目の高さからこれだけ下に置く（m）
 const EXHIBIT_SIZE_MIN = 0.334;          // 最小：半紙（24.3×33.4cm）の長辺（m）
-const EXHIBIT_SIZE_MAX = EXHIBIT_SIZE_MIN * 3;
-const EXHIBIT_SIZE_INIT = EXHIBIT_SIZE_MIN * 2;    // 置いた直後：半紙の2倍
+const EXHIBIT_SIZE_MAX = EXHIBIT_SIZE_MIN * 5;    // 最大：半紙の5倍
+const EXHIBIT_SIZE_INIT = EXHIBIT_SIZE_MIN * 3;    // 置いた直後：半紙の3倍
 const EXHIBIT_TILT_MAX = Math.PI / 2;    // 0＝垂直に立つ ／ π/2＝水平（上端が奥へ倒れ、机に置いた紙の向き）
 const EXHIBIT_TILT_RATE = EXHIBIT_TILT_MAX / 1.5;  // 全倒し1.5秒で 垂直→水平
-const EXHIBIT_SIZE_RATE = Math.log(3) / 1.5;       // 全倒し1.5秒で 最小→最大
+const EXHIBIT_SIZE_RATE = Math.log(3) / 1.5;       // 全倒し1.5秒で3倍になる速さ（最小→最大は約2.2秒）
 const EXHIBIT_STICK_DEADZONE = 0.2;
-// 目の前の作品（②③）：半紙はうっすら白、墨は灰色（なぞって書く自分の黒い線と見分けられるように）
-const EXHIBIT_TRACE_PAPER_ALPHA = 0.25;          // 半紙の白の濃さ
+// 目の前の作品（②③）：半紙は透明、墨は灰色（後ろに書いた自分の黒い線も見えるように）
+const EXHIBIT_TRACE_PAPER_ALPHA = 0.0;           // 半紙の白の濃さ（0＝透明）
 const EXHIBIT_TRACE_INK_ALPHA = 0.6;             // 手本の墨の濃さ（黒の60%＝灰色に見える）
 const EXHIBIT_OUTLINE_W = 0.004;                 // 紙のふちを示す細い線の太さ（m）
 const EXHIBIT_OUTLINE_OPACITY_ADJUST = 0.75;     // ②：位置・大きさが分かるようにはっきり
@@ -4099,12 +4101,15 @@ const EXHIBIT_BTN_W = 0.20, EXHIBIT_BTN_H = 0.10, EXHIBIT_BTN_GAP = 0.05; // m
 const EXHIBIT_BTN_DWELL_MS = 200;        // トリガーで決定できるのは、この時間ボタンを指し続けてから
 const EXHIBIT_BTN_HINT_GAP = 0.03;       // 案内パネル（トリガー：つかんで うごかす…）の左端とボタンのすき間（m）
 const EXHIBIT_HINT_W = 0.34;             // ②の案内パネルの幅（m）
+const EXHIBIT_HINT_DROP = 0.04;          // 作品の下端から案内パネルまでのすき間（m）
+const EXHIBIT_HINT_FRONT = 0.06;         // 作品の手前側の端から、さらにプレイヤー側へ出す距離（m）
+const EXHIBIT_HINT_PITCH = 20 * Math.PI / 180;   // 案内パネルとボタンを少し上向きにして読みやすく
 
 const EXHIBIT_FONT = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif";
 
 const EX_OFF = 0, EX_WAIT = 1, EX_SELECT = 2, EX_ADJUST = 3, EX_DRAW = 4;
 
-let exhibitEnabled = false;  // 開始画面の「作品展示」トグル
+let exhibitEnabled = true;   // 開始画面の「作品展示」トグル（はじめは「する」）
 let exState = EX_OFF;
 
 // ----- 読み込み -----
@@ -4178,7 +4183,9 @@ const exRaycaster = new THREE.Raycaster();
 const exHits = [];
 const exTmpV1 = new THREE.Vector3();
 const exTmpM = new THREE.Matrix4();
-const exBox = new THREE.Box3();
+const exTmpQ = new THREE.Quaternion();
+const exTmpEuler = new THREE.Euler();
+const EX_AXIS_Y = new THREE.Vector3(0, 1, 0);
 
 // ===== 開始画面の状態表示 =====
 function exUpdateStartStatus(){
@@ -4202,21 +4209,21 @@ function exUpdateStartStatus(){
 
 // 「作品展示：する」で読み込み中の間は START AR を押せなくする（読み込みが終われば元に戻す）。
 // ARButton は disabled 属性を使っていないので、ここで付け外ししても既存の動きと競合しない。
+const EX_AR_LOADING_TEXT = "さくひんを よみこみ中";
 function exUpdateARButtonLock(){
     const btn = document.getElementById("ARButton");
     if(!btn) return;
     const lock = exhibitEnabled && exLoadStatus === "loading" && !renderer.xr.isPresenting;
     if(lock){
-        if(!btn.dataset.exLocked){
-            btn.dataset.exLocked = "1";
-            btn.dataset.exText = btn.textContent;
-        }
+        // ARButton が対応確認のあとに文字を書き換えることがあるので、自分の表示以外のときは覚え直す
+        if(!btn.textContent.startsWith(EX_AR_LOADING_TEXT)) btn.dataset.exText = btn.textContent;
+        btn.dataset.exLocked = "1";
         btn.disabled = true;
-        btn.textContent = `さくひんを よみこみ中…（${exLoadedCount}まい）`;
+        btn.textContent = `${EX_AR_LOADING_TEXT}…（${exLoadedCount}まい）`;
     } else if(btn.dataset.exLocked){
         delete btn.dataset.exLocked;
         btn.disabled = false;
-        btn.textContent = btn.dataset.exText || "START AR";
+        if(btn.textContent.startsWith(EX_AR_LOADING_TEXT)) btn.textContent = btn.dataset.exText || "START AR";
     }
 }
 
@@ -4695,7 +4702,7 @@ function exMakeButton(label, sub){
 
 // 選択枠を作品の大きさ（w×h）に合わせる
 function exResizeFrame(w, h){
-    const ti = 0.02, to = 0.05, z = 0.002;
+    const ti = 0.035, to = 0.09, z = 0.002;
     const [it, ib, il, ir] = exFrameInner;
     it.position.set(0,  h / 2 + ti / 2, z); it.scale.set(w + ti * 2, ti, 1);
     ib.position.set(0, -h / 2 - ti / 2, z); ib.scale.set(w + ti * 2, ti, 1);
@@ -4713,7 +4720,8 @@ function exResizeFrame(w, h){
 // ===== 展示の配置（入室時の位置・向きが基準。以後プレイヤーに追従しない）=====
 // 枠の数は「いちばん大きい番号」N で決める（無い番号は枠だけ空く）。
 // N が12以下は1段、13〜24は2段、25〜36は3段。段数で均等に分け（例：N=13 → 7＋6）、
-// 番号順に上の段（目の高さ）から、正面を起点にプレイヤーから見て右回りに並べる。
+// 番号順に上の段から、正面を起点にプレイヤーから見て右回りに並べる。
+// 段の高さは EXHIBIT_TIER_SPACING の説明のとおり、入室時の目線（exEyeY）が基準。
 // 1つおきの段は半間隔ずらして、上下の作品が重なって見えにくいようにする。
 function exLayout(){
     exTiers = [];
@@ -4745,7 +4753,7 @@ function exLayout(){
         w.angle = ang;
         w.group.position.set(
             exCenter.x + (fx * c + rx * s) * EXHIBIT_RADIUS,
-            EXHIBIT_TIER_Y[t],
+            exEyeY + ((tiers - 1) / 2 - t) * EXHIBIT_TIER_SPACING,   // 1段：目線／2段：目線の上下／3段：中央が目線
             exCenter.z + (fz * c + rz * s) * EXHIBIT_RADIUS
         );
         w.group.scale.setScalar(1);
@@ -4900,7 +4908,9 @@ function exShowSelectHint(){
     exPlaceHintNearController();
 }
 
-// ② 作品のすぐ手前・下側に案内パネルを置く（作品が低すぎるときは上側）。表示はしない。
+// ② 案内パネルを作品の下端のすぐ手前に置く。表示はしない。
+// 位置と左右の向きは作品にぴったり固定する（作品を動かす・回すとパネルとボタンも一緒に動く）。
+// 作品の大きさや「たおす」角度を変えたときは、下端からの位置関係を保つように付け直す。
 // ③ではパネルは出さないが、ボタンを同じ位置関係に置くためにこの位置を使う。
 function exComputeAdjustHintPose(){
     exDrawPanel(exHintMesh, "adjust", [
@@ -4908,19 +4918,19 @@ function exComputeAdjustHintPose(){
         { text: "スティック 上下：たおす ／ 左右：おおきさ", size: 64 },
         { text: "A：かきはじめる ／ B・もどる：えらびなおす", size: 64, bold: true, color: "#e8c86a" }
     ], EXHIBIT_HINT_W);
-    exAdjMesh.updateMatrixWorld(true);
-    exBox.setFromObject(exAdjMesh);
+    const w = exWorks[exAdjIdx];
+    if(!w) return;
+    const sh = w.aspect >= 1 ? exAdjSize / w.aspect : exAdjSize;   // 作品の高さ
     const hh = exHintMesh.scale.y;
-    let y = exBox.min.y - 0.04 - hh / 2;
-    if(y < exHeadPos.y - 1.1) y = exBox.max.y + 0.04 + hh / 2;
-    // 作品の中心からプレイヤー側へ、作品の外形＋少しだけ寄せる（水平に倒した作品の下に隠れないように）
-    let dx = exHeadPos.x - exAdjPos.x, dz = exHeadPos.z - exAdjPos.z;
-    const len = Math.hypot(dx, dz);
-    if(len > 1e-4){ dx /= len; dz /= len; } else { dx = 0; dz = 1; }
-    const reach = Math.abs(dx) * (exBox.max.x - exBox.min.x) / 2
-                + Math.abs(dz) * (exBox.max.z - exBox.min.z) / 2 + 0.06;
-    exHintMesh.position.set(exAdjPos.x + dx * reach, y, exAdjPos.z + dz * reach);
-    exHintMesh.lookAt(exHeadPos);
+    const c = Math.cos(exAdjTilt), s = Math.sin(exAdjTilt);
+    // 作品の左右の向き（yaw）だけで回した座標系での位置：下端の少し下・少し手前
+    //   たおした作品の下端は (0, -sh/2·cos, +sh/2·sin)（上端が奥へ倒れるので下端は手前に来る）
+    exTmpV1.set(0, -(sh / 2) * c - EXHIBIT_HINT_DROP - hh / 2, (sh / 2) * s + EXHIBIT_HINT_FRONT);
+    exTmpQ.setFromAxisAngle(EX_AXIS_Y, exAdjYaw);
+    exTmpV1.applyQuaternion(exTmpQ);
+    exHintMesh.position.copy(exAdjPos).add(exTmpV1);
+    // 向き：作品と同じ左右の向き＋少し上向き（目線より下にあっても読みやすく）
+    exHintMesh.quaternion.setFromEuler(exTmpEuler.set(-EXHIBIT_HINT_PITCH, exAdjYaw, 0, "YXZ"));
     exHintMesh.updateMatrixWorld(true);
 }
 
@@ -5581,6 +5591,8 @@ function exhibitRestoreAfterCapture(v){
         if(exhibitEnabled && exNeedsLoad(false)) exStartLoading();
         refresh();
     });
+    // はじめから「する」なので、ページを開いたらすぐ読み込みを始める（終わるまで START AR は押せない）
+    if(exhibitEnabled && exNeedsLoad(false)) exStartLoading();
     refresh();
 })();
 
