@@ -448,6 +448,16 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
 .start-slider-block .ssl-warn:empty {
   display: none;
 }
+/* 商標などの小さな注記（行の幅いっぱい・右寄せ） */
+.start-slider-block .ssl-tm {
+  grid-column: 1 / -1;
+  text-align: right;
+  font-size: 11px;
+  color: rgba(200,190,160,0.55);
+  font-family: sans-serif;
+  margin-top: -4px;
+}
+.start-file-btn:disabled.qr-off { opacity: 0.3; }
 /* ファイルボタン行 */
 .start-file-row { display: flex; gap: 10px; width: 100%; }
 .start-file-btn {
@@ -672,6 +682,12 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
         <span class="ssl-lbl">作品展示</span>
         <button class="start-file-btn" id="exhibitToggle" style="min-width:8em;">🚫 しない</button>
         <div class="ssl-warn" id="exhibitStatus"></div>
+      </div>
+      <div class="ssl-row" id="qrRow">
+        <span class="ssl-lbl">QRコード</span>
+        <button class="start-file-btn" id="qrToggle" style="min-width:8em;">🚫 しない</button>
+        <div class="ssl-warn" id="qrStatus"></div>
+        <div class="ssl-tm">QRコードは株式会社デンソーウェーブの登録商標です。</div>
       </div>
     </div>
 
@@ -4157,6 +4173,25 @@ const EXHIBIT_BTN_FLASH_MS = 2500;       // 「ダウンロードしました」
 // 「けす」は2回押しで消す（1回目で「ほんとうに？」に変わり、この時間内にもう一度押すと消える）
 const EXHIBIT_DEL_CONFIRM_MS = 3000;
 
+// ----- QR コード（自分の作品をスマホで受け取る）-----
+// 作品の JPEG を Google Apps Script（Code.gs）経由で Google ドライブに預け、QR コードからスマホで受け取る。
+// QR コードの中身は「GAS の URL ? k=作品ごとの番号」。受け取れるのは送ってから7日（Code.gs の KEEP_DAYS）。
+const EXHIBIT_QR_GAS_URL = "";   // ★ Code.gs を「ウェブアプリ」として公開した URL（…/exec で終わる）をここに入れる
+const EXHIBIT_QR_KEY = "ECHIZEN-KUUSHO-eBBGzPW3RCFr223cq3xt";   // 合言葉（Code.gs の KEY と同じにする）
+const EXHIBIT_QR_KEEP_DAYS = 7;  // 案内の文言用（実際の期限は GAS の返事で決まる）
+// QR コードを作るライブラリ（qrcode-generator, MIT）。上から順に試し、読めたものを使う
+const EXHIBIT_QR_LIB_URLS = [
+    "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm",
+    "https://esm.sh/qrcode-generator@1.4.4"
+];
+const EXHIBIT_QR_TIMEOUT_MS = 30000;
+const EXHIBIT_QR_SIZE = 0.24;    // QR コードの大きさ（m）
+const EXHIBIT_QR_GAP = 0.12;     // 作品の右端と QR コードのすき間（m）
+const EXHIBIT_QR_TRADEMARK = "QRコードは株式会社デンソーウェーブの登録商標です。";
+// ----- ダウンロードボタン -----
+// ②④の「ダウンロード」と、スタート画面の「まとめてダウンロード」を出すか。true にすればそのまま元にもどる
+const EXHIBIT_SHOW_DOWNLOAD = false;
+
 const EXHIBIT_FONT = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif";
 
 const EX_OFF = 0, EX_WAIT = 1, EX_SELECT = 2, EX_ADJUST = 3, EX_DRAW = 4, EX_FINISH = 5;
@@ -4212,6 +4247,15 @@ let exFinPanel = null;
 let exBtnGroupFin = null, exBtnFinDl = null, exBtnFinEnd = null;   // ④「ダウンロード」「おわる」
 let exBtnFinDel = null;                                             // ④「けす」
 let exDelArmedBtn = null, exDelArmedUntil = 0;   // 「けす」を1回押して、確認待ちのボタン
+// ----- QR コード -----
+let exQrEnabled = false;     // 開始画面の「QRコード」トグル（はじめは「しない」。作品展示が「しない」のときは押せない）
+let exBtnAdjQr = null;       // ②「QRコード」（だす／けす）
+let exQrRoot = null, exQrImg = null, exQrPanel = null, exBtnQrRe = null;   // 作品の右に出す QR・案内・「さいはっこう」
+let exQrVisible = false;     // いま QR を出しているか（②はボタンで切り替え、④は トグルが「する」なら出す）
+let exQrWork = null;         // QR を出している作品
+let exQrTexKey = "";         // いま QR の画像に描いてある中身（作品が変わったときだけ描き直す）
+let exQrLib = null, exQrLibPromise = null;
+let exFinYaw = 0, exFinHalfW = 0;   // ④の作品の向きと幅の半分（QR を右どなりに置くため）
 let exBtnMeshesFin = [];
 let exFinIdx = -1;           // ④でできあがった作品（exWorks のインデックス）
 let exFinReplaced = false;   // ④ いっぱいだったので最古の作品と入れ替えたか
@@ -4668,7 +4712,7 @@ function exDisposeUserWork(w){
 }
 
 // 展示できる枚数が減ったとき（works フォルダの画像が増えて、自分の作品に使える段が減ったなど）：
-// 新しい作品に押し出されたのと同じ扱いで、古い作品から展示とブラウザの保存の両方から外す。
+// 新しい作品に押し出されたのと同じ扱いで、古い作品から展示を外す（ブラウザの保存には「展示していない」印を付けて残す）。
 // 枠の番号が重なっている・範囲外のときは、古い順に詰め直して保存し直す。
 function exTrimUserWorks(){
     const cap = exUserCapacity();
@@ -4679,7 +4723,7 @@ function exTrimUserWorks(){
     while(exUserWorks.length > cap){
         const w = exUserWorks.shift();
         exDisposeUserWork(w);
-        exStoreDelete(w.id);
+        exStorePatch(w.id, { exhibited: false });
     }
     if(!slotsOk()){
         exUserWorks.forEach((w, i) => { w.slot = i; exStorePut(w); });
@@ -4696,7 +4740,7 @@ function exRemoveAllUserWorks(){
     exUpdateStartStatus();
 }
 
-// 自分の作品を1枚、展示とブラウザの保存から消す（②④の「けす」）。
+// 自分の作品を1枚、展示とブラウザの保存から消す（②④の「けす」）。Google ドライブの分は消さない（期限で自動的に消える）。
 // ①で選んでいた作品が残っていれば、その作品を選んだままにする。
 function exDeleteUserWork(w){
     const k = exUserWorks.indexOf(w);
@@ -4721,8 +4765,9 @@ function exDeleteUserWork(w){
 // ③「てんじに かざる」で作った作品（JPEG）を、ダウンロードとは別にブラウザの中に保存し、
 // ページを開き直したときに展示へもどす。保存先は IndexedDB（ブラウザのローカル保存領域）。
 // localStorage は1サイトあたり約5MBしか入らず、JPEG（1枚数百KB）では十数枚であふれるため使わない。
-//   ・新しい作品に押し出された古い作品は、保存からも消す
+//   ・新しい作品に押し出された古い作品は、保存に残す（exhibited: false の印を付け、展示にはもどさない）
 //   ・②④の「けす」で1枚ずつ、スタート画面の「ぜんぶ けす」でまとめて消せる
+//   ・QR コード用の番号（qrToken）と受け取り期限（qrUntil）もいっしょに保存する
 // 保存に失敗しても（プライベートモード・容量不足など）、展示とダウンロードはそのまま使える。
 // =====================================================================
 const EX_DB_NAME = "echizen-kuusho";
@@ -4771,8 +4816,18 @@ function exStorePut(w){
     if(!w || !w.id || !w.blob || w.disposed) return Promise.resolve(null);
     return exDbRun("readwrite", st => st.put({
         id: w.id, seq: w.seq, slot: w.slot, fileName: w.fileName,
-        created: w.created, imgW: w.imgW, imgH: w.imgH, blob: w.blob
+        created: w.created, imgW: w.imgW, imgH: w.imgH, blob: w.blob,
+        qrToken: w.qrToken || null, qrUntil: w.qrUntil || 0, exhibited: true
     }));
+}
+// 保存してある1件の一部だけを書き換える（展示から外した印・QR の期限など）。無ければ何もしない
+function exStorePatch(id, patch){
+    if(!id) return Promise.resolve(null);
+    return exDbRun("readwrite", st => {
+        const g = st.get(id);
+        g.onsuccess = () => { if(g.result) st.put(Object.assign(g.result, patch)); };
+        return g;
+    });
 }
 function exStoreDelete(id){
     if(!id) return Promise.resolve(null);
@@ -4782,14 +4837,16 @@ function exStoreClear(){
     return exDbRun("readwrite", st => st.clear());
 }
 
-// 保存してある自分の作品を読み出して展示にもどす（作った順・同じ枠に）
+// 保存してある自分の作品を読み出して展示にもどす（作った順・同じ枠に）。押し出された作品（exhibited: false）はもどさない
 async function exRestoreUserWorks(){
     const recs = await exDbRun("readonly", st => st.getAll());
     if(!recs || recs.length === 0) return;
     recs.sort((p, q) => (p.seq || 0) - (q.seq || 0));
+    // 通し番号は、展示していない作品も含めた続きから
+    exUserSeq = recs.reduce((m, r) => Math.max(m, r.seq || 0), exUserSeq);
     exEnsureScene();
     for(const r of recs){
-        if(!r || !r.blob) continue;
+        if(!r || !r.blob || r.exhibited === false) continue;
         if(exUserWorks.some(w => w.id === r.id)) continue;
         try {
             const { canvas, w: iw, h: ih } = await exDecodeToCanvas(r.blob, EXHIBIT_TEX_MAX);
@@ -4803,8 +4860,11 @@ async function exRestoreUserWorks(){
                 fileName: r.fileName || exUserFileName(new Date(r.created || Date.now())),
                 created: r.created || Date.now(),
                 imgW, imgH, aspect: imgW / imgH, texture,
-                inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert
+                inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert,
+                qrToken: r.qrToken || exMakeQrToken(), qrUntil: r.qrUntil || 0,
+                qrState: r.qrUntil ? "ok" : null
             };
+            if(!r.qrToken) exStorePatch(r.id, { qrToken: work.qrToken });
             exUserWorks.push(work);
             exBuildWorkMesh(work);
         } catch(e){
@@ -4812,7 +4872,7 @@ async function exRestoreUserWorks(){
         }
     }
     exUserSeq = exUserWorks.reduce((m, w) => Math.max(m, w.seq), exUserSeq);
-    exTrimUserWorks();          // 段が足りない・枠が重なっているときの整理（押し出された分は保存からも消す）
+    exTrimUserWorks();          // 段が足りない・枠が重なっているときの整理（押し出された分は「展示していない」印を付けて保存に残す）
     exRebuildWorkList();
     exUpdateDownloadAllBtn();
     exUpdateStartStatus();
@@ -4913,17 +4973,19 @@ function exEnsureScene(){
     exRoot.add(exBtnGroup);
 
     // --- ② のボタン（上から「けってい」＝③へ・Aと同じ／「もどる」＝作品選択へ・Bと同じ／「リセット」＝置き直し
-    //     ／「ダウンロード」「けす」＝自分の作品を選んでいるときだけ）---
+    //     ／「ダウンロード」「QRコード」「けす」＝自分の作品を選んでいるときだけ）---
     exBtnGroupAdj = new THREE.Group();
     exBtnAdjOk    = exMakeButton("けってい", "かきはじめる");
     exBtnAdjBack  = exMakeButton("もどる", "さくひんを えらびなおす");
     exBtnAdjReset = exMakeButton("リセット", "かくど・おおきさを もどす");
     exBtnAdjDl    = exMakeButton("ダウンロード", "JPEGで ほぞん");
+    exBtnAdjQr    = exMakeButton("QRコード", "QRを だす");
     exBtnAdjDel   = exMakeButton("けす", "てんじと ほぞんから けす");
-    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack, exBtnAdjReset, exBtnAdjDl, exBtnAdjDel];
+    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack, exBtnAdjReset, exBtnAdjDl, exBtnAdjQr, exBtnAdjDel];
     exStackButtons(exBtnGroupAdj, exBtnMeshesAdj);
     exBtnMeshesAdjActive = exBtnMeshesAdj.slice(0, 3);
     exBtnAdjDl.visible = false;
+    exBtnAdjQr.visible = false;
     exBtnAdjDel.visible = false;
     exBtnGroupAdj.visible = false;
     exRoot.add(exBtnGroupAdj);
@@ -4954,11 +5016,38 @@ function exEnsureScene(){
     exBtnFinDl  = exMakeButton("ダウンロード", "JPEGで ほぞん");
     exBtnFinEnd = exMakeButton("おわる", "さくひんを えらぶ");
     exBtnFinDel = exMakeButton("けす", "てんじと ほぞんから けす");
-    exBtnMeshesFin = [exBtnFinDl, exBtnFinEnd, exBtnFinDel];
+    // 「ダウンロード」は EXHIBIT_SHOW_DOWNLOAD が true のときだけ並べる
+    exBtnMeshesFin = EXHIBIT_SHOW_DOWNLOAD ? [exBtnFinDl, exBtnFinEnd, exBtnFinDel] : [exBtnFinEnd, exBtnFinDel];
+    exBtnFinDl.visible = EXHIBIT_SHOW_DOWNLOAD;
     exStackButtons(exBtnGroupFin, exBtnMeshesFin);
+    if(!EXHIBIT_SHOW_DOWNLOAD) exBtnGroupFin.add(exBtnFinDl);   // 使わないが、元にもどせるようにグループには入れておく
     exFinRoot.add(exBtnGroupFin);
 
-    exAllBtnMeshes = [...exBtnMeshes, ...exBtnMeshesAdj, ...exBtnMeshesFin];
+    // --- QR コード（②④で作品の右どなりに出す）：QR の画像・案内（期限・商標）・「さいはっこう」---
+    exQrRoot = new THREE.Group();
+    exQrRoot.visible = false;
+    exRoot.add(exQrRoot);
+    const qrCanvas = document.createElement("canvas");
+    qrCanvas.width = 512;
+    qrCanvas.height = 512;
+    const qrTex = new THREE.CanvasTexture(qrCanvas);
+    qrTex.colorSpace = THREE.SRGBColorSpace;
+    qrTex.magFilter = THREE.NearestFilter;      // 白黒の境目をくっきり
+    qrTex.generateMipmaps = false;
+    qrTex.minFilter = THREE.LinearFilter;
+    exQrImg = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({ map: qrTex, side: THREE.DoubleSide, toneMapped: false }));
+    exQrImg.scale.set(EXHIBIT_QR_SIZE, EXHIBIT_QR_SIZE, 1);
+    exQrImg.userData.canvas = qrCanvas;
+    exQrImg.renderOrder = 10;
+    exQrRoot.add(exQrImg);
+    exQrPanel = exMakePanel(1200, 420);
+    exQrPanel.visible = true;   // 表示・非表示は exQrRoot でまとめて行う
+    exQrRoot.add(exQrPanel);
+    exBtnQrRe = exMakeButton("さいはっこう", `いまから ${EXHIBIT_QR_KEEP_DAYS}日 うけとれる`);
+    exBtnQrRe.visible = false;
+    exQrRoot.add(exBtnQrRe);
+
+    exAllBtnMeshes = [...exBtnMeshes, ...exBtnMeshesAdj, exBtnFinDl, exBtnFinEnd, exBtnFinDel, exBtnQrRe];
 }
 
 // ボタンを上から順に、すき間 EXHIBIT_BTN_VGAP で縦に並べる（グループの中心＝並び全体の中心）
@@ -5439,6 +5528,7 @@ function exHideAll(){
     exBtnGroupAdj.visible = false;
     exFinRoot.visible = false;
     exDlPending = null;
+    exHideQr();
     exRoot.visible = false;
 }
 
@@ -5620,6 +5710,7 @@ function exEnterSelect(){
     exBtnGroupAdj.visible = false;
     exFinRoot.visible = false;
     exDlPending = null;
+    exHideQr();
     exResetButtonPointing();
     exCircleGroup.visible = true;
     exHintMesh.visible = false;
@@ -5641,17 +5732,30 @@ function exSetAdjustWork(index){
     u.exInkHi.value = w.inkHi;
     u.exInkInvert.value = w.inkInvert ? 1 : 0;
     if(Math.max(w.imgW, w.imgH) > EXHIBIT_TEX_MAX) exLoadHiRes(w);
+    exHideQr();   // 作品が変わったら QR はいったん消す（「QRコード」ボタンでまた出せる）
     exUpdateAdjButtons();
 }
 
-// ②のボタン：自分の作品を選んでいるときだけ「ダウンロード」「けす」を出し、並びを上下中央にそろえ直す
+// ②のボタン：自分の作品を選んでいるときだけ「ダウンロード」「QRコード」「けす」を出し、並びを上下中央にそろえ直す
+//   「ダウンロード」は EXHIBIT_SHOW_DOWNLOAD が true のとき、「QRコード」は開始画面の QR トグルが「する」のときだけ
 function exUpdateAdjButtons(){
     const w = exWorks[exAdjIdx];
     const isUser = !!(w && w.user);
-    exBtnAdjDl.visible = isUser;
+    exBtnAdjDl.visible  = isUser && EXHIBIT_SHOW_DOWNLOAD;
+    exBtnAdjQr.visible  = isUser && exQrEnabled;
     exBtnAdjDel.visible = isUser;
-    exBtnMeshesAdjActive = isUser ? exBtnMeshesAdj.slice() : exBtnMeshesAdj.slice(0, 3);
+    exBtnMeshesAdjActive = exBtnMeshesAdj.filter((b, i) => i < 3 || b.visible);
     exStackButtons(exBtnGroupAdj, exBtnMeshesAdjActive);
+    exUpdateAdjQrButtonFace();
+}
+
+// ②「QRコード」の説明文を、いまの表示に合わせる（だす／けす）
+function exUpdateAdjQrButtonFace(){
+    const sub = exQrVisible ? "QRを けす" : "QRを だす";
+    if(exBtnAdjQr.userData.sub !== sub){
+        exBtnAdjQr.userData.sub = sub;
+        exDrawButtonFace(exBtnAdjQr, exBtnAdjQr.userData.label, sub);
+    }
 }
 
 // 置き方を初めの状態にする（①から選んだとき・②で展示作品と入れ替えたとき）：目の前0.7mに、プレイヤーの方を向けて垂直・半紙の3倍
@@ -5901,7 +6005,8 @@ function exAddUserWork(cap){
         created: Date.now(),
         url: null, blob: null, fileName: exUserFileName(new Date()),
         imgW: cap.W, imgH: cap.H, aspect: cap.W / cap.H, texture,
-        inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert
+        inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert,
+        qrToken: exMakeQrToken(), qrUntil: 0, qrState: null   // QR コード用の番号（送るのは QR を出したとき）
     };
     // ダウンロード用の JPEG（できあがったら blob と url を入れ、ブラウザにも保存する）。
     // 枠がまだ決まっていなければ、決まったところで保存する（下）
@@ -5926,7 +6031,7 @@ function exAddUserWork(cap){
         const oldest = exUserWorks[k];
         work.slot = oldest.slot;
         exDisposeUserWork(oldest);
-        exStoreDelete(oldest.id);   // 押し出された古い作品は、ブラウザの保存からも消す
+        exStorePatch(oldest.id, { exhibited: false });   // 押し出された古い作品は、保存には残して「展示していない」印だけ付ける
         exUserWorks[k] = work;
         replaced = true;
     }
@@ -5980,6 +6085,10 @@ function exEnterFinish(index, replaced){
     exFinIdx = index;
     exFinReplaced = replaced;
     exShowFrameOn(index);               // まわりの展示の中で、新しい作品を光る枠で示す
+    exHideQr();
+    exQrWork = exWorks[index];
+    exQrVisible = exQrEnabled;          // 開始画面で QR コードを「する」にしていれば、作品の右どなりに出す（送るのもここから）
+    if(exQrEnabled) exQrLoadLib();
     exPlaceFinish();
     exFinRoot.visible = true;
     exRoot.visible = true;
@@ -5997,7 +6106,8 @@ function exDrawFinishPanel(w){
         { text: exFinReplaced
             ? "（いっぱいなので いちばん ふるい さくひんと いれかえました）"
             : "ひかっている さくひんが あなたの さくひんです", size: 50, color: "#e8c86a" },
-        { text: "ひだりの ボタン：ダウンロード ／ おわる ／ けす", size: 54, bold: true, color: "#e8c86a" }
+        { text: EXHIBIT_SHOW_DOWNLOAD ? "ひだりの ボタン：ダウンロード ／ おわる ／ けす"
+                                      : "ひだりの ボタン：おわる ／ けす", size: 54, bold: true, color: "#e8c86a" }
     ], EXHIBIT_HINT_W, EXHIBIT_HINT_PAD_X, EXHIBIT_HINT_PAD_Y);
 }
 
@@ -6022,6 +6132,8 @@ function exPlaceFinish(){
     exFinPreviewImg.material.map = w.texture;
     exFinPreviewImg.material.needsUpdate = true;
     exFinPreviewBorder.scale.set(pw + EXHIBIT_FIN_BORDER * 2, ph + EXHIBIT_FIN_BORDER * 2, 1);
+    exFinYaw = yaw;
+    exFinHalfW = pw / 2 + EXHIBIT_FIN_BORDER;
 
     // 案内パネル（作品の下・少し手前・少し上向き）
     exDrawFinishPanel(w);
@@ -6040,8 +6152,10 @@ function exPlaceFinish(){
 function exTickFinish(now, trigDown, aEdge){
     exAnimateFrame(now);
     if(exGate){ exResetButtonPointing(); return; }
-    exTickButtons(exBtnMeshesFin, now, trigDown, aEdge, true);
-    if(exBtnFired === exBtnFinDl){
+    exTickButtons(exWithQrButton(exBtnMeshesFin), now, trigDown, aEdge, true);
+    if(exBtnFired === exBtnQrRe){
+        exQrReissue();
+    } else if(exBtnFired === exBtnFinDl){
         exRequestDownload(exWorks[exFinIdx], exBtnFinDl, exBtnFiredByA);
     } else if(exBtnFired === exBtnFinEnd){
         exBuzzDecide();
@@ -6084,6 +6198,227 @@ function exAfterUserDelete(){
         { text: "さくひんを けしました", size: 72, bold: true },
         { text: "てんじと ブラウザの ほぞんから けしました", size: 52, color: "#e8c86a" }
     ], 2500);
+}
+
+// =====================================================================
+// ===== QR コード =====
+// 作品ごとに推測できない番号（qrToken）を付け、JPEG を GAS（Code.gs）へ送ってドライブに預ける。
+// 送れたら、GAS が返す受け取り期限（qrUntil）を作品とブラウザの保存に記録し、QR コードと期限を表示する。
+// 期限を過ぎていたら「さいはっこう」で送り直し、そのときから7日に延ばす（QR コードの中身は同じ）。
+//   qrState： null（まだ送っていない）／ "sending" ／ "ok" ／ "error" ／ "nourl"（GAS の URL が未設定）
+// =====================================================================
+function exMakeQrToken(){
+    const b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    let s = "";
+    for(const x of b) s += String.fromCharCode(x);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");   // 22文字
+}
+
+function exQrUrl(w){
+    return EXHIBIT_QR_GAS_URL + (EXHIBIT_QR_GAS_URL.includes("?") ? "&" : "?") + "k=" + encodeURIComponent(w.qrToken);
+}
+
+// QR コードを作るライブラリを読み込む（トグルを「する」にしたときに先に読んでおく）
+function exQrLoadLib(){
+    if(exQrLib) return Promise.resolve(exQrLib);
+    if(!exQrLibPromise){
+        exQrLibPromise = (async () => {
+            for(const url of EXHIBIT_QR_LIB_URLS){
+                try {
+                    const m = await import(url);
+                    const f = (m && typeof m.default === "function") ? m.default
+                            : (m && m.default && typeof m.default.default === "function") ? m.default.default
+                            : (typeof m.qrcode === "function") ? m.qrcode : null;
+                    if(f){ exQrLib = f; return f; }
+                } catch(e){
+                    console.warn("作品展示：QR コードのライブラリを読み込めませんでした", url, e);
+                }
+            }
+            exQrLibPromise = null;   // 次にまた試せるように
+            return null;
+        })();
+    }
+    return exQrLibPromise;
+}
+
+async function exBlobToBase64(blob){
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    let s = "";
+    for(let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+    return btoa(s);
+}
+
+// 作品を GAS へ送る。extend＝true（さいはっこう）のときは、受け取れる期間を「いまから7日」に延ばす
+async function exQrUpload(w, extend){
+    if(!w || !w.user || w.disposed || w.qrState === "sending") return;
+    if(!EXHIBIT_QR_GAS_URL){ w.qrState = "nourl"; return; }
+    if(!w.blob) return;   // JPEG ができたら、次のフレームでまた呼ばれる
+    if(!w.qrToken){ w.qrToken = exMakeQrToken(); exStorePatch(w.id, { qrToken: w.qrToken }); }
+    w.qrState = "sending";
+    w.qrRetryExtend = !!extend;
+    const ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), EXHIBIT_QR_TIMEOUT_MS) : 0;
+    try {
+        const data = await exBlobToBase64(w.blob);
+        // text/plain で送ると、ブラウザの事前確認（CORS のプリフライト）が起きず、GAS がそのまま受け取れる
+        const res = await fetch(EXHIBIT_QR_GAS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ key: EXHIBIT_QR_KEY, k: w.qrToken, type: "image/jpeg", data, label: w.fileName, extend: !!extend }),
+            redirect: "follow",
+            signal: ctrl ? ctrl.signal : undefined
+        });
+        const j = await res.json();
+        if(!j || !j.ok) throw new Error((j && j.error) || ("HTTP " + res.status));
+        w.qrUntil = Number(j.until) || (Date.now() + EXHIBIT_QR_KEEP_DAYS * 24 * 60 * 60 * 1000);
+        w.qrState = "ok";
+        w.qrError = "";
+        exStorePatch(w.id, { qrToken: w.qrToken, qrUntil: w.qrUntil });
+        if(!w.disposed && exQrVisible && exQrWork === w) vibrate("right", 60, 0.6);
+    } catch(e){
+        w.qrState = "error";
+        w.qrError = String((e && e.message) || e);
+        console.warn("作品展示：作品を送れませんでした（QR コード）", e);
+    } finally {
+        if(timer) clearTimeout(timer);
+    }
+}
+
+function exFormatUntil(t){
+    const d = new Date(t);
+    return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// QR の画像を描く（作品が変わったときだけ）。描けたら true
+function exQrDrawCode(w){
+    if(!exQrLib) return false;
+    const key = w.qrToken + "|" + EXHIBIT_QR_GAS_URL;
+    if(exQrTexKey === key) return true;
+    let qr;
+    try {
+        qr = exQrLib(0, "M");
+        qr.addData(exQrUrl(w));
+        qr.make();
+    } catch(e){
+        console.warn("作品展示：QR コードを作れませんでした", e);
+        return false;
+    }
+    const n = qr.getModuleCount(), quiet = 4, total = n + quiet * 2;
+    const c = exQrImg.userData.canvas;
+    const ctx = c.getContext("2d");
+    const cell = Math.floor(c.width / total);
+    const off = Math.floor((c.width - cell * total) / 2) + quiet * cell;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = "#000000";
+    for(let r = 0; r < n; r++){
+        for(let col = 0; col < n; col++){
+            if(qr.isDark(r, col)) ctx.fillRect(off + col * cell, off + r * cell, cell, cell);
+        }
+    }
+    exQrImg.material.map.needsUpdate = true;
+    exQrTexKey = key;
+    return true;
+}
+
+// いまの状態から、QR・案内・「さいはっこう」の出し方を決める
+function exQrView(w, now){
+    if(!EXHIBIT_QR_GAS_URL || w.qrState === "nourl"){
+        return { qr: false, lines: ["QRコードの せってい（GAS の URL）が", "ありません"], btn: null };
+    }
+    if(w.qrState === "sending" || (!w.qrState && w.blob)){
+        return { qr: false, lines: ["QRコードを じゅんび中…"], btn: null };
+    }
+    if(w.qrState === "error"){
+        return { qr: false, lines: ["さくひんを おくれませんでした", "ネットワークを たしかめてね"],
+                 btn: { label: "もういちど", sub: "QRコードを はっこう", extend: !!w.qrRetryExtend } };
+    }
+    if(w.qrState === "ok"){
+        if(!exQrLib) return { qr: false, lines: ["QRコードを よみこみ中…"], btn: null };
+        if(now >= w.qrUntil){
+            return { qr: true, dim: true, lines: ["うけとれる きげんが すぎました", `（${exFormatUntil(w.qrUntil)} まで）`],
+                     btn: { label: "さいはっこう", sub: `いまから ${EXHIBIT_QR_KEEP_DAYS}日 うけとれる`, extend: true } };
+        }
+        return { qr: true, lines: ["スマホで よみとってね", `${exFormatUntil(w.qrUntil)} まで うけとれます`], btn: null };
+    }
+    return { qr: false, lines: ["QRコードを じゅんび中…"], btn: null };
+}
+
+// 作品の右どなりに QR を置く。center＝作品の中心、yaw＝作品の左右の向き、halfW＝作品の幅の半分
+function exQrPlace(center, yaw, halfW){
+    exTmpQ.setFromAxisAngle(EX_AXIS_Y, yaw);
+    // QR・案内・ボタンの縦の並び全体が、作品の上下中央にくるように少し上げる
+    exTmpV1.set(halfW + EXHIBIT_QR_GAP + EXHIBIT_QR_SIZE / 2, 0.16, 0.01).applyQuaternion(exTmpQ);
+    exQrRoot.position.copy(center).add(exTmpV1);
+    exQrRoot.quaternion.copy(exTmpQ);
+    exQrRoot.updateMatrixWorld(true);
+}
+
+// 毎フレーム：②④で QR を出しているとき、状態に合わせて表示を更新する
+function exQrTick(now){
+    if(!exQrRoot) return;
+    const w = exQrWork;
+    const active = exQrVisible && w && !w.disposed && exQrEnabled
+        && (exState === EX_ADJUST || exState === EX_FINISH);
+    if(!active){
+        exQrRoot.visible = false;
+        exBtnQrRe.visible = false;
+        return;
+    }
+    if(!exQrLib) exQrLoadLib();
+    if(!w.qrState && w.blob) exQrUpload(w, false);   // まだ送っていなければ送る（④・②で初めて出したとき）
+    const v = exQrView(w, Date.now());
+    const drawn = v.qr && exQrDrawCode(w);
+    exQrImg.visible = !!drawn;
+    exQrImg.material.color.setScalar(v.dim ? 0.35 : 1.0);
+    const lines = v.lines.map((t, i) => ({ text: t, size: i === 0 ? 62 : 54, bold: i === 0,
+                                           color: i === 0 ? "#f0e8d0" : "#e8c86a" }));
+    if(drawn) lines.push({ text: EXHIBIT_QR_TRADEMARK, size: 36, color: "#b8a888" });
+    exDrawPanel(exQrPanel, "qr:" + lines.map(l => l.text).join("|"), lines, 0.34, 40, 26);
+    const ph = exQrPanel.scale.y;
+    exQrPanel.position.set(0, drawn ? -(EXHIBIT_QR_SIZE / 2 + 0.02 + ph / 2) : 0, 0.005);
+    if(v.btn){
+        if(exBtnQrRe.userData.label !== v.btn.label || exBtnQrRe.userData.sub !== v.btn.sub){
+            exBtnQrRe.userData.label = v.btn.label;
+            exBtnQrRe.userData.sub = v.btn.sub;
+            exDrawButtonFace(exBtnQrRe, v.btn.label, v.btn.sub);
+        }
+        exBtnQrRe.userData.extend = v.btn.extend;
+        exBtnQrRe.position.set(0, exQrPanel.position.y - ph / 2 - 0.03 - EXHIBIT_BTN_H / 2, 0.01);
+        exBtnQrRe.visible = true;
+    } else {
+        exBtnQrRe.visible = false;
+    }
+    if(exState === EX_ADJUST){
+        const aw = exWorks[exAdjIdx];
+        if(aw){
+            const sw = aw.aspect >= 1 ? exAdjSize : exAdjSize * aw.aspect;
+            exQrPlace(exAdjPos, exAdjYaw, sw / 2);
+        }
+    } else {
+        exQrPlace(exFinCenter, exFinYaw, exFinHalfW);
+    }
+    exQrRoot.visible = true;
+}
+
+// ボタンの当たり判定に「さいはっこう」を加える（出ているときだけ）
+function exWithQrButton(list){
+    return (exQrRoot && exQrRoot.visible && exBtnQrRe.visible) ? list.concat([exBtnQrRe]) : list;
+}
+
+// 「さいはっこう」「もういちど」が押されたとき
+function exQrReissue(){
+    const w = exQrWork;
+    if(!w || w.disposed) return;
+    exBuzzDecide();
+    exQrUpload(w, !!exBtnQrRe.userData.extend);
+}
+
+function exHideQr(){
+    exQrVisible = false;
+    exQrWork = null;
+    if(exQrRoot){ exQrRoot.visible = false; exBtnQrRe.visible = false; }
 }
 
 // ===== ダウンロード =====
@@ -6250,9 +6585,28 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
         exResetButtonPointing();
     } else {
         // ボタン（つかんで動かしている間は指せない）。「ダウンロード」は自分の作品のときだけ並ぶ
-        const btnBusy = exTickButtons(exBtnMeshesAdjActive, now, trigDown, aEdge, !exGrabbing && !exTwoHand && exAdjSwapIdx < 0);
+        const btnBusy = exTickButtons(exWithQrButton(exBtnMeshesAdjActive), now, trigDown, aEdge, !exGrabbing && !exTwoHand && exAdjSwapIdx < 0);
         if(exBtnFired === exBtnAdjBack){ exCancelToSelect(); return; }   // ②「もどる」→ ①作品選択（Bと同じ）
         if(exBtnFired === exBtnAdjOk){ vibrate("right", 80, 0.7); exEnterDraw(); return; }   // ②「けってい」→ ③（Aと同じ）
+        if(exBtnFired === exBtnAdjQr || exBtnFired === exBtnQrRe){
+            if(exBtnFired === exBtnAdjQr){
+                // ②「QRコード」：作品の右どなりに QR を出す／消す（まだ送っていなければ、出したときに送る）
+                exBuzzDecide();
+                if(exQrVisible){ exHideQr(); }
+                else {
+                    exQrVisible = true;
+                    exQrWork = exWorks[exAdjIdx];
+                    exQrLoadLib();
+                }
+                exUpdateAdjQrButtonFace();
+            } else {
+                exQrReissue();   // 「さいはっこう」「もういちど」
+            }
+            exApplyAdjustTransform();
+            exShowAdjustHint();
+            exPlaceButtonsLeftOfWork(exBtnGroupAdj);
+            return;
+        }
         if(exBtnFired === exBtnAdjDel){
             // ②「けす」：2回押しで、いま選んでいる自分の作品を展示とブラウザの保存から消して①へ
             if(exConfirmDelete(exBtnAdjDel)){ exDeleteFromAdjust(); return; }
@@ -6456,6 +6810,7 @@ function exFullReset(){
     exFinRoot.visible = false;
     exFinPreviewImg.material.map = null;
     exDlPending = null;
+    exHideQr();
     exResetButtonPointing();
     exClearAllLikeLongB();
     clearGuide();   // お手本も消す
@@ -6650,6 +7005,7 @@ function exhibitUpdate(){
     exTickDownloadPending(now);
     exTickButtonFlash(now);
     exTickDeleteConfirm(now);
+    exQrTick(now);
 
     // ①②④（と入室直後）は筆を隠し、左手のギャラリー一覧も出さない
     if(exState === EX_WAIT || exState === EX_SELECT || exState === EX_ADJUST || exState === EX_FINISH){
@@ -6669,6 +7025,7 @@ function exhibitOnSessionStart(){
     const session = renderer.xr.getSession();
     if(session) session.addEventListener("select", exOnXRSelect);
     if(!exhibitEnabled){ exState = EX_OFF; return; }
+    if(exQrEnabled) exQrLoadLib();
     exEnsureScene();
     exState = EX_WAIT;
     exGate = true;
@@ -6724,6 +7081,7 @@ function exhibitRestoreAfterCapture(v){
         btn.textContent = exhibitEnabled ? "🖼️ する" : "🚫 しない";
         btn.style.opacity = exhibitEnabled ? "1.0" : "0.55";
         exUpdateStartStatus();
+        exRefreshQrToggle();   // 作品展示が「しない」のときは QR コードのトグルを押せなくする
     }
     btn.addEventListener("click", () => {
         exhibitEnabled = !exhibitEnabled;
@@ -6736,11 +7094,39 @@ function exhibitRestoreAfterCapture(v){
     refresh();
 })();
 
+// ===== 開始画面の「QRコード」トグル =====
+// 「する」のとき：④で作品の右どなりに QR コードを出し（作品を GAS へ送る）、②に「QRコード」ボタンを出す。
+// 作品展示が「しない」のときは押せない（QR コードは作品展示の中だけで使うため）。
+function exRefreshQrToggle(){
+    const btn = document.getElementById("qrToggle");
+    const st = document.getElementById("qrStatus");
+    if(!btn) return;
+    btn.disabled = !exhibitEnabled;
+    btn.classList.toggle("qr-off", !exhibitEnabled);
+    btn.textContent = exQrEnabled ? "🔳 する" : "🚫 しない";
+    btn.style.opacity = !exhibitEnabled ? "" : (exQrEnabled ? "1.0" : "0.55");
+    if(st){
+        st.textContent = (exhibitEnabled && exQrEnabled && !EXHIBIT_QR_GAS_URL)
+            ? "⚠️ GAS の URL が せっていされていません（index.html の EXHIBIT_QR_GAS_URL）" : "";
+    }
+}
+(function(){
+    const btn = document.getElementById("qrToggle");
+    btn.addEventListener("click", () => {
+        if(!exhibitEnabled) return;
+        exQrEnabled = !exQrEnabled;
+        if(exQrEnabled) exQrLoadLib();   // VR に入る前に、QR コードを作るライブラリを読んでおく
+        exRefreshQrToggle();
+    });
+    exRefreshQrToggle();
+})();
+
 // ===== 開始画面の「てんじに かざった さくひんを ダウンロード」=====
 // VRの中でダウンロードし忘れた・保存できなかったときのための保険。展示中の自分の作品を古い順にまとめて保存する。
 // （ブラウザによっては「複数のファイルをダウンロードしますか？」と聞かれるので、許可する）
 (function(){
     const btn = document.getElementById("downloadExhibitBtn");
+    if(!EXHIBIT_SHOW_DOWNLOAD) btn.style.display = "none";   // ダウンロードは一旦かくす（EXHIBIT_SHOW_DOWNLOAD で元にもどせる）
     btn.addEventListener("click", () => {
         const list = exUserWorks.filter(w => w.blob).sort((p, q) => p.seq - q.seq);
         list.forEach((w, i) => setTimeout(() => exDownloadBlob(w), i * 400));
