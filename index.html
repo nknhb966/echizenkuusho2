@@ -608,6 +608,7 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
     </div>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
     <button class="start-file-btn" id="downloadExhibitBtn" style="width:100%;flex:none;" disabled>🖼️ てんじに かざった さくひんを ダウンロード（0まい）</button>
+    <button class="start-file-btn" id="clearExhibitStoreBtn" style="width:100%;flex:none;" disabled>🗑️ ブラウザに ほぞんした さくひんを ぜんぶ けす（0まい）</button>
 
     <div class="start-slider-block">
       <div class="ssl-preset">
@@ -675,8 +676,9 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
     </div>
 
     <div class="start-notice">
-      ⚠️ コントローラーの「ほぞん」と てんじに かざった さくひんは ブラウザをとじるときえます<br>
-      ながくのこしたいときは「ファイルに保存」「ダウンロード」してください
+      ⚠️ コントローラーの「ほぞん」はブラウザをとじるときえます<br>
+      ながくのこしたいときは「ファイルに保存」してください<br>
+      てんじに かざった さくひんは このブラウザに のこります（ブラウザの データを けすと きえます）
     </div>
   </div>
 
@@ -4039,9 +4041,8 @@ function loadDrawingFromJSON(file) {
 // 目の前に置いて位置・角度・大きさを調整し（②）、それをお手本にして既存の書道描画を行う（③）。
 // ②では選んだ作品をそのままの見た目で置き、③では「半紙は透明・墨は灰色」にして、なぞって書いた自分の線（黒）が見えるようにする。
 // 右トリガー＋右グリップ＋B長押しで完全リセット（描画とお手本を消し、いまの立ち位置で展示を並べ直して①へ）。
-// さらに左グリップ＋左トリガーも一緒ににぎっていると、自分の作品の展示も全部消す。
 // 「おわる」では、目の前の作品の枠を真正面から写した「自分の作品」（白い紙＋自分の線）を作って
-// 展示に加え、描いた絵をギャラリーに保存（満杯なら古い順に上書き）してから全部消して、④へ進む。
+// 展示に加え（ブラウザにも保存）、描いた絵をギャラリーに保存（満杯なら古い順に上書き）してから全部消して、④へ進む。
 // 自分の作品の段は、読み込んだ画像の段の上に積む（画像の段と合わせて最大4段）。
 //
 // 状態：
@@ -4153,6 +4154,8 @@ const EXHIBIT_FIN_BORDER = 0.012;        // 目の前に出す作品の朱色の
 // （ブラウザに「利用者の操作」として扱われ、保存が止められにくくなる）。届かなければこの時間後に保存する。
 const EXHIBIT_DL_SELECT_WAIT_MS = 1500;
 const EXHIBIT_BTN_FLASH_MS = 2500;       // 「ダウンロードしました」をボタンに出しておく時間
+// 「けす」は2回押しで消す（1回目で「ほんとうに？」に変わり、この時間内にもう一度押すと消える）
+const EXHIBIT_DEL_CONFIRM_MS = 3000;
 
 const EXHIBIT_FONT = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif";
 
@@ -4195,6 +4198,7 @@ let exAdjSwapIdx = -1;       // ② トリガーを押したときにレイが�
 let exAdjHoverWork = -1;     // ② いまレイが当たっている展示作品
 let exAdjRayOnWork = false;  // ② いまレイが選んだ作品（目の前の作品）に当たっているか
 let exBtnAdjDl = null;                                                // ②「ダウンロード」（自分の作品を選んでいるときだけ）
+let exBtnAdjDel = null;                                               // ②「けす」（自分の作品を選んでいるときだけ）
 let exBtnMeshesAdj = [];       // ②のボタン全部（作るときの並び）
 let exBtnMeshesAdjActive = []; // ②でいま使えるボタン（ダウンロードは自分の作品のときだけ）
 let exAllBtnMeshes = [];
@@ -4206,6 +4210,8 @@ let exFinRoot = null;        // ④の表示物（作品・案内パネル・ボ
 let exFinPreview = null, exFinPreviewImg = null, exFinPreviewBorder = null;
 let exFinPanel = null;
 let exBtnGroupFin = null, exBtnFinDl = null, exBtnFinEnd = null;   // ④「ダウンロード」「おわる」
+let exBtnFinDel = null;                                             // ④「けす」
+let exDelArmedBtn = null, exDelArmedUntil = 0;   // 「けす」を1回押して、確認待ちのボタン
 let exBtnMeshesFin = [];
 let exFinIdx = -1;           // ④でできあがった作品（exWorks のインデックス）
 let exFinReplaced = false;   // ④ いっぱいだったので最古の作品と入れ替えたか
@@ -4252,7 +4258,6 @@ const exLeftPos = new THREE.Vector3();
 const exLeftDir = new THREE.Vector3();
 let exLeftValid = false;
 let exLeftTrig = 0;
-let exLeftGrip = 0;
 // 完全リセット
 let exResetActive = false, exResetStart = 0, exResetWarned = false, exResetFired = false;
 
@@ -4308,6 +4313,12 @@ function exUpdateDownloadAllBtn(){
     const n = exUserWorks.filter(w => w.blob).length;
     btn.textContent = `🖼️ てんじに かざった さくひんを ダウンロード（${n}まい）`;
     btn.disabled = n === 0;
+    const del = document.getElementById("clearExhibitStoreBtn");
+    if(del){
+        const m = exUserWorks.length;
+        del.textContent = `🗑️ ブラウザに ほぞんした さくひんを ぜんぶ けす（${m}まい）`;
+        del.disabled = m === 0;
+    }
 }
 
 // 「作品展示：する」で読み込み中の間は START AR を押せなくする（読み込みが終われば元に戻す）。
@@ -4562,9 +4573,15 @@ function exStartLoading(){
     exLoadedCount = 0;
     exSkippedCount = 0;
     exUpdateStartStatus();
-    exLoadPromise = exLoadWorks().then(({ loaded, skipped, aborted }) => {
+    exLoadPromise = exLoadWorks().then(async ({ loaded, skipped, aborted }) => {
         exSkippedCount = skipped;
         exBuildWorks(loaded);
+        // ブラウザに保存してある自分の作品を、展示にもどす（ページを開いて最初の読み込みのときだけ）。
+        // 何段使えるかは画像の数で決まるので、画像のあとで行う。終わるまで START AR は押せない。
+        if(!exStoreRestored){
+            exStoreRestored = true;
+            await exRestoreUserWorks();
+        }
         exLoadStatus = (loaded.length === 0 && (skipped > 0 || aborted)) ? "error" : "done";
     }).catch(e => {
         console.warn("作品展示：作品の読み込みに失敗しました", e);
@@ -4650,22 +4667,155 @@ function exDisposeUserWork(w){
     w.disposed = true;
 }
 
-// 画像を読み直して展示できる枚数が減ったとき：古い作品から外し、残りを詰め直す（ふつうは起きない）
+// 展示できる枚数が減ったとき（works フォルダの画像が増えて、自分の作品に使える段が減ったなど）：
+// 新しい作品に押し出されたのと同じ扱いで、古い作品から展示とブラウザの保存の両方から外す。
+// 枠の番号が重なっている・範囲外のときは、古い順に詰め直して保存し直す。
 function exTrimUserWorks(){
     const cap = exUserCapacity();
-    if(exUserWorks.length <= cap && exUserWorks.every(w => w.slot < cap)) return;
+    const slotsOk = () => exUserWorks.every(w => w.slot >= 0 && w.slot < cap)
+        && new Set(exUserWorks.map(w => w.slot)).size === exUserWorks.length;
+    if(exUserWorks.length <= cap && slotsOk()) return;
     exUserWorks.sort((p, q) => p.seq - q.seq);
-    while(exUserWorks.length > cap) exDisposeUserWork(exUserWorks.shift());
-    exUserWorks.forEach((w, i) => { w.slot = i; });
+    while(exUserWorks.length > cap){
+        const w = exUserWorks.shift();
+        exDisposeUserWork(w);
+        exStoreDelete(w.id);
+    }
+    if(!slotsOk()){
+        exUserWorks.forEach((w, i) => { w.slot = i; exStorePut(w); });
+    }
     exUpdateDownloadAllBtn();
 }
 
-// 自分の作品をすべて展示から外す（左右のグリップ＋トリガー＋B長押しの完全リセット）
+// 自分の作品をすべて展示から外す（スタート画面の「ぜんぶ けす」）
 function exRemoveAllUserWorks(){
     for(const w of exUserWorks) exDisposeUserWork(w);
     exUserWorks = [];
     exRebuildWorkList();
     exUpdateDownloadAllBtn();
+    exUpdateStartStatus();
+}
+
+// 自分の作品を1枚、展示とブラウザの保存から消す（②④の「けす」）。
+// ①で選んでいた作品が残っていれば、その作品を選んだままにする。
+function exDeleteUserWork(w){
+    const k = exUserWorks.indexOf(w);
+    if(k < 0) return;
+    if(exDlPending && exDlPending.work === w) exDlPending = null;
+    const selW = exWorks[exSelIdx];
+    const removedAt = exWorks.indexOf(w);
+    exClearSelectionHighlight();
+    exUserWorks.splice(k, 1);
+    exDisposeUserWork(w);
+    exStoreDelete(w.id);
+    exRebuildWorkList();
+    exLayout();
+    const keep = (selW && selW !== w) ? exWorks.indexOf(selW) : Math.min(removedAt, exWorks.length - 1);
+    exSelIdx = Math.max(0, keep);
+    exUpdateDownloadAllBtn();
+    exUpdateStartStatus();
+}
+
+// =====================================================================
+// ===== 自分の作品をブラウザに保存する =====
+// ③「てんじに かざる」で作った作品（JPEG）を、ダウンロードとは別にブラウザの中に保存し、
+// ページを開き直したときに展示へもどす。保存先は IndexedDB（ブラウザのローカル保存領域）。
+// localStorage は1サイトあたり約5MBしか入らず、JPEG（1枚数百KB）では十数枚であふれるため使わない。
+//   ・新しい作品に押し出された古い作品は、保存からも消す
+//   ・②④の「けす」で1枚ずつ、スタート画面の「ぜんぶ けす」でまとめて消せる
+// 保存に失敗しても（プライベートモード・容量不足など）、展示とダウンロードはそのまま使える。
+// =====================================================================
+const EX_DB_NAME = "echizen-kuusho";
+const EX_DB_STORE = "userWorks";
+const EX_DB_VERSION = 1;
+let exDbPromise = null;
+let exStoreRestored = false;
+
+function exDbOpen(){
+    if(exDbPromise) return exDbPromise;
+    exDbPromise = new Promise(resolve => {
+        if(typeof indexedDB === "undefined"){ resolve(null); return; }
+        let req;
+        try { req = indexedDB.open(EX_DB_NAME, EX_DB_VERSION); }
+        catch(e){ console.warn("作品展示：ブラウザの保存領域を開けません", e); resolve(null); return; }
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if(!db.objectStoreNames.contains(EX_DB_STORE)) db.createObjectStore(EX_DB_STORE, { keyPath: "id" });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => { console.warn("作品展示：ブラウザの保存領域を開けません", req.error); resolve(null); };
+        req.onblocked = () => resolve(null);
+    });
+    return exDbPromise;
+}
+
+// 1回の読み書き。fn(store) が返したリクエストの結果を返す（失敗したら null）
+async function exDbRun(mode, fn){
+    const db = await exDbOpen();
+    if(!db) return null;
+    return new Promise(resolve => {
+        try {
+            const tx = db.transaction(EX_DB_STORE, mode);
+            const req = fn(tx.objectStore(EX_DB_STORE));
+            tx.oncomplete = () => resolve(req ? req.result : true);
+            tx.onerror = () => { console.warn("作品展示：ブラウザへの保存に失敗しました", tx.error); resolve(null); };
+            tx.onabort = () => { console.warn("作品展示：ブラウザへの保存が中断されました", tx.error); resolve(null); };
+        } catch(e){
+            console.warn("作品展示：ブラウザへの保存に失敗しました", e);
+            resolve(null);
+        }
+    });
+}
+
+function exStorePut(w){
+    if(!w || !w.id || !w.blob || w.disposed) return Promise.resolve(null);
+    return exDbRun("readwrite", st => st.put({
+        id: w.id, seq: w.seq, slot: w.slot, fileName: w.fileName,
+        created: w.created, imgW: w.imgW, imgH: w.imgH, blob: w.blob
+    }));
+}
+function exStoreDelete(id){
+    if(!id) return Promise.resolve(null);
+    return exDbRun("readwrite", st => st.delete(id));
+}
+function exStoreClear(){
+    return exDbRun("readwrite", st => st.clear());
+}
+
+// 保存してある自分の作品を読み出して展示にもどす（作った順・同じ枠に）
+async function exRestoreUserWorks(){
+    const recs = await exDbRun("readonly", st => st.getAll());
+    if(!recs || recs.length === 0) return;
+    recs.sort((p, q) => (p.seq || 0) - (q.seq || 0));
+    exEnsureScene();
+    for(const r of recs){
+        if(!r || !r.blob) continue;
+        if(exUserWorks.some(w => w.id === r.id)) continue;
+        try {
+            const { canvas, w: iw, h: ih } = await exDecodeToCanvas(r.blob, EXHIBIT_TEX_MAX);
+            const ink = exAnalyzeInk(canvas);
+            const texture = exMakeTexture(canvas);
+            if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
+            const imgW = r.imgW || iw, imgH = r.imgH || ih;
+            const work = {
+                user: true, id: r.id, seq: r.seq || 0, slot: Number.isInteger(r.slot) ? r.slot : -1, no: 0,
+                blob: r.blob, url: URL.createObjectURL(r.blob),
+                fileName: r.fileName || exUserFileName(new Date(r.created || Date.now())),
+                created: r.created || Date.now(),
+                imgW, imgH, aspect: imgW / imgH, texture,
+                inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert
+            };
+            exUserWorks.push(work);
+            exBuildWorkMesh(work);
+        } catch(e){
+            console.warn("作品展示：保存してあった作品を読み込めませんでした（その作品はとばします）", e);
+        }
+    }
+    exUserSeq = exUserWorks.reduce((m, w) => Math.max(m, w.seq), exUserSeq);
+    exTrimUserWorks();          // 段が足りない・枠が重なっているときの整理（押し出された分は保存からも消す）
+    exRebuildWorkList();
+    exUpdateDownloadAllBtn();
+    exUpdateStartStatus();
 }
 
 // ===== シーン上のオブジェクト生成（初回のみ）=====
@@ -4763,16 +4913,18 @@ function exEnsureScene(){
     exRoot.add(exBtnGroup);
 
     // --- ② のボタン（上から「けってい」＝③へ・Aと同じ／「もどる」＝作品選択へ・Bと同じ／「リセット」＝置き直し
-    //     ／「ダウンロード」＝自分の作品を選んでいるときだけ）---
+    //     ／「ダウンロード」「けす」＝自分の作品を選んでいるときだけ）---
     exBtnGroupAdj = new THREE.Group();
     exBtnAdjOk    = exMakeButton("けってい", "かきはじめる");
     exBtnAdjBack  = exMakeButton("もどる", "さくひんを えらびなおす");
     exBtnAdjReset = exMakeButton("リセット", "かくど・おおきさを もどす");
     exBtnAdjDl    = exMakeButton("ダウンロード", "JPEGで ほぞん");
-    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack, exBtnAdjReset, exBtnAdjDl];
+    exBtnAdjDel   = exMakeButton("けす", "てんじと ほぞんから けす");
+    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack, exBtnAdjReset, exBtnAdjDl, exBtnAdjDel];
     exStackButtons(exBtnGroupAdj, exBtnMeshesAdj);
     exBtnMeshesAdjActive = exBtnMeshesAdj.slice(0, 3);
     exBtnAdjDl.visible = false;
+    exBtnAdjDel.visible = false;
     exBtnGroupAdj.visible = false;
     exRoot.add(exBtnGroupAdj);
 
@@ -4801,7 +4953,8 @@ function exEnsureScene(){
     exBtnGroupFin = new THREE.Group();
     exBtnFinDl  = exMakeButton("ダウンロード", "JPEGで ほぞん");
     exBtnFinEnd = exMakeButton("おわる", "さくひんを えらぶ");
-    exBtnMeshesFin = [exBtnFinDl, exBtnFinEnd];
+    exBtnFinDel = exMakeButton("けす", "てんじと ほぞんから けす");
+    exBtnMeshesFin = [exBtnFinDl, exBtnFinEnd, exBtnFinDel];
     exStackButtons(exBtnGroupFin, exBtnMeshesFin);
     exFinRoot.add(exBtnGroupFin);
 
@@ -4903,6 +5056,29 @@ function exTickButtonFlash(now){
             exFlashingBtns.delete(b);
         }
     }
+}
+
+// 「けす」の2回押し：1回目で確認待ちにする／もう一度押されたら true（消してよい）
+function exConfirmDelete(btn){
+    const now = performance.now();
+    if(exDelArmedBtn === btn && now <= exDelArmedUntil){
+        exDisarmDelete();
+        return true;
+    }
+    exDisarmDelete();
+    exDelArmedBtn = btn;
+    exDelArmedUntil = now + EXHIBIT_DEL_CONFIRM_MS;
+    exDrawButtonFace(btn, "ほんとうに？", "もういちど おすと けします");
+    vibrate("right", 50, 0.6);
+    return false;
+}
+function exDisarmDelete(){
+    if(!exDelArmedBtn) return;
+    exDrawButtonFace(exDelArmedBtn, exDelArmedBtn.userData.label, exDelArmedBtn.userData.sub);
+    exDelArmedBtn = null;
+}
+function exTickDeleteConfirm(now){
+    if(exDelArmedBtn && now > exDelArmedUntil) exDisarmDelete();
 }
 
 function exMakeButton(label, sub){
@@ -5097,11 +5273,6 @@ function exReadInput(){
     exIn.y = gp.axes[AXIS_Y] || 0;
 }
 
-// 左手のグリップ＋トリガーをにぎっているか（自分の作品の展示も消す完全リセットの姿勢）
-function exLeftResetPosture(){
-    return exLeftGrip >= GRIP_PAN_THRESHOLD && exLeftTrig >= 0.5;
-}
-
 function exAllReleased(){
     return exIn.trig < 0.1 && !exIn.a && !exIn.b && !exIn.stickBtn
         && Math.abs(exIn.x) < EXHIBIT_STICK_OFF && Math.abs(exIn.y) < EXHIBIT_STICK_OFF;
@@ -5109,10 +5280,9 @@ function exAllReleased(){
 
 function exUpdatePoses(){
     exHeadPos.copy(renderer.xr.getCamera().position);
-    // 左手（②の両手調整・完全リセット用）：位置・先の向き・トリガー・グリップ
+    // 左手（②の両手調整用）：位置・先の向き・トリガー
     exLeftValid = !!leftController && leftController.visible !== false && leftController !== rightController;
     exLeftTrig = leftGamepad ? (leftGamepad.buttons[0]?.value || 0) : 0;
-    exLeftGrip = leftGamepad ? (leftGamepad.buttons[1]?.value || 0) : 0;
     if(exLeftValid){
         exLeftPos.copy(leftController.position);
         exLeftDir.set(0, 0, -1).applyQuaternion(leftController.quaternion);
@@ -5368,6 +5538,7 @@ function exUpdateButtonVisuals(armed){
 }
 
 function exResetButtonPointing(){
+    exDisarmDelete();
     exHoverBtn = null;
     exBtnStale = null;
     exBtnCapture = null;
@@ -5473,11 +5644,12 @@ function exSetAdjustWork(index){
     exUpdateAdjButtons();
 }
 
-// ②のボタン：自分の作品を選んでいるときだけ「ダウンロード」を出し、並びを上下中央にそろえ直す
+// ②のボタン：自分の作品を選んでいるときだけ「ダウンロード」「けす」を出し、並びを上下中央にそろえ直す
 function exUpdateAdjButtons(){
     const w = exWorks[exAdjIdx];
     const isUser = !!(w && w.user);
     exBtnAdjDl.visible = isUser;
+    exBtnAdjDel.visible = isUser;
     exBtnMeshesAdjActive = isUser ? exBtnMeshesAdj.slice() : exBtnMeshesAdj.slice(0, 3);
     exStackButtons(exBtnGroupAdj, exBtnMeshesAdjActive);
 }
@@ -5657,11 +5829,19 @@ function exCaptureUserWork(){
     scene.overrideMaterial = exCaptureMat;          // 光の当たり方をなくし、墨の色そのままに
     const wasXR = renderer.xr.enabled;
     const prevRT = renderer.getRenderTarget();      // VR中はヘッドセットの描画先。あとで必ず戻す
+    // AR（パススルー）中の three.js は、背景色の指定を無視して「透明な黒」で塗りつぶす
+    // （environmentBlendMode が alpha-blend のため）。写すあいだだけそれを止め、白い紙で塗る。
+    const origBlendMode = renderer.xr.getEnvironmentBlendMode;
+    renderer.xr.getEnvironmentBlendMode = () => undefined;
     renderer.xr.enabled = false;
-    renderer.setRenderTarget(rt);
-    renderer.render(scene, cam);
-    renderer.setRenderTarget(prevRT);
-    renderer.xr.enabled = wasXR;
+    try {
+        renderer.setRenderTarget(rt);
+        renderer.render(scene, cam);
+    } finally {
+        renderer.setRenderTarget(prevRT);
+        renderer.xr.enabled = wasXR;
+        renderer.xr.getEnvironmentBlendMode = origBlendMode;
+    }
     scene.background = oldBg;
     scene.overrideMaterial = oldOverride;
     for(const c of hidden) c.visible = true;
@@ -5677,12 +5857,15 @@ function exCaptureUserWork(){
     const img = ctx.createImageData(W, H);
     const d = img.data;
     const row = W * 4;
+    // 念のため、透けている画素（墨のない所・墨のふちの半透明）は白い紙の上に重ねた色にする
+    // （値は「色×不透明度」なので、白を (255−不透明度) ぶん足せばよい）
     for(let y = 0; y < H; y++){
         const src = y * row, dst = (H - 1 - y) * row;   // 上下を反転
         for(let x = 0; x < row; x += 4){
-            d[dst + x]     = EX_LIN2SRGB[px[src + x]];
-            d[dst + x + 1] = EX_LIN2SRGB[px[src + x + 1]];
-            d[dst + x + 2] = EX_LIN2SRGB[px[src + x + 2]];
+            const paper = 255 - px[src + x + 3];
+            d[dst + x]     = EX_LIN2SRGB[Math.min(255, px[src + x]     + paper)];
+            d[dst + x + 1] = EX_LIN2SRGB[Math.min(255, px[src + x + 1] + paper)];
+            d[dst + x + 2] = EX_LIN2SRGB[Math.min(255, px[src + x + 2] + paper)];
             d[dst + x + 3] = 255;
         }
     }
@@ -5713,16 +5896,20 @@ function exAddUserWork(cap){
     if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
 
     const work = {
-        user: true, seq: ++exUserSeq, slot: 0, no: 0,
+        user: true, seq: ++exUserSeq, slot: -1, no: 0,
+        id: "w" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8),
+        created: Date.now(),
         url: null, blob: null, fileName: exUserFileName(new Date()),
         imgW: cap.W, imgH: cap.H, aspect: cap.W / cap.H, texture,
         inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert
     };
-    // ダウンロード用の JPEG（できあがったら blob と url を入れる）
+    // ダウンロード用の JPEG（できあがったら blob と url を入れ、ブラウザにも保存する）。
+    // 枠がまだ決まっていなければ、決まったところで保存する（下）
     cap.canvas.toBlob(b => {
         if(work.disposed || !b) return;
         work.blob = b;
         work.url = URL.createObjectURL(b);
+        if(work.slot >= 0) exStorePut(work);
         exUpdateDownloadAllBtn();
     }, "image/jpeg", EXHIBIT_JPEG_QUALITY);
 
@@ -5736,11 +5923,14 @@ function exAddUserWork(cap){
     } else {
         let k = 0;
         for(let i = 1; i < exUserWorks.length; i++) if(exUserWorks[i].seq < exUserWorks[k].seq) k = i;
-        work.slot = exUserWorks[k].slot;
-        exDisposeUserWork(exUserWorks[k]);
+        const oldest = exUserWorks[k];
+        work.slot = oldest.slot;
+        exDisposeUserWork(oldest);
+        exStoreDelete(oldest.id);   // 押し出された古い作品は、ブラウザの保存からも消す
         exUserWorks[k] = work;
         replaced = true;
     }
+    if(work.blob) exStorePut(work);   // JPEG が先にできていた場合
     exBuildWorkMesh(work);
     exRebuildWorkList();
     exLayout();
@@ -5807,7 +5997,7 @@ function exDrawFinishPanel(w){
         { text: exFinReplaced
             ? "（いっぱいなので いちばん ふるい さくひんと いれかえました）"
             : "ひかっている さくひんが あなたの さくひんです", size: 50, color: "#e8c86a" },
-        { text: "ダウンロード：JPEGで ほぞん ／ おわる：さくひんを えらぶ", size: 54, bold: true, color: "#e8c86a" }
+        { text: "ひだりの ボタン：ダウンロード ／ おわる ／ けす", size: 54, bold: true, color: "#e8c86a" }
     ], EXHIBIT_HINT_W, EXHIBIT_HINT_PAD_X, EXHIBIT_HINT_PAD_Y);
 }
 
@@ -5856,7 +6046,44 @@ function exTickFinish(now, trigDown, aEdge){
     } else if(exBtnFired === exBtnFinEnd){
         exBuzzDecide();
         exEnterSelect();   // ①へ（選択は、さっきお手本にした作品のまま）
+    } else if(exBtnFired === exBtnFinDel){
+        // ④「けす」：2回押しで、いまできた作品を展示とブラウザの保存から消して①へ
+        if(exConfirmDelete(exBtnFinDel)){
+            const w = exWorks[exFinIdx];
+            exFinRoot.visible = false;
+            exFinPreviewImg.material.map = null;
+            if(exFrame) exFrame.visible = false;
+            if(w && w.user) exDeleteUserWork(w);
+            exAfterUserDelete();
+        }
     }
+}
+
+// ②「けす」：目の前の作品（自分の作品）を消す
+function exDeleteFromAdjust(){
+    const w = exWorks[exAdjIdx];
+    if(!w || !w.user) return;
+    exGrabbing = false;
+    exTwoHand = false;
+    exAdjSwapIdx = -1;
+    exCancelHiRes();
+    exShowAdjust(false);
+    exAdjMesh.material.map = null;
+    exAdjMesh.material.needsUpdate = true;
+    if(exFrame) exFrame.visible = false;
+    exDeleteUserWork(w);
+    exAfterUserDelete();
+}
+
+// 消したあと：①へもどって案内を出す（展示する作品がなくなったら、ふつうに書けるようにする）
+function exAfterUserDelete(){
+    vibrate("right", 120, 0.8);
+    if(exWorks.length === 0){ exFallbackToNormal(false); return; }
+    exEnterSelect();
+    exShowMessage([
+        { text: "さくひんを けしました", size: 72, bold: true },
+        { text: "てんじと ブラウザの ほぞんから けしました", size: 52, color: "#e8c86a" }
+    ], 2500);
 }
 
 // ===== ダウンロード =====
@@ -6026,6 +6253,14 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
         const btnBusy = exTickButtons(exBtnMeshesAdjActive, now, trigDown, aEdge, !exGrabbing && !exTwoHand && exAdjSwapIdx < 0);
         if(exBtnFired === exBtnAdjBack){ exCancelToSelect(); return; }   // ②「もどる」→ ①作品選択（Bと同じ）
         if(exBtnFired === exBtnAdjOk){ vibrate("right", 80, 0.7); exEnterDraw(); return; }   // ②「けってい」→ ③（Aと同じ）
+        if(exBtnFired === exBtnAdjDel){
+            // ②「けす」：2回押しで、いま選んでいる自分の作品を展示とブラウザの保存から消して①へ
+            if(exConfirmDelete(exBtnAdjDel)){ exDeleteFromAdjust(); return; }
+            exApplyAdjustTransform();
+            exShowAdjustHint();
+            exPlaceButtonsLeftOfWork(exBtnGroupAdj);
+            return;
+        }
         if(exBtnFired === exBtnAdjDl){
             // ②「ダウンロード」：いま選んでいる自分の作品を JPEG で保存（②のまま）
             exRequestDownload(exWorks[exAdjIdx], exBtnAdjDl, exBtnFiredByA);
@@ -6162,12 +6397,10 @@ function exUpdateGrab(dt){
 //   ・両手首を傾ける（コントローラーの先を下へ／上へ）→ 上端が奥へ倒れる／起きる（垂直〜水平）
 //   ・位置は動かさない。右トリガーだけで動かし始めていた場合は、動かす前の位置に戻す。
 function exTickTwoHand(btnBusy){
-    // 始めるときは、どちらのグリップもにぎっていないこと（グリップ＋トリガーは完全リセットの姿勢なので）
     const both = exCtrlValid && exLeftValid && !btnBusy
         && (exTwoHand
             ? (exIn.trig >= EXHIBIT_TWO_HAND_OFF && exLeftTrig >= EXHIBIT_TWO_HAND_OFF)
-            : (exIn.trig >= EXHIBIT_TWO_HAND_ON && exLeftTrig >= EXHIBIT_TWO_HAND_ON
-               && exIn.grip < GRIP_PAN_THRESHOLD && exLeftGrip < GRIP_PAN_THRESHOLD));
+            : (exIn.trig >= EXHIBIT_TWO_HAND_ON && exLeftTrig >= EXHIBIT_TWO_HAND_ON));
     if(!both){
         if(exTwoHand){
             exTwoHand = false;
@@ -6203,8 +6436,8 @@ function exTickTwoHand(btnBusy){
 }
 
 // 完全リセット：描画とお手本を全部消し、いまの立ち位置・向きを中心に展示を並べ直して、①作品選択へ戻る（保存はしない）
-// withUserWorks＝true（左グリップ＋左トリガーも一緒ににぎっていた）のときは、自分の作品の展示も全部消す
-function exFullReset(withUserWorks){
+// 自分の作品の展示はそのまま残す
+function exFullReset(){
     drawing = false;
     hasLast = false;
     releaseActive = false;
@@ -6231,22 +6464,13 @@ function exFullReset(withUserWorks){
     exForward.copy(forward);
     exEyeY = pos.y;
     exClearSelectionHighlight();
-    if(withUserWorks) exRemoveAllUserWorks();
     exSelIdx = 0;
-    if(exWorks.length === 0){
-        // 展示する作品が1枚もなくなった（読み込んだ画像が0枚のとき）：ふつうに書けるようにする
-        exFallbackToNormal(false);
-    } else {
-        exLayout();
-        exEnterSelect();
-    }
-    exUpdateStartStatus();
+    exLayout();
+    exEnterSelect();
     vibrate("right", 250, 1.0);
-    if(withUserWorks) vibrate("left", 250, 1.0);
 }
 
 // 完全リセットの操作（右トリガー＋右グリップ＋B長押し）。①②③④で受け付ける（固定化中は受け付けない）。
-// B長押しが成立した時点で左グリップ＋左トリガーもにぎっていれば、自分の作品の展示も全部消す。
 // 長押しの途中は既存のBの機能（取り消し・全消去・②の「もどる」）が働かないよう、Bを離すまで入力を預かる。
 // 戻り値 true：このフレームの入力はリセット操作が使っている
 function exTickReset(now, bEdge){
@@ -6258,12 +6482,8 @@ function exTickReset(now, bEdge){
         }
         if(!exResetFired){
             const held = now - exResetStart;
-            if(!exResetWarned && held >= EXHIBIT_RESET_WARN_MS){
-                exResetWarned = true;
-                vibrate("right", 40, 0.5);
-                if(exLeftResetPosture()) vibrate("left", 40, 0.5);   // 自分の作品も消える合図
-            }
-            if(held >= EXHIBIT_RESET_HOLD_MS){ exResetFired = true; exFullReset(exLeftResetPosture()); }
+            if(!exResetWarned && held >= EXHIBIT_RESET_WARN_MS){ exResetWarned = true; vibrate("right", 40, 0.5); }
+            if(held >= EXHIBIT_RESET_HOLD_MS){ exResetFired = true; exFullReset(); }
         }
         return true;
     }
@@ -6422,12 +6642,6 @@ function exhibitUpdate(){
         case EX_FINISH: exTickFinish(now, trigDown, aEdge); break;
     }
 
-    // ③で右グリップ＋右トリガーをにぎっている間（完全リセット・固定化の姿勢）は、
-    // 左トリガーでのギャラリー保存を発火させない（左右のグリップ＋トリガー＋Bの完全リセットの途中で保存されないように）
-    if(exState === EX_DRAW && leftGamepad && exIn.trig >= 0.5 && exIn.grip >= GRIP_PAN_THRESHOLD){
-        prevLeftTrigger = !!leftGamepad.buttons[0]?.pressed;
-    }
-
     exPrevTrigDown = trigDown;
     exPrevTrigVal = exIn.trig;
     exPrevA = exIn.a;
@@ -6435,6 +6649,7 @@ function exhibitUpdate(){
 
     exTickDownloadPending(now);
     exTickButtonFlash(now);
+    exTickDeleteConfirm(now);
 
     // ①②④（と入室直後）は筆を隠し、左手のギャラリー一覧も出さない
     if(exState === EX_WAIT || exState === EX_SELECT || exState === EX_ADJUST || exState === EX_FINISH){
@@ -6531,6 +6746,22 @@ function exhibitRestoreAfterCapture(v){
         list.forEach((w, i) => setTimeout(() => exDownloadBlob(w), i * 400));
     });
     exUpdateDownloadAllBtn();
+})();
+
+// ===== 開始画面の「ブラウザに ほぞんした さくひんを ぜんぶ けす」=====
+// ブラウザの保存と、展示中の自分の作品をまとめて消す（画像の展示はそのまま）
+(function(){
+    const btn = document.getElementById("clearExhibitStoreBtn");
+    btn.addEventListener("click", async () => {
+        if(exLoadStatus === "loading"){
+            alert("さくひんを よみこみ中です。おわってから もういちど おしてください。");
+            return;
+        }
+        if(!confirm("ブラウザに ほぞんした じぶんの さくひんを ぜんぶ けします。\nてんじからも きえます。よろしいですか？")) return;
+        exRemoveAllUserWorks();
+        await exStoreClear();
+        exUpdateDownloadAllBtn();
+    });
 })();
 
 // リスナーはページ読み込み時に1回だけ登録する（入室・退室を繰り返しても重複しない）
