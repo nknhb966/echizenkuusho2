@@ -463,6 +463,21 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
 .start-slider-block .ssl-warn:empty {
   display: none;
 }
+/* かんたん設定の「くわしい設定」折りたたみ */
+.ssl-details-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: 10px; padding: 8px 10px;
+  font-size: 13px; font-weight: 700; font-family: sans-serif; letter-spacing: 0.06em;
+  color: #e8dcb4; background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(200,168,74,0.4); border-radius: 10px; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ssl-details-toggle:hover { background: rgba(200,168,74,0.12); border-color: rgba(200,168,74,0.7); }
+.ssl-details-toggle .ssl-details-sign { color: #c8a84a; font-size: 12px; }
+#presetDetails[hidden] { display: none; }
+/* ひらいたときは、区切り線の下からはじめる（かんたん設定の枠の下線と重ならないように） */
+.ssl-preset.details-open { border-bottom: 1px solid rgba(200,168,74,0.18); }
+.ssl-preset:not(.details-open) { border-bottom: none; padding-bottom: 6px; }
 /* 「さくひんてんじ の せってい」の枠 */
 .start-slider-block.ssl-exhibit { padding-top: 10px; padding-bottom: 12px; }
 .start-slider-block .ssl-block-lbl { margin: 2px 0 4px; }
@@ -691,7 +706,12 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
           <button class="ssl-preset-btn" id="presetCreator" data-preset="creator">🎨 クリエイター</button>
           <button class="ssl-preset-btn" id="presetSuper" data-preset="super">🚀 スーパークリエイター</button>
         </div>
+        <button type="button" class="ssl-details-toggle" id="presetDetailsToggle" aria-expanded="false" aria-controls="presetDetails">
+          <span class="ssl-details-sign" aria-hidden="true">▼</span><span class="ssl-details-text">くわしい設定を ひらく</span>
+        </button>
       </div>
+      <!-- くわしい設定（すみの多さ〜リピート）。はじめは折りたたみ。リロードすると折りたたみにもどる -->
+      <div id="presetDetails" hidden>
       <div class="ssl-row">
         <span class="ssl-lbl">すみの多さ</span>
         <span class="ssl-val" id="limitVal">12,000</span>
@@ -740,6 +760,7 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
         <span class="ssl-lbl">リピート（Aながおし）</span>
         <button class="start-file-btn" id="repeatToggle" style="min-width:8em;">🚫 しない</button>
       </div>
+      </div><!-- /presetDetails -->
     </div>
 
     <!-- ===== さくひんてんじ の せってい（①さくひんてんじ ②てんじのきょうゆう ③QRコード ④ダウンロード ⑤ぜんぶけす）===== -->
@@ -4021,6 +4042,23 @@ setupInlineToggle("releaseTauToggle", "releaseTauRow",
         refresh();
     });
     refresh();
+})();
+
+// ===== かんたん設定の「くわしい設定」（すみの多さ〜リピート）の折りたたみ =====
+// はじめは折りたたみ。状態は覚えない（リロードすると折りたたみにもどる）
+(function(){
+    const btn = document.getElementById("presetDetailsToggle");
+    const box = document.getElementById("presetDetails");
+    const head = btn.closest(".ssl-preset");
+    function set(open){
+        box.hidden = !open;
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        btn.querySelector(".ssl-details-sign").textContent = open ? "▲" : "▼";
+        btn.querySelector(".ssl-details-text").textContent = open ? "くわしい設定を とじる" : "くわしい設定を ひらく";
+        head.classList.toggle("details-open", open);
+    }
+    btn.addEventListener("click", () => set(box.hidden));
+    set(false);
 })();
 
 // ===== かんたん設定（プリセット） =====
