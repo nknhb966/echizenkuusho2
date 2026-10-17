@@ -236,6 +236,21 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
   box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
   cursor: not-allowed !important;
 }
+/* 作品の読み込み中（START AR を押せないあいだ）の表示。
+   ボタンの書体（Zen Antique Soft）は細字しかなく、太字指定だとブラウザが太らせて文字がにじむうえ、
+   灰色の文字＋光の影でさらにぼやけて見えるため、読み込み中だけ本物の太字がある書体・はっきりした色にする */
+#ARButton[data-ex-locked] {
+  font-family: 'Noto Serif JP', 'Hiragino Mincho ProN', serif !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  letter-spacing: 0.06em !important;
+  color: #f3ead2 !important;
+  text-shadow: none !important;
+  background: linear-gradient(135deg, #3a3326, #4d4433, #3a3326) !important;
+  border: 1px solid rgba(200,168,74,0.45) !important;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
 @keyframes arPulse {
   0%   { box-shadow: 0 0 0 0   rgba(200,168,74,0.6), 0 8px 32px rgba(180,140,40,0.45), 0 2px 8px rgba(0,0,0,0.5); }
   50%  { box-shadow: 0 0 0 18px rgba(200,168,74,0.0), 0 8px 40px rgba(180,140,40,0.60), 0 2px 8px rgba(0,0,0,0.5); }
@@ -448,6 +463,11 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
 .start-slider-block .ssl-warn:empty {
   display: none;
 }
+/* 「さくひんてんじ の せってい」の枠 */
+.start-slider-block.ssl-exhibit { padding-top: 10px; padding-bottom: 12px; }
+.start-slider-block .ssl-block-lbl { margin: 2px 0 4px; }
+.start-slider-block .ssl-block-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.start-slider-block .ssl-block-btns .start-file-btn { width: 100%; flex: none; white-space: normal; }
 /* 商標などの小さな注記（行の幅いっぱい・右寄せ） */
 .start-slider-block .ssl-tm {
   grid-column: 1 / -1;
@@ -661,8 +681,6 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
       <button class="start-file-btn" id="loadJsonBtn">📂 ファイルから読込</button>
     </div>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
-    <button class="start-file-btn" id="downloadExhibitBtn" style="width:100%;flex:none;" disabled>🖼️ てんじに かざった さくひんを ダウンロード（0まい）</button>
-    <button class="start-file-btn" id="clearExhibitStoreBtn" style="width:100%;flex:none;" disabled>🗑️ ほぞんした さくひんを ぜんぶ けす</button>
 
     <div class="start-slider-block">
       <div class="ssl-preset">
@@ -722,10 +740,20 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
         <span class="ssl-lbl">リピート（Aながおし）</span>
         <button class="start-file-btn" id="repeatToggle" style="min-width:8em;">🚫 しない</button>
       </div>
+    </div>
+
+    <!-- ===== さくひんてんじ の せってい（①さくひんてんじ ②てんじのきょうゆう ③QRコード ④ダウンロード ⑤ぜんぶけす）===== -->
+    <div class="start-slider-block ssl-exhibit">
+      <span class="ssl-preset-lbl ssl-block-lbl">さくひんてんじ の せってい</span>
       <div class="ssl-row">
-        <span class="ssl-lbl">作品展示</span>
+        <span class="ssl-lbl">さくひんてんじ</span>
         <button class="start-file-btn" id="exhibitToggle" style="min-width:8em;">🚫 しない</button>
         <div class="ssl-warn" id="exhibitStatus"></div>
+      </div>
+      <div class="ssl-row" id="shareRow">
+        <span class="ssl-lbl">てんじの きょうゆう</span>
+        <button class="start-file-btn" id="shareToggle" style="min-width:8em;">🏠 独立</button>
+        <div class="ssl-warn" id="shareStatus"></div>
       </div>
       <div class="ssl-row" id="qrRow">
         <span class="ssl-lbl">QRコード</span>
@@ -734,10 +762,9 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
         <div class="ssl-warn" id="qrStatus"></div>
         <div class="ssl-tm">QRコードは株式会社デンソーウェーブの登録商標です。</div>
       </div>
-      <div class="ssl-row" id="shareRow">
-        <span class="ssl-lbl">てんじの きょうゆう</span>
-        <button class="start-file-btn" id="shareToggle" style="min-width:8em;">🏠 独立</button>
-        <div class="ssl-warn" id="shareStatus"></div>
+      <div class="ssl-block-btns">
+        <button class="start-file-btn" id="downloadExhibitBtn" disabled>🖼️ てんじに かざった さくひんを ダウンロード（0まい）</button>
+        <button class="start-file-btn" id="clearExhibitStoreBtn" disabled>🗑️ ほぞんした さくひんを ぜんぶ けす</button>
       </div>
     </div>
 
@@ -4312,7 +4339,10 @@ const EXHIBIT_FONT = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans
 
 const EX_OFF = 0, EX_WAIT = 1, EX_SELECT = 2, EX_ADJUST = 3, EX_DRAW = 4, EX_FINISH = 5;
 
-let exhibitEnabled = true;   // 開始画面の「作品展示」トグル（はじめは「する」）
+// 開始画面の「さくひんてんじ」「QRコード」トグルは、その端末のブラウザに覚えておく（リロードしても前回のまま）
+const EX_EXHIBIT_SETTING_KEY = "echizen-kuusho.exhibit";
+const EX_QR_TOGGLE_SETTING_KEY = "echizen-kuusho.qr";
+let exhibitEnabled = exLoadSetting(EX_EXHIBIT_SETTING_KEY) !== "off";   // 「さくひんてんじ」（はじめて開いたときは「する」）
 let exState = EX_OFF;
 
 // ----- 読み込み -----
@@ -4364,7 +4394,7 @@ let exBtnGroupFin = null, exBtnFinDl = null, exBtnFinEnd = null;   // ④「ダ�
 let exBtnFinDel = null;                                             // ④「けす」
 let exDelArmedBtn = null, exDelArmedUntil = 0;   // 「けす」を1回押して、確認待ちのボタン
 // ----- QR コード -----
-let exQrEnabled = false;     // 開始画面の「QRコード」トグル（はじめは「しない」。作品展示が「しない」のときは押せない）
+let exQrEnabled = exLoadSetting(EX_QR_TOGGLE_SETTING_KEY) === "on";   // 「QRコード」（はじめて開いたときは「しない」。さくひんてんじが「しない」のときは押せない）
 let exBtnAdjQr = null;       // ②「QRコード」（だす／けす）
 let exQrRoot = null, exQrImg = null, exQrPanel = null, exBtnQrRe = null;   // 作品の右に出す QR・案内・「さいはっこう」
 let exQrVisible = false;     // いま QR を出しているか（②はボタンで切り替え、④は トグルが「する」なら出す）
@@ -7674,6 +7704,7 @@ function exhibitRestoreAfterCapture(v){
     }
     btn.addEventListener("click", () => {
         exhibitEnabled = !exhibitEnabled;
+        exSaveSetting(EX_EXHIBIT_SETTING_KEY, exhibitEnabled ? "on" : "off");
         // ONにした時点で読み込みを始める（入室までに終わっていれば待ち時間なし）
         if(exhibitEnabled && exNeedsLoad(false)) exStartLoading();
         refresh();
@@ -7706,9 +7737,11 @@ function exRefreshQrToggle(){
     btn.addEventListener("click", () => {
         if(!exhibitEnabled) return;
         exQrEnabled = !exQrEnabled;
+        exSaveSetting(EX_QR_TOGGLE_SETTING_KEY, exQrEnabled ? "on" : "off");
         if(exQrEnabled) exQrLoadLib();   // VR に入る前に、QR コードを作るライブラリを読んでおく
         exRefreshQrToggle();
     });
+    if(exQrEnabled) exQrLoadLib();   // 前回「する」だったときは、先にライブラリを読んでおく
     exRefreshQrToggle();
 })();
 
