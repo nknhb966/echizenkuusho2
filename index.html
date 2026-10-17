@@ -457,6 +457,8 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
   border: 1px solid rgba(200,168,74,0.3); color: rgba(230,220,190,0.85);
 }
 .start-file-btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(200,168,74,0.55); }
+.start-file-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.start-file-btn:disabled:hover { background: rgba(255,255,255,0.09); border-color: rgba(200,168,74,0.3); }
 /* 注意書き */
 .start-notice {
   width: 100%; font-size: 13px; color: rgba(240,200,80,0.7);
@@ -605,6 +607,7 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
       <button class="start-file-btn" id="loadJsonBtn">📂 ファイルから読込</button>
     </div>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
+    <button class="start-file-btn" id="downloadExhibitBtn" style="width:100%;flex:none;" disabled>🖼️ てんじに かざった さくひんを ダウンロード（0まい）</button>
 
     <div class="start-slider-block">
       <div class="ssl-preset">
@@ -672,8 +675,8 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
     </div>
 
     <div class="start-notice">
-      ⚠️ コントローラーの「ほぞん」はブラウザをとじるときえます<br>
-      ながくのこしたいときは「ファイルに保存」してください
+      ⚠️ コントローラーの「ほぞん」と てんじに かざった さくひんは ブラウザをとじるときえます<br>
+      ながくのこしたいときは「ファイルに保存」「ダウンロード」してください
     </div>
   </div>
 
@@ -828,7 +831,7 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
           <div class="ctrl-labels">
             <div class="ctrl-title">みぎて（ふで）</div>
             <div class="ctrl-label-row"><span class="btn-badge red">① トリガー</span><span class="desc">おしながらうごかすと 絵がかける！つよくおすと 線がふとくなる。はやくふりぬくと「はらい」がでる</span></div>
-            <div class="ctrl-label-row"><span class="btn-badge purple">② スティック</span><span class="desc">たおした方向で いろをえらべる（カラーモード）。カチッと おしこむと、おてほんを もういちど さいしょから 見られる</span></div>
+            <div class="ctrl-label-row"><span class="btn-badge purple">② スティック</span><span class="desc">たおした方向で いろをえらべる（カラーモード）。カチッと おしこむと、おてほんが さいしょから でてくる。もういちど おしこむと、おてほんが きえる</span></div>
             <div class="ctrl-label-row"><span class="btn-badge green">③ A ボタン</span><span class="desc">くろ↔しろ に きりかえる（メニューで「リピート」を する にすると、ながおしで さいしょから もういちど見る）</span></div>
             <div class="ctrl-label-row"><span class="btn-badge orange">④ B ボタン</span><span class="desc">1つもどる（かわいた墨は もどせない）。ながくおすと ぜんぶけす</span></div>
             <div class="ctrl-label-row"><span class="btn-badge gray">⑤ メニューボタン</span><span class="desc">メニューに もどる（もどって入りなおすと「こてい」も かいじょされる）</span></div>
@@ -2180,13 +2183,21 @@ function checkClear(){
     if(!gamepad) return;
     const pressed = !!gamepad.buttons[BTN_STICK]?.pressed;
     const gripHeld = getTriggerValue(1) >= GRIP_PAN_THRESHOLD;
-    // スティック押し込み（グリップなし）を1回押すと、お手本をもう一度アニメ再生。
+    // スティック押し込み（グリップなし）で、お手本の表示／非表示を切り替える。
+    //   お手本が出ている（再生中・再生後）とき → 消す
+    //   お手本が消えているとき               → 最初からアニメ再生
     // グリップ＋押し込みは「太さ・はらいリセット」なので、グリップ中は反応させない。
     // （この関数は固定化中は呼ばれないため、固定化中は自動的に無効になる）
     if(pressed && !prevStickPressed && !gripHeld){
-        startGuideReplay();
+        if(isGuideShown()) clearGuide();
+        else startGuideReplay();
     }
     prevStickPressed = pressed;
+}
+
+// お手本が表示中か（再生中、または再生し終わって残っている）
+function isGuideShown(){
+    return guideReplayActive || (!!guideMesh && guideMesh.count > 0);
 }
 
 // ===== 再描画開始 / 再描画中はスキップして即完成 =====
@@ -4027,15 +4038,19 @@ function loadDrawingFromJSON(file) {
 // 半径2.5mの円周上に360°展示する（番号が抜けていれば、その枠だけ空けて残りを表示）。右コントローラーで作品を選び（①）、
 // 目の前に置いて位置・角度・大きさを調整し（②）、それをお手本にして既存の書道描画を行う（③）。
 // ②では選んだ作品をそのままの見た目で置き、③では「半紙は透明・墨は灰色」にして、なぞって書いた自分の線（黒）が見えるようにする。
-// 右トリガー＋右グリップ＋B長押しで完全リセット（描画を消し、いまの立ち位置で展示を並べ直して①へ）。
-// 「おわる」では、描いた絵をギャラリーに保存（満杯なら古い順に上書き）してから全部消して、作品選択に戻る。
+// 右トリガー＋右グリップ＋B長押しで完全リセット（描画とお手本を消し、いまの立ち位置で展示を並べ直して①へ）。
+// さらに左グリップ＋左トリガーも一緒ににぎっていると、自分の作品の展示も全部消す。
+// 「おわる」では、目の前の作品の枠を真正面から写した「自分の作品」（白い紙＋自分の線）を作って
+// 展示に加え、描いた絵をギャラリーに保存（満杯なら古い順に上書き）してから全部消して、④へ進む。
+// 自分の作品の段は、読み込んだ画像の段の上に積む（画像の段と合わせて最大4段）。
 //
 // 状態：
 //   EX_OFF    … 作品展示なし（従来どおり）
 //   EX_WAIT   … 入室直後。入室時の位置・向きの確定と、作品の読み込み完了を待つ（描画できない）
 //   EX_SELECT … ① 作品選択   ─A／レイ＋トリガー→ EX_ADJUST
 //   EX_ADJUST … ② 配置・調整 ─A または「けってい」→ EX_DRAW ／ ─B または「もどる」→ EX_SELECT
-//   EX_DRAW   … ③ 書道描画   ─「おわる」→ EX_SELECT ／ ─「もどる」→ EX_ADJUST
+//   EX_DRAW   … ③ 書道描画   ─「おわる」→ EX_FINISH（枠の中に線がなければ EX_SELECT）／ ─「もどる」→ EX_ADJUST
+//   EX_FINISH … ④ 終了       ─「ダウンロード」で JPEG 保存 ／ ─「おわる」→ EX_SELECT
 // ボタンは、指して A（すぐ決定）か、約0.2秒指してからトリガー（レイがかすめただけの
 // トリガーは描画・移動として扱う）で決定する。
 // 状態を切り替えるたびに exGate を立て、トリガー・A・B・スティックをすべて離すまで
@@ -4063,10 +4078,13 @@ const EXHIBIT_HIRES_MAX = 2048;  // ②③で目の前に置く作品の長辺(p
 // ----- 展示の配置 -----
 const EXHIBIT_RADIUS = 2.5;
 const EXHIBIT_PER_TIER = 12;
-const EXHIBIT_MAX_TIERS = 3;
+const EXHIBIT_MAX_TIERS = 3;             // 読み込んだ画像の段の上限（image036 まで＝3段）
+const EXHIBIT_TOTAL_TIERS = 4;           // 画像の段＋自分の作品の段の合計の上限
 // 段の高さは入室時の目線が基準：1段＝作品の中央が目線、2段＝目線が1段目と2段目の間、
-// 3段＝中央の段の作品の中央が目線。段は上から 0,1,2 と数え、番号は上の段から並べる。
-// （3段のとき、背の低い人では最下段の下の方が床より下になるが、そのまま表示する）
+// 3段＝中央の段の作品の中央が目線。4段＝下の3段は3段のときと同じ高さのまま、その上に4段目を積む。
+// 段は上から 0,1,2,3 と数える。自分の作品の段は画像の段の上（画像のすぐ上から順に積み上げる）。
+// 画像の番号は、画像の段の上の段から並べる。
+// （3段以上のとき、背の低い人では最下段の下の方が床より下になるが、そのまま表示する）
 const EXHIBIT_TIER_SPACING = 1.1;        // 段の中心どうしの間隔（m）。作品の高さ0.9m＋すき間0.2m
 const EXHIBIT_FIT_W = 0.8;               // 展示作品は縦横比を保ってこの枠（m）に収める
 const EXHIBIT_FIT_H = 0.9;
@@ -4118,9 +4136,27 @@ const EXHIBIT_HINT_DROP = 0.04;          // 作品の下端から案内パネル
 const EXHIBIT_HINT_FRONT = 0.06;         // 作品の手前側の端から、さらにプレイヤー側へ出す距離（m）
 const EXHIBIT_HINT_PITCH = 20 * Math.PI / 180;   // 案内パネルとボタンを少し上向きにして読みやすく
 
+// ----- 自分の作品（③「おわる」で作る展示作品）-----
+const EXHIBIT_USER_MAX_PX = 2048;        // 作る画像の長辺の上限（px）。元の作品と同じピクセル数にするが、Quest の負荷を考えてここまで
+const EXHIBIT_CAPTURE_DEPTH = 5;         // 作品の面の手前・奥それぞれ何mまでの線を写すか
+const EXHIBIT_CAPTURE_SAMPLES = 4;       // 写すときのアンチエイリアス（MSAA）
+const EXHIBIT_JPEG_QUALITY = 0.92;
+const EXHIBIT_USER_BORDER = 0.025;       // 自分の作品の朱色のふちの太さ（m）
+const EXHIBIT_USER_BORDER_COLOR = 0xd9411e;   // 朱色
+// ----- ④ 終了フェーズ -----
+const EXHIBIT_FIN_DIST = 0.8;            // できあがった作品を目の前のどこに出すか（m）
+const EXHIBIT_FIN_DROP = 0.1;            // 目の高さからこれだけ下
+const EXHIBIT_FIN_SIZE = 0.42;           // 長辺（m）
+const EXHIBIT_FIN_BORDER = 0.012;        // 目の前に出す作品の朱色のふち（m）
+// ----- ダウンロード -----
+// トリガーで押したときは、トリガーを離したときに届く WebXR の select イベントの中で保存する
+// （ブラウザに「利用者の操作」として扱われ、保存が止められにくくなる）。届かなければこの時間後に保存する。
+const EXHIBIT_DL_SELECT_WAIT_MS = 1500;
+const EXHIBIT_BTN_FLASH_MS = 2500;       // 「ダウンロードしました」をボタンに出しておく時間
+
 const EXHIBIT_FONT = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif";
 
-const EX_OFF = 0, EX_WAIT = 1, EX_SELECT = 2, EX_ADJUST = 3, EX_DRAW = 4;
+const EX_OFF = 0, EX_WAIT = 1, EX_SELECT = 2, EX_ADJUST = 3, EX_DRAW = 4, EX_FINISH = 5;
 
 let exhibitEnabled = true;   // 開始画面の「作品展示」トグル（はじめは「する」）
 let exState = EX_OFF;
@@ -4130,10 +4166,15 @@ let exLoadStatus = "idle";   // idle | loading | done | error
 let exLoadPromise = null;
 let exLoadedCount = 0;
 let exSkippedCount = 0;
-let exWorks = [];            // { no, url, imgW, imgH, aspect, texture, w, h, group, mesh, tier, idx, angle }
+// 展示作品：{ no, url, imgW, imgH, aspect, texture, w, h, group, mesh, tier, idx, angle }
+//   自分の作品はさらに { user: true, seq, slot, blob, fileName }（no は 0）
+let exImageWorks = [];       // works フォルダから読み込んだ画像（番号順）
+let exUserWorks = [];        // ③「おわる」で作った自分の作品（slot＝自分の作品の段の中の枠番号）
+let exUserSeq = 0;           // 自分の作品の通し番号（大きいほど新しい）
+let exWorks = [];            // 上の2つをつなげたもの（画像 → 自分の作品）。インデックスはこの配列のもの
 let exWorkMeshes = [];       // レイ判定の対象（展示作品の板だけ）
 let exAdjPickList = [];      // ②のレイ判定の対象（目の前の作品＋展示作品）
-let exTiers = [];            // 段ごとの exWorks インデックス（下の段から）
+let exTiers = [];            // 段ごとの exWorks インデックス（上の段から。段の中は角度順）
 
 // ----- シーン上のオブジェクト（初回だけ生成して使い回す）-----
 let exRoot = null, exCircleGroup = null, exUnitPlane = null;
@@ -4153,9 +4194,24 @@ let exBtnAdjReset = null;                                             // ②「�
 let exAdjSwapIdx = -1;       // ② トリガーを押したときにレイが当たっていた展示作品（離したときに入れ替える）
 let exAdjHoverWork = -1;     // ② いまレイが当たっている展示作品
 let exAdjRayOnWork = false;  // ② いまレイが選んだ作品（目の前の作品）に当たっているか
-let exBtnMeshesAdj = [];
+let exBtnAdjDl = null;                                                // ②「ダウンロード」（自分の作品を選んでいるときだけ）
+let exBtnMeshesAdj = [];       // ②のボタン全部（作るときの並び）
+let exBtnMeshesAdjActive = []; // ②でいま使えるボタン（ダウンロードは自分の作品のときだけ）
 let exAllBtnMeshes = [];
 let exMsgUntil = 0;
+// ----- 自分の作品・④ -----
+let exUserBorderMat = null;  // 自分の作品の朱色のふち（展示用・共有）
+let exCaptureMat = null;     // 自分の作品を写すときの上書きマテリアル（光の当たり方をなくし、墨の色そのままに）
+let exFinRoot = null;        // ④の表示物（作品・案内パネル・ボタン）をまとめるグループ
+let exFinPreview = null, exFinPreviewImg = null, exFinPreviewBorder = null;
+let exFinPanel = null;
+let exBtnGroupFin = null, exBtnFinDl = null, exBtnFinEnd = null;   // ④「ダウンロード」「おわる」
+let exBtnMeshesFin = [];
+let exFinIdx = -1;           // ④でできあがった作品（exWorks のインデックス）
+let exFinReplaced = false;   // ④ いっぱいだったので最古の作品と入れ替えたか
+const exFinCenter = new THREE.Vector3();
+let exDlPending = null;      // トリガーで押したダウンロード（select イベント待ち）{ work, btn, t }
+const exFlashingBtns = new Set();
 
 // ----- 入室時の基準（展示の中心と向き）-----
 const exCenter = new THREE.Vector3();
@@ -4181,7 +4237,11 @@ let exAdjIdx = -1;
 const exAdjPos = new THREE.Vector3();
 let exAdjYaw = 0, exAdjTilt = 0, exAdjSize = EXHIBIT_SIZE_MIN;
 let exGrabbing = false;
-const exGrabOffset = new THREE.Vector3();
+// つかんで動かす（レーザーポインター式）：つかんだ点を、レイの先（つかんだときと同じ距離）に付けたまま動かす
+let exGrabDist = 0;                         // つかんだときのレイの長さ（m）
+const exGrabLocal = new THREE.Vector2();    // つかんだ点の作品上の位置（作品の幅・高さを1とした座標）
+const exGrabTip = new THREE.Vector3();
+const exGrabTarget = new THREE.Vector3();
 let exAdjAtLimit = false;
 let exHiResTex = null, exHiResToken = 0;
 const exGrabStartPos = new THREE.Vector3();
@@ -4192,6 +4252,7 @@ const exLeftPos = new THREE.Vector3();
 const exLeftDir = new THREE.Vector3();
 let exLeftValid = false;
 let exLeftTrig = 0;
+let exLeftGrip = 0;
 // 完全リセット
 let exResetActive = false, exResetStart = 0, exResetWarned = false, exResetFired = false;
 
@@ -4200,6 +4261,7 @@ let exHoverBtn = null;       // いま指しているボタン
 let exHoverSince = 0;        // 指し始めた時刻（トリガー決定までの待ち時間用）
 let exBtnCapture = null;     // トリガーを押し始めたボタン（離すまで描画・移動を始めない）
 let exBtnFired = null;       // このフレームで決定されたボタン
+let exBtnFiredByA = false;   // そのボタンが A で決定されたか（false＝トリガー）
 let exBtnNeedFresh = false;  // 状態が変わった直後の最初のフレームで、レイが当たっているボタンを調べる
 let exBtnStale = null;       // 状態が変わった時点ですでにレイが当たっていたボタン（一度外れるまで使わない）
 
@@ -4212,6 +4274,7 @@ let exCtrlValid = false;
 const exRaycaster = new THREE.Raycaster();
 const exHits = [];
 const exTmpV1 = new THREE.Vector3();
+const exTmpV2 = new THREE.Vector3();
 const exTmpM = new THREE.Matrix4();
 const exTmpQ = new THREE.Quaternion();
 const exTmpEuler = new THREE.Euler();
@@ -4226,15 +4289,25 @@ function exUpdateStartStatus(){
         if(exLoadStatus === "loading"){
             t = `⏳ よみこみ中…（${exLoadedCount}まい）`;
         } else if(exLoadStatus === "done"){
-            t = exWorks.length > 0
-                ? `🖼️ ${exWorks.length}まい よみこみました` + (exSkippedCount ? `（${exSkippedCount}まい よめず）` : "")
+            t = exImageWorks.length > 0
+                ? `🖼️ ${exImageWorks.length}まい よみこみました` + (exSkippedCount ? `（${exSkippedCount}まい よめず）` : "")
                 : "⚠️ さくひんが ありません";
         } else if(exLoadStatus === "error"){
             t = "⚠️ よみこめませんでした";
         }
+        if(exUserWorks.length > 0) t += `／じぶんの さくひん ${exUserWorks.length}まい`;
     }
     el.textContent = t;
     exUpdateARButtonLock();
+}
+
+// スタート画面の「てんじに かざった さくひんを ダウンロード」ボタンの表示を更新する
+function exUpdateDownloadAllBtn(){
+    const btn = document.getElementById("downloadExhibitBtn");
+    if(!btn) return;
+    const n = exUserWorks.filter(w => w.blob).length;
+    btn.textContent = `🖼️ てんじに かざった さくひんを ダウンロード（${n}まい）`;
+    btn.disabled = n === 0;
 }
 
 // 「作品展示：する」で読み込み中の間は START AR を押せなくする（読み込みが終われば元に戻す）。
@@ -4479,7 +4552,7 @@ async function exLoadWorks(){
 //   入室したとき：まだ読んでいない・通信エラーで失敗した → 読む（0枚は確認済みなので読み直さない）
 function exNeedsLoad(atSessionStart){
     if(exLoadStatus === "idle" || exLoadStatus === "error") return true;
-    return !atSessionStart && exLoadStatus === "done" && exWorks.length === 0;
+    return !atSessionStart && exLoadStatus === "done" && exImageWorks.length === 0;
 }
 
 function exStartLoading(){
@@ -4495,48 +4568,104 @@ function exStartLoading(){
         exLoadStatus = (loaded.length === 0 && (skipped > 0 || aborted)) ? "error" : "done";
     }).catch(e => {
         console.warn("作品展示：作品の読み込みに失敗しました", e);
-        exLoadStatus = exWorks.length > 0 ? "done" : "error";
+        exLoadStatus = exImageWorks.length > 0 ? "done" : "error";
     }).finally(() => {
         exUpdateStartStatus();
     });
     return exLoadPromise;
 }
 
+// 展示作品1枚ぶんの板を作る（配置は exLayout で決める）。自分の作品には朱色のふちを付ける
+function exBuildWorkMesh(w){
+    // 縦横比を保って EXHIBIT_FIT_W × EXHIBIT_FIT_H の枠に収める
+    w.w = Math.min(EXHIBIT_FIT_W, EXHIBIT_FIT_H * w.aspect);
+    w.h = w.w / w.aspect;
+    const mesh = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({ map: w.texture, toneMapped: false }));
+    mesh.scale.set(w.w, w.h, 1);
+    const group = new THREE.Group();
+    group.add(mesh);
+    if(w.user){
+        // 作品の少し後ろに、ひとまわり大きな朱色の板を置いて「ふち」に見せる（レイ判定の対象にはしない）
+        const border = new THREE.Mesh(exUnitPlane, exUserBorderMat);
+        border.scale.set(w.w + EXHIBIT_USER_BORDER * 2, w.h + EXHIBIT_USER_BORDER * 2, 1);
+        border.position.z = -0.003;
+        group.add(border);
+    }
+    exCircleGroup.add(group);
+    w.mesh = mesh;
+    w.group = group;
+    w.tier = 0; w.idx = 0; w.angle = 0;
+}
+
+// exWorks（画像 → 自分の作品）とレイ判定の対象を作り直す
+function exRebuildWorkList(){
+    exWorks = exImageWorks.concat(exUserWorks);
+    exWorkMeshes = exWorks.map(w => w.mesh);
+    exWorks.forEach((w, i) => { w.mesh.userData.exIndex = i; });
+    exAdjPickList = exAdjMesh ? [exAdjMesh, ...exWorkMeshes] : exWorkMeshes.slice();
+}
+
 // 読み込んだ作品から展示用の板を作る（配置は入室時に exLayout で決める）
 function exBuildWorks(loaded){
     exEnsureScene();
-    exWorks = loaded;
-    exWorkMeshes = [];
-    exWorks.forEach((w, i) => {
-        // 縦横比を保って EXHIBIT_FIT_W × EXHIBIT_FIT_H の枠に収める
-        w.w = Math.min(EXHIBIT_FIT_W, EXHIBIT_FIT_H * w.aspect);
-        w.h = w.w / w.aspect;
-        const mesh = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({ map: w.texture, toneMapped: false }));
-        mesh.scale.set(w.w, w.h, 1);
-        mesh.userData.exIndex = i;
-        const group = new THREE.Group();
-        group.add(mesh);
-        exCircleGroup.add(group);
-        w.mesh = mesh;
-        w.group = group;
-        w.tier = 0; w.idx = i; w.angle = 0;
-        exWorkMeshes.push(mesh);
-    });
-    exAdjPickList = [exAdjMesh, ...exWorkMeshes];
+    exImageWorks = loaded;
+    exImageWorks.forEach(w => exBuildWorkMesh(w));
+    exTrimUserWorks();
+    exRebuildWorkList();
 }
 
 function exDisposeWorks(){
     if(exFrame && exRoot) exRoot.add(exFrame); // 作品に付けていた選択枠を外す
-    for(const w of exWorks){
+    for(const w of exImageWorks){
         if(w.group && w.group.parent) w.group.parent.remove(w.group);
         if(w.mesh) w.mesh.material.dispose();   // ジオメトリは共有なので破棄しない
         if(w.texture) w.texture.dispose();
     }
-    exWorks = [];
-    exWorkMeshes = [];
+    exImageWorks = [];
+    exRebuildWorkList();   // 自分の作品は残す
     exTiers = [];
     exSelIdx = -1;
     exHoverIdx = -1;
+}
+
+// ===== 自分の作品の段 =====
+// 読み込んだ画像が使う段の数（いちばん大きい番号で決まる：〜012＝1段、〜024＝2段、〜036＝3段）
+function exImageTierCount(){
+    if(exImageWorks.length === 0) return 0;
+    const N = exImageWorks[exImageWorks.length - 1].no;   // 番号順
+    return Math.min(EXHIBIT_MAX_TIERS, Math.ceil(N / EXHIBIT_PER_TIER));
+}
+
+// 自分の作品を何枚まで展示できるか（残りの段 × 12枚）
+function exUserCapacity(){
+    return EXHIBIT_PER_TIER * Math.max(0, EXHIBIT_TOTAL_TIERS - exImageTierCount());
+}
+
+function exDisposeUserWork(w){
+    if(exFrame && exRoot && exFrame.parent === w.group) exRoot.add(exFrame);
+    if(w.group && w.group.parent) w.group.parent.remove(w.group);
+    if(w.mesh) w.mesh.material.dispose();   // ジオメトリ・ふちのマテリアルは共有なので破棄しない
+    if(w.texture) w.texture.dispose();
+    if(w.url) URL.revokeObjectURL(w.url);
+    w.disposed = true;
+}
+
+// 画像を読み直して展示できる枚数が減ったとき：古い作品から外し、残りを詰め直す（ふつうは起きない）
+function exTrimUserWorks(){
+    const cap = exUserCapacity();
+    if(exUserWorks.length <= cap && exUserWorks.every(w => w.slot < cap)) return;
+    exUserWorks.sort((p, q) => p.seq - q.seq);
+    while(exUserWorks.length > cap) exDisposeUserWork(exUserWorks.shift());
+    exUserWorks.forEach((w, i) => { w.slot = i; });
+    exUpdateDownloadAllBtn();
+}
+
+// 自分の作品をすべて展示から外す（左右のグリップ＋トリガー＋B長押しの完全リセット）
+function exRemoveAllUserWorks(){
+    for(const w of exUserWorks) exDisposeUserWork(w);
+    exUserWorks = [];
+    exRebuildWorkList();
+    exUpdateDownloadAllBtn();
 }
 
 // ===== シーン上のオブジェクト生成（初回のみ）=====
@@ -4625,7 +4754,7 @@ function exEnsureScene(){
 
     // --- ③ のボタン（上から「おわる」「もどる」「すべてクリア」）---
     exBtnGroup = new THREE.Group();
-    exBtnEnd      = exMakeButton("おわる", "てんじさくひんを えらぶ");
+    exBtnEnd      = exMakeButton("おわる", "てんじに かざる");
     exBtnBack     = exMakeButton("もどる", "いち・おおきさを なおす");
     exBtnClearAll = exMakeButton("すべてクリア", "ぜんぶ けす");
     exBtnMeshes = [exBtnEnd, exBtnBack, exBtnClearAll];
@@ -4633,16 +4762,50 @@ function exEnsureScene(){
     exBtnGroup.visible = false;
     exRoot.add(exBtnGroup);
 
-    // --- ② のボタン（上から「けってい」＝③へ・Aと同じ／「もどる」＝作品選択へ・Bと同じ／「リセット」＝置き直し）---
+    // --- ② のボタン（上から「けってい」＝③へ・Aと同じ／「もどる」＝作品選択へ・Bと同じ／「リセット」＝置き直し
+    //     ／「ダウンロード」＝自分の作品を選んでいるときだけ）---
     exBtnGroupAdj = new THREE.Group();
     exBtnAdjOk    = exMakeButton("けってい", "かきはじめる");
     exBtnAdjBack  = exMakeButton("もどる", "さくひんを えらびなおす");
     exBtnAdjReset = exMakeButton("リセット", "かくど・おおきさを もどす");
-    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack, exBtnAdjReset];
+    exBtnAdjDl    = exMakeButton("ダウンロード", "JPEGで ほぞん");
+    exBtnMeshesAdj = [exBtnAdjOk, exBtnAdjBack, exBtnAdjReset, exBtnAdjDl];
     exStackButtons(exBtnGroupAdj, exBtnMeshesAdj);
+    exBtnMeshesAdjActive = exBtnMeshesAdj.slice(0, 3);
+    exBtnAdjDl.visible = false;
     exBtnGroupAdj.visible = false;
     exRoot.add(exBtnGroupAdj);
-    exAllBtnMeshes = [...exBtnMeshes, ...exBtnMeshesAdj];
+
+    // --- 自分の作品の朱色のふち（展示用・全作品で共有）／写すときの上書きマテリアル ---
+    exUserBorderMat = new THREE.MeshBasicMaterial({ color: EXHIBIT_USER_BORDER_COLOR, toneMapped: false });
+    exCaptureMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+
+    // --- ④ 終了フェーズ：できあがった作品・案内パネル・「ダウンロード」「おわる」---
+    exFinRoot = new THREE.Group();
+    exFinRoot.visible = false;
+    exRoot.add(exFinRoot);
+    exFinPreview = new THREE.Group();
+    exFinPreviewImg = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
+        side: THREE.DoubleSide, toneMapped: false
+    }));
+    exFinPreviewBorder = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
+        color: EXHIBIT_USER_BORDER_COLOR, side: THREE.DoubleSide, toneMapped: false
+    }));
+    exFinPreviewBorder.position.z = -0.002;
+    exFinPreview.add(exFinPreviewImg);
+    exFinPreview.add(exFinPreviewBorder);
+    exFinRoot.add(exFinPreview);
+    exFinPanel = exMakePanel(EXHIBIT_HINT_CW, EXHIBIT_HINT_CH);
+    exFinPanel.visible = true;   // 表示・非表示は exFinRoot でまとめて行う
+    exFinRoot.add(exFinPanel);
+    exBtnGroupFin = new THREE.Group();
+    exBtnFinDl  = exMakeButton("ダウンロード", "JPEGで ほぞん");
+    exBtnFinEnd = exMakeButton("おわる", "さくひんを えらぶ");
+    exBtnMeshesFin = [exBtnFinDl, exBtnFinEnd];
+    exStackButtons(exBtnGroupFin, exBtnMeshesFin);
+    exFinRoot.add(exBtnGroupFin);
+
+    exAllBtnMeshes = [...exBtnMeshes, ...exBtnMeshesAdj, ...exBtnMeshesFin];
 }
 
 // ボタンを上から順に、すき間 EXHIBIT_BTN_VGAP で縦に並べる（グループの中心＝並び全体の中心）
@@ -4705,11 +4868,11 @@ function exDrawPanel(mesh, key, lines, widthM, padX = 35, padY = 20){
     mesh.material.map.needsUpdate = true;
 }
 
-function exMakeButton(label, sub){
-    const canvas = document.createElement("canvas");
-    canvas.width = 768;     // 以前（512×256）の1.5倍。文字のpxは同じなので、見た目の文字の大きさは変わらない
-    canvas.height = 384;
+// ボタンの見た目（文字）を描く。あとから説明文だけ差し替えられるようにキャンバスを残しておく
+function exDrawButtonFace(btn, label, sub){
+    const canvas = btn.userData.canvas;
     const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     exRoundRectPath(ctx, 10, 10, 748, 364, 64);
     ctx.fillStyle = "rgba(40, 26, 8, 0.92)";
     ctx.fill();
@@ -4724,11 +4887,37 @@ function exMakeButton(label, sub){
     ctx.fillStyle = "#e8d8a8";
     ctx.font = `40px ${EXHIBIT_FONT}`;
     ctx.fillText(sub, 384, 270, 700);
+    btn.material.map.needsUpdate = true;
+}
+
+// しばらくのあいだボタンの説明文を差し替える（「ダウンロードしました」など）。時間がたつと元に戻る
+function exFlashButton(btn, sub){
+    exDrawButtonFace(btn, btn.userData.label, sub);
+    btn.userData.flashUntil = performance.now() + EXHIBIT_BTN_FLASH_MS;
+    exFlashingBtns.add(btn);
+}
+function exTickButtonFlash(now){
+    for(const b of exFlashingBtns){
+        if(now >= b.userData.flashUntil){
+            exDrawButtonFace(b, b.userData.label, b.userData.sub);
+            exFlashingBtns.delete(b);
+        }
+    }
+}
+
+function exMakeButton(label, sub){
+    const canvas = document.createElement("canvas");
+    canvas.width = 768;     // 以前（512×256）の1.5倍。文字のpxは同じなので、見た目の文字の大きさは変わらない
+    canvas.height = 384;
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     const btn = new THREE.Mesh(exUnitPlane, new THREE.MeshBasicMaterial({
         map: tex, transparent: true, depthWrite: false, toneMapped: false, color: 0xcfcfcf
     }));
+    btn.userData.canvas = canvas;
+    btn.userData.label = label;
+    btn.userData.sub = sub;
+    exDrawButtonFace(btn, label, sub);
     btn.scale.set(EXHIBIT_BTN_W, EXHIBIT_BTN_H, 1);
     btn.renderOrder = 11;
     // 指しているときだけ光る板（ボタンの少し後ろ）
@@ -4768,29 +4957,28 @@ function exResizeFrame(w, h){
 // 番号順に上の段から、正面を起点にプレイヤーから見て右回りに並べる。
 // 段の高さは EXHIBIT_TIER_SPACING の説明のとおり、入室時の目線（exEyeY）が基準。
 // 1つおきの段は半間隔ずらして、上下の作品が重なって見えにくいようにする。
+//
+// 自分の作品の段は、画像の段の上に積む（画像のすぐ上が自分の作品の1段目＝作品1〜12、その上が2段目…）。
+// 自分の作品の段は12枠に固定（30°ずつ）で、作った順に正面から右回りに並べる（あとから増えても前の作品は動かない）。
+// 段の数は「画像の段＋使っている自分の作品の段」。3段までは目線を中心に並べ直し、
+// 4段になったときは、下の3段の高さを3段のときのまま変えずに、4段目をその上に積む。
 function exLayout(){
     exTiers = [];
     if(exWorks.length === 0) return;
-    const N = exWorks[exWorks.length - 1].no;   // exWorks は番号順
-    const tiers = Math.min(EXHIBIT_MAX_TIERS, Math.ceil(N / EXHIBIT_PER_TIER));
-    const base = Math.floor(N / tiers), extra = N % tiers;
-    const counts = [], starts = [];
-    let acc = 0;
-    for(let t = 0; t < tiers; t++){
-        counts.push(base + (t < extra ? 1 : 0));
-        starts.push(acc);
-        acc += counts[t];
-        exTiers.push([]);
-    }
+    const imgTiers = exImageTierCount();
+    let maxSlot = -1;
+    for(const u of exUserWorks) if(u.slot > maxSlot) maxSlot = u.slot;
+    const userTiers = maxSlot >= 0 ? Math.ceil((maxSlot + 1) / EXHIBIT_PER_TIER) : 0;
+    const T = imgTiers + userTiers;                    // 段の数（上から 0,1,…,T-1）
+    const C = Math.min(T, EXHIBIT_MAX_TIERS);          // 目線を中心に並べる段の数（下から C 段）
+    for(let t = 0; t < T; t++) exTiers.push([]);
+
     const fx = exForward.x, fz = exForward.z;
     const rx = -fz, rz = fx;   // 入室時のプレイヤーから見て右方向
-    exWorks.forEach((w, wi) => {
-        const slot = w.no - 1;   // 番号 → 枠
-        let t = 0;
-        while(t < tiers - 1 && slot >= starts[t] + counts[t]) t++;
-        const cnt = counts[t];
-        const i = slot - starts[t];
-        const offset = (t % 2 === 1) ? Math.PI / cnt : 0;
+    // 段 t の高さ：下から C 段を目線中心（1段：目線／2段：目線の上下／3段：中央が目線）、
+    // それより上の段（4段目）は同じ間隔でその上に積む
+    const tierY = (t) => exEyeY + ((C - 1) / 2 - (t - (T - C))) * EXHIBIT_TIER_SPACING;
+    const place = (w, t, cnt, i, offset) => {
         const ang = offset + i * Math.PI * 2 / cnt;
         const c = Math.cos(ang), s = Math.sin(ang);
         w.tier = t;
@@ -4798,13 +4986,45 @@ function exLayout(){
         w.angle = ang;
         w.group.position.set(
             exCenter.x + (fx * c + rx * s) * EXHIBIT_RADIUS,
-            exEyeY + ((tiers - 1) / 2 - t) * EXHIBIT_TIER_SPACING,   // 1段：目線／2段：目線の上下／3段：中央が目線
+            tierY(t),
             exCenter.z + (fz * c + rz * s) * EXHIBIT_RADIUS
         );
         w.group.scale.setScalar(1);
         w.group.lookAt(exCenter.x, exEyeY, exCenter.z); // 円の中心（目の高さ）に表を向ける
-        exTiers[t].push(wi);                             // 段の中は枠の順（番号順）
-    });
+        exTiers[t].push(w.mesh.userData.exIndex);
+    };
+
+    // --- 読み込んだ画像（自分の作品の段の下）---
+    if(imgTiers > 0){
+        const N = exImageWorks[exImageWorks.length - 1].no;   // 番号順
+        const base = Math.floor(N / imgTiers), extra = N % imgTiers;
+        const counts = [], starts = [];
+        let acc = 0;
+        for(let k = 0; k < imgTiers; k++){
+            counts.push(base + (k < extra ? 1 : 0));
+            starts.push(acc);
+            acc += counts[k];
+        }
+        for(const w of exImageWorks){
+            const slot = w.no - 1;   // 番号 → 枠
+            let k = 0;
+            while(k < imgTiers - 1 && slot >= starts[k] + counts[k]) k++;
+            const cnt = counts[k];
+            place(w, userTiers + k, cnt, slot - starts[k], (k % 2 === 1) ? Math.PI / cnt : 0);
+        }
+    }
+
+    // --- 自分の作品（画像の段のすぐ上から積み上げる）---
+    for(const w of exUserWorks){
+        const u = Math.floor(w.slot / EXHIBIT_PER_TIER);   // 0＝画像のすぐ上の段
+        // ずらしは、すぐ下の段（画像の1段目は「ずらしなし」）と互い違いになるようにする
+        const shifted = ((u + (imgTiers > 0 ? 1 : 0)) % 2) === 1;
+        place(w, userTiers - 1 - u, EXHIBIT_PER_TIER, w.slot % EXHIBIT_PER_TIER,
+              shifted ? Math.PI / EXHIBIT_PER_TIER : 0);
+    }
+
+    // 段の中は角度順（＝枠の順）。スティックの左右移動に使う
+    for(const list of exTiers) list.sort((p, q) => exWorks[p].angle - exWorks[q].angle);
     exCircleGroup.updateMatrixWorld(true); // 直後のレイ判定に新しい位置を使う
 }
 
@@ -4826,6 +5046,7 @@ function exSetSelection(i){
 function exSetCircleDim(on){
     const v = on ? EXHIBIT_DIM_LEVEL : 1.0;
     for(const m of exWorkMeshes) m.material.color.setScalar(v);
+    if(exUserBorderMat) exUserBorderMat.color.setHex(EXHIBIT_USER_BORDER_COLOR).multiplyScalar(v);
 }
 
 // ②：レイが当たっている展示作品に光る枠を出す（-1 で消す）。選択（exSelIdx）は変えない
@@ -4876,6 +5097,11 @@ function exReadInput(){
     exIn.y = gp.axes[AXIS_Y] || 0;
 }
 
+// 左手のグリップ＋トリガーをにぎっているか（自分の作品の展示も消す完全リセットの姿勢）
+function exLeftResetPosture(){
+    return exLeftGrip >= GRIP_PAN_THRESHOLD && exLeftTrig >= 0.5;
+}
+
 function exAllReleased(){
     return exIn.trig < 0.1 && !exIn.a && !exIn.b && !exIn.stickBtn
         && Math.abs(exIn.x) < EXHIBIT_STICK_OFF && Math.abs(exIn.y) < EXHIBIT_STICK_OFF;
@@ -4883,9 +5109,10 @@ function exAllReleased(){
 
 function exUpdatePoses(){
     exHeadPos.copy(renderer.xr.getCamera().position);
-    // 左手（②の両手調整用）：位置・先の向き・トリガー
+    // 左手（②の両手調整・完全リセット用）：位置・先の向き・トリガー・グリップ
     exLeftValid = !!leftController && leftController.visible !== false && leftController !== rightController;
     exLeftTrig = leftGamepad ? (leftGamepad.buttons[0]?.value || 0) : 0;
+    exLeftGrip = leftGamepad ? (leftGamepad.buttons[1]?.value || 0) : 0;
     if(exLeftValid){
         exLeftPos.copy(leftController.position);
         exLeftDir.set(0, 0, -1).applyQuaternion(leftController.quaternion);
@@ -5040,6 +5267,8 @@ function exHideAll(){
     exMsgMesh.visible = false;
     exBtnGroup.visible = false;
     exBtnGroupAdj.visible = false;
+    exFinRoot.visible = false;
+    exDlPending = null;
     exRoot.visible = false;
 }
 
@@ -5097,6 +5326,7 @@ function exCancelHiRes(){
 // 目の前に置く作品だけ高解像度で読み直す（一覧取得時にブラウザのキャッシュに入っているので通常は通信しない）
 async function exLoadHiRes(w){
     const token = ++exHiResToken;
+    if(!w.url) return;   // 自分の作品で、JPEG がまだできていないとき
     try {
         const r = await exFetchImage(w.url, "force-cache");
         if(r.status !== "ok" || token !== exHiResToken) return;
@@ -5156,6 +5386,7 @@ function exResetButtonPointing(){
 // 決定されたボタンは exBtnFired に入る。
 function exTickButtons(meshes, now, trigDown, aEdge, allowPoint){
     exBtnFired = null;
+    exBtnFiredByA = false;
     // 前のフレームでトリガーを離していたとき（またはキャプチャ中）だけ指せる。
     // 一気に押し込まれた最初のフレームでも、指していたボタンを取りこぼさない。
     const canPoint = allowPoint && exCtrlValid && (exBtnCapture !== null || exPrevTrigVal < 0.1);
@@ -5187,6 +5418,7 @@ function exTickButtons(meshes, now, trigDown, aEdge, allowPoint){
     if(hover && aEdge){
         exBtnCapture = null;
         exBtnFired = hover;
+        exBtnFiredByA = true;
         return true;
     }
     if(!exBtnCapture && armed && exIn.trig > 0.05) exBtnCapture = hover;
@@ -5215,6 +5447,8 @@ function exEnterSelect(){
     exAdjMesh.material.needsUpdate = true;
     exBtnGroup.visible = false;
     exBtnGroupAdj.visible = false;
+    exFinRoot.visible = false;
+    exDlPending = null;
     exResetButtonPointing();
     exCircleGroup.visible = true;
     exHintMesh.visible = false;
@@ -5236,6 +5470,16 @@ function exSetAdjustWork(index){
     u.exInkHi.value = w.inkHi;
     u.exInkInvert.value = w.inkInvert ? 1 : 0;
     if(Math.max(w.imgW, w.imgH) > EXHIBIT_TEX_MAX) exLoadHiRes(w);
+    exUpdateAdjButtons();
+}
+
+// ②のボタン：自分の作品を選んでいるときだけ「ダウンロード」を出し、並びを上下中央にそろえ直す
+function exUpdateAdjButtons(){
+    const w = exWorks[exAdjIdx];
+    const isUser = !!(w && w.user);
+    exBtnAdjDl.visible = isUser;
+    exBtnMeshesAdjActive = isUser ? exBtnMeshesAdj.slice() : exBtnMeshesAdj.slice(0, 3);
+    exStackButtons(exBtnGroupAdj, exBtnMeshesAdjActive);
 }
 
 // 置き方を初めの状態にする（①から選んだとき・②で展示作品と入れ替えたとき）：目の前0.7mに、プレイヤーの方を向けて垂直・半紙の3倍
@@ -5256,6 +5500,7 @@ function exEnterAdjust(index, fresh){
     exAdjAtLimit = false;
     exClearSelectionHighlight();
     exBtnGroup.visible = false;
+    exFinRoot.visible = false;
     exCtrlHintMesh.visible = false;
     exResetButtonPointing();
     exSetCircleDim(true);   // 展示作品をうっすら暗く
@@ -5265,6 +5510,8 @@ function exEnterAdjust(index, fresh){
         // ①から来たとき：選んだ作品を目の前に、プレイヤーの方を向けて垂直・半紙の3倍で置く
         exSetAdjustWork(index);
         exResetAdjustPlacement();
+    } else {
+        exUpdateAdjButtons();
     }
     // ③から「もどる」で来たときは、位置・角度・大きさをそのまま引き継ぐ
     exSetAdjustLook(false);
@@ -5335,6 +5582,324 @@ function exFallbackToNormal(isError){
         startGuideReplay();
         currentGalleryIndex = DEFAULT_SLOT;
         updateGalleryHighlight();
+    }
+}
+
+// =====================================================================
+// ===== 自分の作品をつくる（③「おわる」）=====
+// 目の前の作品（exAdjMesh）を真正面（紙の面に垂直）から遠近なしで写し、作品の枠で切り取る。
+// 写すのは自分の線（textGroup）だけ。白い下地の上に重ねた画像になる。
+// 画像の大きさは、元の作品と同じピクセル数（長辺は EXHIBIT_USER_MAX_PX まで）。
+// =====================================================================
+
+// レンダーターゲットから読み出した値は「リニア」なので、画面と同じ見た目（sRGB）に直す表
+const EX_LIN2SRGB = (() => {
+    const t = new Uint8Array(256);
+    for(let i = 0; i < 256; i++){
+        const c = i / 255;
+        const s = c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+        t[i] = Math.max(0, Math.min(255, Math.round(s * 255)));
+    }
+    return t;
+})();
+const exCapInv = new THREE.Matrix4();
+const exCapP = new THREE.Vector3();
+
+// 作品の枠の中に（すこしでも）入っている線があるか
+function exHasInkInFrame(sw, sh){
+    exCapInv.copy(exAdjMesh.matrixWorld).invert();   // 作品のローカル座標（幅・高さを1とした座標、奥行きはm）へ
+    const tg = textGroup.matrixWorld;
+    for(let i = 0; i < stampIndex; i++){
+        const e = histReadMatrix(i, histScratchM).elements;
+        const r = Math.hypot(e[0], e[1], e[2]);        // スタンプの半径
+        exCapP.set(e[12], e[13], e[14]).applyMatrix4(tg).applyMatrix4(exCapInv);
+        if(Math.abs(exCapP.x) <= 0.5 + r / sw && Math.abs(exCapP.y) <= 0.5 + r / sh
+           && Math.abs(exCapP.z) <= EXHIBIT_CAPTURE_DEPTH) return true;
+    }
+    return false;
+}
+
+// 戻り値：{ canvas, W, H }（枠の中に線がなければ null）
+function exCaptureUserWork(){
+    const w = exWorks[exAdjIdx];
+    if(!w || stampIndex === 0) return null;
+    exApplyAdjustTransform();
+    exAdjMesh.updateMatrixWorld(true);
+    textGroup.updateMatrixWorld(true);
+    const sw = exAdjMesh.scale.x, sh = exAdjMesh.scale.y;
+    if(!exHasInkInFrame(sw, sh)) return null;
+
+    // 画像の大きさ：元の作品と同じピクセル数（縦横比も同じ）。長辺は上限まで
+    const k = Math.min(1, EXHIBIT_USER_MAX_PX / Math.max(w.imgW, w.imgH));
+    const W = Math.max(1, Math.round(w.imgW * k));
+    const H = Math.max(1, Math.round(w.imgH * k));
+
+    // 作品の表側から、紙の面に垂直に見る（遠近なし）カメラ。視野＝作品の枠ちょうど
+    const cam = new THREE.OrthographicCamera(-sw / 2, sw / 2, sh / 2, -sh / 2, 0.001, EXHIBIT_CAPTURE_DEPTH * 2);
+    exTmpV1.set(0, 0, 1).applyQuaternion(exAdjMesh.quaternion);   // 作品の表の向き
+    cam.position.copy(exAdjMesh.position).addScaledVector(exTmpV1, EXHIBIT_CAPTURE_DEPTH);
+    cam.quaternion.copy(exAdjMesh.quaternion);                     // 上＝作品の上、右＝作品の右（鏡写しにならない）
+    cam.updateMatrixWorld(true);
+
+    const rt = new THREE.WebGLRenderTarget(W, H, {
+        samples: EXHIBIT_CAPTURE_SAMPLES, depthBuffer: true, stencilBuffer: false
+    });
+    // 自分の線以外（展示物・お手本・コントローラー・ギャラリーなど）はすべて隠す
+    // （ライトは何も描かないので、そのままにしておく：消すとシェーダーの作り直しが起きるため）
+    const hidden = [];
+    for(const c of scene.children){
+        if(c === textGroup || c.isLight || !c.visible) continue;
+        c.visible = false;
+        hidden.push(c);
+    }
+    const oldBg = scene.background, oldOverride = scene.overrideMaterial;
+    scene.background = new THREE.Color(0xffffff);   // 白い紙
+    scene.overrideMaterial = exCaptureMat;          // 光の当たり方をなくし、墨の色そのままに
+    const wasXR = renderer.xr.enabled;
+    const prevRT = renderer.getRenderTarget();      // VR中はヘッドセットの描画先。あとで必ず戻す
+    renderer.xr.enabled = false;
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, cam);
+    renderer.setRenderTarget(prevRT);
+    renderer.xr.enabled = wasXR;
+    scene.background = oldBg;
+    scene.overrideMaterial = oldOverride;
+    for(const c of hidden) c.visible = true;
+
+    const px = new Uint8Array(W * H * 4);
+    renderer.readRenderTargetPixels(rt, 0, 0, W, H, px);
+    rt.dispose();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    const img = ctx.createImageData(W, H);
+    const d = img.data;
+    const row = W * 4;
+    for(let y = 0; y < H; y++){
+        const src = y * row, dst = (H - 1 - y) * row;   // 上下を反転
+        for(let x = 0; x < row; x += 4){
+            d[dst + x]     = EX_LIN2SRGB[px[src + x]];
+            d[dst + x + 1] = EX_LIN2SRGB[px[src + x + 1]];
+            d[dst + x + 2] = EX_LIN2SRGB[px[src + x + 2]];
+            d[dst + x + 3] = 255;
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+    return { canvas, W, H };
+}
+
+function exUserFileName(date){
+    const p = n => String(n).padStart(2, "0");
+    return `${date.getFullYear()}${p(date.getMonth() + 1)}${p(date.getDate())}_` +
+           `${p(date.getHours())}${p(date.getMinutes())}${p(date.getSeconds())}_tenji.jpg`;
+}
+
+// 写した画像から自分の作品を作って展示に加える。いっぱいなら、いちばん古い作品と入れ替える（同じ場所に入る）。
+// 戻り値：{ index: exWorks のインデックス, replaced }
+function exAddUserWork(cap){
+    // 展示用の小さな画像（長辺 EXHIBIT_TEX_MAX）
+    const s = Math.min(1, EXHIBIT_TEX_MAX / Math.max(cap.W, cap.H));
+    const small = document.createElement("canvas");
+    small.width = Math.max(1, Math.round(cap.W * s));
+    small.height = Math.max(1, Math.round(cap.H * s));
+    const sctx = small.getContext("2d");
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = "high";
+    sctx.drawImage(cap.canvas, 0, 0, small.width, small.height);
+    const ink = exAnalyzeInk(small);
+    const texture = exMakeTexture(small);
+    if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
+
+    const work = {
+        user: true, seq: ++exUserSeq, slot: 0, no: 0,
+        url: null, blob: null, fileName: exUserFileName(new Date()),
+        imgW: cap.W, imgH: cap.H, aspect: cap.W / cap.H, texture,
+        inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert
+    };
+    // ダウンロード用の JPEG（できあがったら blob と url を入れる）
+    cap.canvas.toBlob(b => {
+        if(work.disposed || !b) return;
+        work.blob = b;
+        work.url = URL.createObjectURL(b);
+        exUpdateDownloadAllBtn();
+    }, "image/jpeg", EXHIBIT_JPEG_QUALITY);
+
+    let replaced = false;
+    if(exUserWorks.length < exUserCapacity()){
+        const used = new Set(exUserWorks.map(u => u.slot));
+        let slot = 0;
+        while(used.has(slot)) slot++;
+        work.slot = slot;
+        exUserWorks.push(work);
+    } else {
+        let k = 0;
+        for(let i = 1; i < exUserWorks.length; i++) if(exUserWorks[i].seq < exUserWorks[k].seq) k = i;
+        work.slot = exUserWorks[k].slot;
+        exDisposeUserWork(exUserWorks[k]);
+        exUserWorks[k] = work;
+        replaced = true;
+    }
+    exBuildWorkMesh(work);
+    exRebuildWorkList();
+    exLayout();
+    exUpdateStartStatus();
+    exUpdateDownloadAllBtn();   // JPEG が先にできていた場合も、ここで数を合わせる
+    return { index: work.mesh.userData.exIndex, replaced };
+}
+
+// ③「おわる」：自分の作品を作って展示に加え、ギャラリーに保存して描画を全部消し、④へ。
+// 枠の中に線がないときは展示に加えず、案内を出して①へ戻る。
+function exFinishFromDraw(){
+    if(replayActive) finishReplayImmediately();
+    const cap = exCaptureUserWork();      // 描画を消す前に写す
+    exSaveToGalleryOldestFirst();
+    exClearAllLikeLongB();
+    clearGuide();
+    if(!cap){
+        exEnterSelect();
+        exShowMessage([
+            { text: "さくひんの わくの なかに かかれていないので", size: 60, bold: true },
+            { text: "てんじには かざりませんでした", size: 60, color: "#e8c86a" }
+        ], 4000);
+        return;
+    }
+    const r = exAddUserWork(cap);
+    exEnterFinish(r.index, r.replaced);
+}
+
+// ===== ④ 終了フェーズ =====
+function exEnterFinish(index, replaced){
+    exState = EX_FINISH;
+    exGate = true;
+    exGrabbing = false;
+    exTwoHand = false;
+    exCancelHiRes();
+    exShowAdjust(false);
+    exAdjMesh.material.map = null;
+    exAdjMesh.material.needsUpdate = true;
+    exBtnGroup.visible = false;
+    exBtnGroupAdj.visible = false;
+    exHintMesh.visible = false;
+    exCtrlHintMesh.visible = false;
+    exResetButtonPointing();
+    exSetCircleDim(false);              // 展示を元の明るさで見せる
+    exCircleGroup.visible = true;
+    exClearSelectionHighlight();
+    exFinIdx = index;
+    exFinReplaced = replaced;
+    exShowFrameOn(index);               // まわりの展示の中で、新しい作品を光る枠で示す
+    exPlaceFinish();
+    exFinRoot.visible = true;
+    exRoot.visible = true;
+    exBtnNeedFresh = true;
+    exDlPending = null;
+    if(brushGroup) brushGroup.visible = false;
+    vibrate("right", 120, 0.8);
+}
+
+function exDrawFinishPanel(w){
+    const tierNo = w.tier + 1;
+    exDrawPanel(exFinPanel, `fin:${w.seq}:${tierNo}:${exFinReplaced}`, [
+        { text: "てんじさくひんが できました！", size: 84, bold: true },
+        { text: `まわりの てんじの うえから ${tierNo}だんめに かざりました`, size: 56 },
+        { text: exFinReplaced
+            ? "（いっぱいなので いちばん ふるい さくひんと いれかえました）"
+            : "ひかっている さくひんが あなたの さくひんです", size: 50, color: "#e8c86a" },
+        { text: "ダウンロード：JPEGで ほぞん ／ おわる：さくひんを えらぶ", size: 54, bold: true, color: "#e8c86a" }
+    ], EXHIBIT_HINT_W, EXHIBIT_HINT_PAD_X, EXHIBIT_HINT_PAD_Y);
+}
+
+// できあがった作品を目の前（垂直）に出し、その下に案内パネル、左に「ダウンロード」「おわる」を置く。
+// 位置は④に入ったときのプレイヤーの位置・向きで決め、そのあとは動かさない。
+function exPlaceFinish(){
+    const w = exWorks[exFinIdx];
+    if(!w) return;
+    const { pos, forward } = getViewerPose();
+    const yaw = Math.atan2(-forward.x, -forward.z);   // 表（+Z）をプレイヤーへ向ける
+    exTmpQ.setFromAxisAngle(EX_AXIS_Y, yaw);
+    const L = EXHIBIT_FIN_SIZE;
+    const pw = w.aspect >= 1 ? L : L * w.aspect;
+    const ph = w.aspect >= 1 ? L / w.aspect : L;
+    exFinCenter.copy(pos).addScaledVector(forward, EXHIBIT_FIN_DIST);
+    exFinCenter.y = pos.y - EXHIBIT_FIN_DROP;
+
+    // 作品（朱色のふち付き）
+    exFinPreview.position.copy(exFinCenter);
+    exFinPreview.quaternion.copy(exTmpQ);
+    exFinPreviewImg.scale.set(pw, ph, 1);
+    exFinPreviewImg.material.map = w.texture;
+    exFinPreviewImg.material.needsUpdate = true;
+    exFinPreviewBorder.scale.set(pw + EXHIBIT_FIN_BORDER * 2, ph + EXHIBIT_FIN_BORDER * 2, 1);
+
+    // 案内パネル（作品の下・少し手前・少し上向き）
+    exDrawFinishPanel(w);
+    const hh = exFinPanel.scale.y;
+    exTmpV1.set(0, -(ph / 2) - EXHIBIT_HINT_DROP - hh / 2, EXHIBIT_HINT_FRONT).applyQuaternion(exTmpQ);
+    exFinPanel.position.copy(exFinCenter).add(exTmpV1);
+    exFinPanel.quaternion.setFromEuler(exTmpEuler.set(-EXHIBIT_HINT_PITCH, yaw, 0, "YXZ"));
+
+    // ボタン（作品の左に縦に並べる）
+    exTmpV1.set(-(pw / 2) - EXHIBIT_BTN_WORK_GAP - EXHIBIT_BTN_W / 2, 0, 0.01).applyQuaternion(exTmpQ);
+    exBtnGroupFin.position.copy(exFinCenter).add(exTmpV1);
+    exBtnGroupFin.quaternion.copy(exTmpQ);
+    exFinRoot.updateMatrixWorld(true);
+}
+
+function exTickFinish(now, trigDown, aEdge){
+    exAnimateFrame(now);
+    if(exGate){ exResetButtonPointing(); return; }
+    exTickButtons(exBtnMeshesFin, now, trigDown, aEdge, true);
+    if(exBtnFired === exBtnFinDl){
+        exRequestDownload(exWorks[exFinIdx], exBtnFinDl, exBtnFiredByA);
+    } else if(exBtnFired === exBtnFinEnd){
+        exBuzzDecide();
+        exEnterSelect();   // ①へ（選択は、さっきお手本にした作品のまま）
+    }
+}
+
+// ===== ダウンロード =====
+function exDownloadBlob(work){
+    if(!work || !work.url) return false;
+    const a = document.createElement("a");
+    a.href = work.url;
+    a.download = work.fileName;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return true;
+}
+
+function exDoDownload(work, btn){
+    if(!exDownloadBlob(work)){ exBuzzLimit(); return; }
+    exBuzzDecide();
+    if(btn) exFlashButton(btn, "ダウンロードしました");
+}
+
+// A で押したときはすぐ保存。トリガーで押したときは、トリガーを離したときに届く select イベントの中で保存する
+// （届かなければ EXHIBIT_DL_SELECT_WAIT_MS 後に保存）
+function exRequestDownload(work, btn, viaA){
+    if(!work || !work.user) return;
+    if(!work.blob){ exBuzzLimit(); return; }   // JPEG をまだ作っている途中（ふつうは一瞬）
+    if(viaA){ exDoDownload(work, btn); return; }
+    exDlPending = { work, btn, t: performance.now() };
+}
+
+function exOnXRSelect(e){
+    if(!exDlPending) return;
+    if(e && e.inputSource && e.inputSource.handedness && e.inputSource.handedness !== "right") return;
+    const p = exDlPending;
+    exDlPending = null;
+    exDoDownload(p.work, p.btn);
+}
+
+function exTickDownloadPending(now){
+    if(exDlPending && now - exDlPending.t > EXHIBIT_DL_SELECT_WAIT_MS){
+        const p = exDlPending;
+        exDlPending = null;
+        exDoDownload(p.work, p.btn);
     }
 }
 
@@ -5457,10 +6022,18 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
     if(exGate){
         exResetButtonPointing();
     } else {
-        // 「もどる」ボタン（つかんで動かしている間は指せない）
-        const btnBusy = exTickButtons(exBtnMeshesAdj, now, trigDown, aEdge, !exGrabbing && !exTwoHand && exAdjSwapIdx < 0);
+        // ボタン（つかんで動かしている間は指せない）。「ダウンロード」は自分の作品のときだけ並ぶ
+        const btnBusy = exTickButtons(exBtnMeshesAdjActive, now, trigDown, aEdge, !exGrabbing && !exTwoHand && exAdjSwapIdx < 0);
         if(exBtnFired === exBtnAdjBack){ exCancelToSelect(); return; }   // ②「もどる」→ ①作品選択（Bと同じ）
         if(exBtnFired === exBtnAdjOk){ vibrate("right", 80, 0.7); exEnterDraw(); return; }   // ②「けってい」→ ③（Aと同じ）
+        if(exBtnFired === exBtnAdjDl){
+            // ②「ダウンロード」：いま選んでいる自分の作品を JPEG で保存（②のまま）
+            exRequestDownload(exWorks[exAdjIdx], exBtnAdjDl, exBtnFiredByA);
+            exApplyAdjustTransform();
+            exShowAdjustHint();
+            exPlaceButtonsLeftOfWork(exBtnGroupAdj);
+            return;
+        }
         if(exBtnFired === exBtnAdjReset){
             // ②「リセット」：角度（垂直）と大きさ（半紙の3倍）だけ初めに戻す。位置と左右の向きはそのまま
             exBuzzDecide();
@@ -5479,22 +6052,19 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
 
         // レイ：ボタンを指していないときは、目の前の作品・展示作品のどちらに当たっているかを調べる
         exAdjRayOnWork = false;
-        let hoverWork = -1;
+        let hoverWork = -1, workHit = null;
         if(!exHoverBtn && !btnBusy && exCtrlValid && !exTwoHand && !exGrabbing){
             exHits.length = 0;
             exAdjMesh.updateMatrixWorld(true);
             exRaycaster.intersectObjects(exAdjPickList, false, exHits);
             const hit = exHits[0];
-            if(hit && hit.object === exAdjMesh) exAdjRayOnWork = true;
+            if(hit && hit.object === exAdjMesh){ exAdjRayOnWork = true; workHit = hit; }
             else if(hit) hoverWork = hit.object.userData.exIndex;
             if(!exGrabbing) exShowRay(hit ? hit.distance : EXHIBIT_RAY_LEN, !!hit);
         }
         if(exGrabbing){
-            // 動かしている間もレイを作品の当たり点まで表示（当たらない向きのときは消す）
-            exHits.length = 0;
-            exAdjMesh.updateMatrixWorld(true);
-            if(exCtrlValid) exRaycaster.intersectObject(exAdjMesh, false, exHits);
-            if(exHits.length > 0) exShowRay(exHits[0].distance, true); else exHideRay();
+            // 動かしている間は、つかんだ点（レイの先）までレイを表示
+            exShowRay(exGrabDist, true);
         }
         if(hoverWork === exAdjIdx) hoverWork = -1;   // いま選んでいる作品そのものは入れ替え対象にしない
         if(hoverWork !== exAdjHoverWork){
@@ -5523,12 +6093,16 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
             exAdjSwapIdx = -1;
         }
 
-        // 位置：選んだ作品にレイが当たっているときだけ、トリガーでつかんで動かせる。
-        // トリガーを押した瞬間の「作品 − コントローラー」の差を保ったまま動かす（急に飛ばない）。
+        // 位置：選んだ作品にレイが当たっているときだけ、トリガーでつかんで動かせる（レーザーポインター式）。
+        // つかんだ点を、レイの先（つかんだときと同じ距離）に付けたまま動かす。
+        // 体ごと回れば、作品も距離を保ったままプレイヤーのまわりを回る。手首の向きを変えても、レイの先に合わせて動く。
         // ボタンに使われているトリガー（btnBusy）・グリップを握っているとき（完全リセットの姿勢）・両手のときは動かさない
-        if(!exGrabbing && !exTwoHand && trigEdge && !btnBusy && exAdjRayOnWork && exCtrlValid && exIn.grip < GRIP_PAN_THRESHOLD){
+        if(!exGrabbing && !exTwoHand && trigEdge && !btnBusy && exAdjRayOnWork && workHit && exCtrlValid && exIn.grip < GRIP_PAN_THRESHOLD){
             exGrabbing = true;
-            exGrabOffset.copy(exAdjPos).sub(exRayOrigin);
+            exGrabDist = workHit.distance;
+            exTmpV1.copy(workHit.point);
+            exAdjMesh.worldToLocal(exTmpV1);           // 作品の上のどこをつかんだか（幅・高さを1とした座標）
+            exGrabLocal.set(exTmpV1.x, exTmpV1.y);
             exGrabStartPos.copy(exAdjPos);
             exGrabStartYaw = exAdjYaw;
             vibrate("right", 25, 0.4);
@@ -5536,14 +6110,7 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
             exGrabbing = false;   // 離したらその位置で固定
             vibrate("right", 15, 0.3);
         }
-        if(exGrabbing){
-            exTmpV1.copy(exRayOrigin).add(exGrabOffset);
-            exAdjPos.lerp(exTmpV1, 1 - Math.exp(-dt / EXHIBIT_GRAB_SMOOTH_TAU));
-            // 動かしている間は、作品の表（+Z）を常にプレイヤー（頭）の方へ向ける。
-            // 左右の向きだけを合わせ、上下の「たおす」角度はスティックで決めた値のまま。
-            const hx = exHeadPos.x - exAdjPos.x, hz = exHeadPos.z - exAdjPos.z;
-            if(hx * hx + hz * hz > 1e-4) exAdjYaw = Math.atan2(hx, hz);
-        }
+        if(exGrabbing) exUpdateGrab(dt);
 
         // スティック：傾きの大きい軸だけ有効（上下＝たおす／左右＝おおきさ）。離せばその値で止まる
         const x = exTwoHand ? 0 : exIn.x, y = exTwoHand ? 0 : exIn.y;
@@ -5568,15 +6135,39 @@ function exTickAdjust(now, dt, trigDown, trigEdge, aEdge, bEdge){
     exPlaceButtonsLeftOfWork(exBtnGroupAdj);   // ボタンは作品の左に付いて動く
 }
 
+// ② つかんで動かす（レーザーポインター式）の毎フレーム処理。
+// レイの先（つかんだときと同じ距離）に、つかんだ点が来るように作品の中心を決める。
+// 作品の表（+Z）は常にプレイヤー（頭）の方へ向ける（左右の向きだけ。上下の「たおす」角度はそのまま）。
+// 向きが変わると「つかんだ点 → 中心」の向きも変わるので、向きと位置を2回くり返して合わせる。
+function exUpdateGrab(dt){
+    const w = exWorks[exAdjIdx];
+    if(!w) return;
+    const sw = w.aspect >= 1 ? exAdjSize : exAdjSize * w.aspect;
+    const sh = w.aspect >= 1 ? exAdjSize / w.aspect : exAdjSize;
+    exGrabTip.copy(exRayOrigin).addScaledVector(exRayDir, exGrabDist);   // つかんだ点の行き先
+    let yaw = exAdjYaw;
+    for(let k = 0; k < 2; k++){
+        exTmpQ.setFromEuler(exTmpEuler.set(-exAdjTilt, yaw, 0, "YXZ"));   // exAdjMesh と同じ回転
+        exTmpV2.set(exGrabLocal.x * sw, exGrabLocal.y * sh, 0).applyQuaternion(exTmpQ);
+        exGrabTarget.copy(exGrabTip).sub(exTmpV2);
+        const hx = exHeadPos.x - exGrabTarget.x, hz = exHeadPos.z - exGrabTarget.z;
+        if(hx * hx + hz * hz > 1e-4) yaw = Math.atan2(hx, hz);
+    }
+    exAdjPos.lerp(exGrabTarget, 1 - Math.exp(-dt / EXHIBIT_GRAB_SMOOTH_TAU));   // 手ぶれ吸収
+    exAdjYaw = yaw;
+}
+
 // ② 両手での調整。左右のトリガーを両方押している間：
 //   ・両手の間隔を広げる／狭める → 大きさ（押し始めたときの間隔との比で、半紙の1〜5倍）
 //   ・両手首を傾ける（コントローラーの先を下へ／上へ）→ 上端が奥へ倒れる／起きる（垂直〜水平）
 //   ・位置は動かさない。右トリガーだけで動かし始めていた場合は、動かす前の位置に戻す。
 function exTickTwoHand(btnBusy){
+    // 始めるときは、どちらのグリップもにぎっていないこと（グリップ＋トリガーは完全リセットの姿勢なので）
     const both = exCtrlValid && exLeftValid && !btnBusy
         && (exTwoHand
             ? (exIn.trig >= EXHIBIT_TWO_HAND_OFF && exLeftTrig >= EXHIBIT_TWO_HAND_OFF)
-            : (exIn.trig >= EXHIBIT_TWO_HAND_ON && exLeftTrig >= EXHIBIT_TWO_HAND_ON));
+            : (exIn.trig >= EXHIBIT_TWO_HAND_ON && exLeftTrig >= EXHIBIT_TWO_HAND_ON
+               && exIn.grip < GRIP_PAN_THRESHOLD && exLeftGrip < GRIP_PAN_THRESHOLD));
     if(!both){
         if(exTwoHand){
             exTwoHand = false;
@@ -5611,8 +6202,9 @@ function exTickTwoHand(btnBusy){
     exNotifyLimit(s !== exAdjSize || t !== exAdjTilt);
 }
 
-// 完全リセット：描画を全部消し、いまの立ち位置・向きを中心に展示を並べ直して、①作品選択へ戻る（保存はしない）
-function exFullReset(){
+// 完全リセット：描画とお手本を全部消し、いまの立ち位置・向きを中心に展示を並べ直して、①作品選択へ戻る（保存はしない）
+// withUserWorks＝true（左グリップ＋左トリガーも一緒ににぎっていた）のときは、自分の作品の展示も全部消す
+function exFullReset(withUserWorks){
     drawing = false;
     hasLast = false;
     releaseActive = false;
@@ -5622,24 +6214,39 @@ function exFullReset(){
     exTwoHand = false;
     exCancelHiRes();
     exShowAdjust(false);
+    exAdjMesh.material.map = null;
+    exAdjMesh.material.needsUpdate = true;
     exHintMesh.visible = false;
     exCtrlHintMesh.visible = false;
     exBtnGroup.visible = false;
     exBtnGroupAdj.visible = false;
+    exFinRoot.visible = false;
+    exFinPreviewImg.material.map = null;
+    exDlPending = null;
     exResetButtonPointing();
     exClearAllLikeLongB();
+    clearGuide();   // お手本も消す
     const { pos, forward } = getViewerPose();
     exCenter.copy(pos);
     exForward.copy(forward);
     exEyeY = pos.y;
     exClearSelectionHighlight();
+    if(withUserWorks) exRemoveAllUserWorks();
     exSelIdx = 0;
-    exLayout();
-    exEnterSelect();
+    if(exWorks.length === 0){
+        // 展示する作品が1枚もなくなった（読み込んだ画像が0枚のとき）：ふつうに書けるようにする
+        exFallbackToNormal(false);
+    } else {
+        exLayout();
+        exEnterSelect();
+    }
+    exUpdateStartStatus();
     vibrate("right", 250, 1.0);
+    if(withUserWorks) vibrate("left", 250, 1.0);
 }
 
-// 完全リセットの操作（右トリガー＋右グリップ＋B長押し）。①②③で受け付ける（固定化中は受け付けない）。
+// 完全リセットの操作（右トリガー＋右グリップ＋B長押し）。①②③④で受け付ける（固定化中は受け付けない）。
+// B長押しが成立した時点で左グリップ＋左トリガーもにぎっていれば、自分の作品の展示も全部消す。
 // 長押しの途中は既存のBの機能（取り消し・全消去・②の「もどる」）が働かないよう、Bを離すまで入力を預かる。
 // 戻り値 true：このフレームの入力はリセット操作が使っている
 function exTickReset(now, bEdge){
@@ -5651,14 +6258,18 @@ function exTickReset(now, bEdge){
         }
         if(!exResetFired){
             const held = now - exResetStart;
-            if(!exResetWarned && held >= EXHIBIT_RESET_WARN_MS){ exResetWarned = true; vibrate("right", 40, 0.5); }
-            if(held >= EXHIBIT_RESET_HOLD_MS){ exResetFired = true; exFullReset(); }
+            if(!exResetWarned && held >= EXHIBIT_RESET_WARN_MS){
+                exResetWarned = true;
+                vibrate("right", 40, 0.5);
+                if(exLeftResetPosture()) vibrate("left", 40, 0.5);   // 自分の作品も消える合図
+            }
+            if(held >= EXHIBIT_RESET_HOLD_MS){ exResetFired = true; exFullReset(exLeftResetPosture()); }
         }
         return true;
     }
     const posture = exIn.trig >= 0.5 && exIn.grip >= GRIP_PAN_THRESHOLD;
     if(posture && bEdge && !operationLocked
-       && (exState === EX_SELECT || exState === EX_ADJUST || exState === EX_DRAW)){
+       && (exState === EX_SELECT || exState === EX_ADJUST || exState === EX_DRAW || exState === EX_FINISH)){
         exResetActive = true;
         exResetStart = now;
         exResetWarned = false;
@@ -5695,10 +6306,9 @@ function exTickDraw(now, trigDown, aEdge){
             exBuzzDecide();
             exEnterAdjust(exAdjIdx, false);   // もどる：②へ（位置・角度・大きさ・描いた線はそのまま）
         } else {
-            // おわる：ギャラリーに新しく保存（満杯なら古い順に上書き）→ 描画を全部消す → ①へ
-            exSaveToGalleryOldestFirst();
-            exClearAllLikeLongB();
-            exEnterSelect();
+            // おわる：自分の作品を作って展示に加える → ギャラリーに新しく保存（満杯なら古い順に上書き）
+            //         → 描画を全部消す → ④へ（枠の中に線がなければ①へ）
+            exFinishFromDraw();
         }
         return true;
     }
@@ -5809,6 +6419,13 @@ function exhibitUpdate(){
                 block = exTickDraw(now, trigDown, aEdge);
             }
             break;
+        case EX_FINISH: exTickFinish(now, trigDown, aEdge); break;
+    }
+
+    // ③で右グリップ＋右トリガーをにぎっている間（完全リセット・固定化の姿勢）は、
+    // 左トリガーでのギャラリー保存を発火させない（左右のグリップ＋トリガー＋Bの完全リセットの途中で保存されないように）
+    if(exState === EX_DRAW && leftGamepad && exIn.trig >= 0.5 && exIn.grip >= GRIP_PAN_THRESHOLD){
+        prevLeftTrigger = !!leftGamepad.buttons[0]?.pressed;
     }
 
     exPrevTrigDown = trigDown;
@@ -5816,8 +6433,11 @@ function exhibitUpdate(){
     exPrevA = exIn.a;
     exPrevB = exIn.b;
 
-    // ①②（と入室直後）は筆を隠し、左手のギャラリー一覧も出さない
-    if(exState === EX_WAIT || exState === EX_SELECT || exState === EX_ADJUST){
+    exTickDownloadPending(now);
+    exTickButtonFlash(now);
+
+    // ①②④（と入室直後）は筆を隠し、左手のギャラリー一覧も出さない
+    if(exState === EX_WAIT || exState === EX_SELECT || exState === EX_ADJUST || exState === EX_FINISH){
         if(brushGroup) brushGroup.visible = false;
         galleryVisible = false;
     }
@@ -5829,6 +6449,10 @@ function exhibitUpdate(){
 function exhibitOnSessionStart(){
     exMsgUntil = 0;
     exHideAll();
+    exDlPending = null;
+    // トリガーで押したダウンロードは、トリガーを離したときの select イベントの中で保存する（exOnXRSelect）
+    const session = renderer.xr.getSession();
+    if(session) session.addEventListener("select", exOnXRSelect);
     if(!exhibitEnabled){ exState = EX_OFF; return; }
     exEnsureScene();
     exState = EX_WAIT;
@@ -5858,10 +6482,13 @@ function exhibitOnSessionEnd(){
     exGrabbing = false;
     exMsgUntil = 0;
     exHideAll();
+    exDlPending = null;
     if(exAdjMesh){
         exAdjMesh.material.map = null;
         exAdjMesh.material.needsUpdate = true;
     }
+    exUpdateDownloadAllBtn();
+    exUpdateStartStatus();
 }
 
 // ===== ギャラリーのサムネイル撮影中は展示物を隠す =====
@@ -5892,6 +6519,18 @@ function exhibitRestoreAfterCapture(v){
     // はじめから「する」なので、ページを開いたらすぐ読み込みを始める（終わるまで START AR は押せない）
     if(exhibitEnabled && exNeedsLoad(false)) exStartLoading();
     refresh();
+})();
+
+// ===== 開始画面の「てんじに かざった さくひんを ダウンロード」=====
+// VRの中でダウンロードし忘れた・保存できなかったときのための保険。展示中の自分の作品を古い順にまとめて保存する。
+// （ブラウザによっては「複数のファイルをダウンロードしますか？」と聞かれるので、許可する）
+(function(){
+    const btn = document.getElementById("downloadExhibitBtn");
+    btn.addEventListener("click", () => {
+        const list = exUserWorks.filter(w => w.blob).sort((p, q) => p.seq - q.seq);
+        list.forEach((w, i) => setTimeout(() => exDownloadBlob(w), i * 400));
+    });
+    exUpdateDownloadAllBtn();
 })();
 
 // リスナーはページ読み込み時に1回だけ登録する（入室・退室を繰り返しても重複しない）
