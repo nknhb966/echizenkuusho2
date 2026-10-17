@@ -544,6 +544,43 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
   letter-spacing: 0.04em;
   text-shadow: 0 0 8px rgba(200,168,74,0.3);
 }
+/* ===== 受け取りQRの設定（モーダル） ===== */
+#qrSettingsModal {
+  position: fixed; inset: 0; z-index: 3100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(4, 3, 14, 0.85);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  padding: 16px;
+}
+#qrSettingsModal.open { display: flex; }
+#qrSettingsModal .qrs-inner {
+  width: min(560px, 100%); max-height: 92vh; overflow: auto;
+  background: linear-gradient(150deg, rgba(18,14,32,0.97), rgba(12,9,22,0.98));
+  border: 1px solid rgba(200,168,74,0.25); border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.75);
+  padding: 22px 22px 18px; color: var(--txt-body); font-family: sans-serif;
+}
+#qrSettingsModal h3 {
+  margin: 0 0 8px; text-align: center; font-family: 'Noto Serif JP', serif;
+  font-size: 19px; color: var(--txt-muted); letter-spacing: 0.12em;
+}
+#qrSettingsModal .qrs-lead { font-size: 13px; line-height: 1.7; color: var(--txt-sub); margin: 0 0 14px; text-align: center; }
+#qrSettingsModal .qrs-field { display: block; margin: 0 0 12px; }
+#qrSettingsModal .qrs-field > span { display: block; font-size: 12px; font-weight: 700; color: rgba(200,190,160,0.75); margin-bottom: 5px; letter-spacing: 0.04em; }
+#qrSettingsModal input {
+  width: 100%; padding: 10px 12px; font-size: 15px; border-radius: 10px;
+  background: rgba(255,255,255,0.07); color: #f0e8d0;
+  border: 1px solid rgba(200,168,74,0.35); outline: none; font-family: ui-monospace, monospace;
+}
+#qrSettingsModal input:focus { border-color: rgba(200,168,74,0.8); box-shadow: 0 0 0 3px rgba(200,168,74,0.18); }
+#qrSettingsModal .qrs-keyrow { display: flex; gap: 8px; }
+#qrSettingsModal .qrs-keyrow .start-file-btn { flex: none; }
+#qrSettingsModal .qrs-msg { min-height: 1.6em; font-size: 13px; line-height: 1.6; margin: 2px 0 10px; color: #f0c860; }
+#qrSettingsModal .qrs-msg.ok { color: #6ee7a0; }
+#qrSettingsModal .qrs-msg.ng { color: #f87171; }
+#qrSettingsModal .qrs-btns { display: flex; gap: 10px; margin-top: 8px; }
+#qrSettingsModal .qrs-primary { background: rgba(200,168,74,0.22); border-color: rgba(200,168,74,0.7); color: #fff1c8; }
+
 #guideModalClose:hover {
   background: rgba(200, 168, 74, 0.18);
   color: rgba(240, 210, 120, 1.0);
@@ -686,6 +723,7 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
       <div class="ssl-row" id="qrRow">
         <span class="ssl-lbl">QRコード</span>
         <button class="start-file-btn" id="qrToggle" style="min-width:8em;">🚫 しない</button>
+        <button class="start-file-btn" id="openQrSettingsBtn" style="justify-self:end;">⚙️ 受け取りQRの設定</button>
         <div class="ssl-warn" id="qrStatus"></div>
         <div class="ssl-tm">QRコードは株式会社デンソーウェーブの登録商標です。</div>
       </div>
@@ -701,6 +739,35 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
   <div class="start-credit">
     越前市ぷらぷらぼ 制作<br>
   </div>
+  </div>
+</div>
+
+<!-- ===== モーダル（受け取りQRの設定） ===== -->
+<div id="qrSettingsModal" role="dialog" aria-modal="true" aria-labelledby="qrSettingsTitle">
+  <div class="qrs-inner">
+    <h3 id="qrSettingsTitle">受け取りQRの設定</h3>
+    <p class="qrs-lead">作品を Google ドライブに預けて、QRコードからスマホで受け取るための設定です。<br>
+      ここに入れた内容は <b>この端末のブラウザ</b> にだけ保存されます。</p>
+    <label class="qrs-field">
+      <span>GAS の URL（ウェブアプリの URL。…/exec で終わる）</span>
+      <input type="url" id="qrsUrl" placeholder="https://script.google.com/macros/s/……/exec" autocomplete="off" spellcheck="false">
+    </label>
+    <label class="qrs-field">
+      <span>合言葉（Code.gs の KEY と同じ文字列）</span>
+      <div class="qrs-keyrow">
+        <input type="password" id="qrsKey" autocomplete="off" spellcheck="false">
+        <button type="button" class="start-file-btn" id="qrsShowKey">👁 見る</button>
+      </div>
+    </label>
+    <div class="qrs-msg" id="qrsMsg" aria-live="polite"></div>
+    <div class="qrs-btns">
+      <button type="button" class="start-file-btn" id="qrsTest">🔌 つながるか たしかめる</button>
+      <button type="button" class="start-file-btn qrs-primary" id="qrsSave">💾 保存</button>
+    </div>
+    <div class="qrs-btns">
+      <button type="button" class="start-file-btn" id="qrsClear">🗑️ 設定を消す</button>
+      <button type="button" class="start-file-btn" id="qrsClose">✕ 閉じる</button>
+    </div>
   </div>
 </div>
 
@@ -4176,8 +4243,26 @@ const EXHIBIT_DEL_CONFIRM_MS = 3000;
 // ----- QR コード（自分の作品をスマホで受け取る）-----
 // 作品の JPEG を Google Apps Script（Code.gs）経由で Google ドライブに預け、QR コードからスマホで受け取る。
 // QR コードの中身は「GAS の URL ? k=作品ごとの番号」。受け取れるのは送ってから7日（Code.gs の KEEP_DAYS）。
-const EXHIBIT_QR_GAS_URL = "";   // ★ Code.gs を「ウェブアプリ」として公開した URL（…/exec で終わる）をここに入れる
-const EXHIBIT_QR_KEY = "ECHIZEN-KUUSHO-eBBGzPW3RCFr223cq3xt";   // 合言葉（Code.gs の KEY と同じにする）
+// GAS の URL と合言葉は、スタート画面の「受け取りQRの設定」で入れる（その端末のブラウザの localStorage に保存）。
+// index.html には書かない（公開しているページから合言葉が見えないように）。
+const EX_QR_SETTING_URL_KEY = "echizen-kuusho.qr.gasUrl";
+const EX_QR_SETTING_KEY_KEY = "echizen-kuusho.qr.key";
+function exLoadSetting(name){
+    try { return (localStorage.getItem(name) || "").trim(); } catch(e){ return ""; }
+}
+function exSaveSetting(name, value){
+    try {
+        if(value) localStorage.setItem(name, value); else localStorage.removeItem(name);
+        return true;
+    } catch(e){
+        console.warn("作品展示：設定をブラウザに保存できませんでした", e);
+        return false;
+    }
+}
+let exQrGasUrl = exLoadSetting(EX_QR_SETTING_URL_KEY);   // Code.gs を「ウェブアプリ」として公開した URL（…/exec）
+let exQrKey = exLoadSetting(EX_QR_SETTING_KEY_KEY);      // 合言葉（Code.gs の KEY と同じ）
+// 受け取りQRの設定がそろっているか
+function exQrConfigured(){ return !!(exQrGasUrl && exQrKey); }
 const EXHIBIT_QR_KEEP_DAYS = 7;  // 案内の文言用（実際の期限は GAS の返事で決まる）
 // QR コードを作るライブラリ（qrcode-generator, MIT）。上から順に試し、読めたものを使う
 const EXHIBIT_QR_LIB_URLS = [
@@ -6216,7 +6301,7 @@ function exMakeQrToken(){
 }
 
 function exQrUrl(w){
-    return EXHIBIT_QR_GAS_URL + (EXHIBIT_QR_GAS_URL.includes("?") ? "&" : "?") + "k=" + encodeURIComponent(w.qrToken);
+    return exQrGasUrl + (exQrGasUrl.includes("?") ? "&" : "?") + "k=" + encodeURIComponent(w.qrToken);
 }
 
 // QR コードを作るライブラリを読み込む（トグルを「する」にしたときに先に読んでおく）
@@ -6252,7 +6337,7 @@ async function exBlobToBase64(blob){
 // 作品を GAS へ送る。extend＝true（さいはっこう）のときは、受け取れる期間を「いまから7日」に延ばす
 async function exQrUpload(w, extend){
     if(!w || !w.user || w.disposed || w.qrState === "sending") return;
-    if(!EXHIBIT_QR_GAS_URL){ w.qrState = "nourl"; return; }
+    if(!exQrConfigured()){ w.qrState = "nourl"; return; }
     if(!w.blob) return;   // JPEG ができたら、次のフレームでまた呼ばれる
     if(!w.qrToken){ w.qrToken = exMakeQrToken(); exStorePatch(w.id, { qrToken: w.qrToken }); }
     w.qrState = "sending";
@@ -6262,10 +6347,10 @@ async function exQrUpload(w, extend){
     try {
         const data = await exBlobToBase64(w.blob);
         // text/plain で送ると、ブラウザの事前確認（CORS のプリフライト）が起きず、GAS がそのまま受け取れる
-        const res = await fetch(EXHIBIT_QR_GAS_URL, {
+        const res = await fetch(exQrGasUrl, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ key: EXHIBIT_QR_KEY, k: w.qrToken, type: "image/jpeg", data, label: w.fileName, extend: !!extend }),
+            body: JSON.stringify({ key: exQrKey, k: w.qrToken, type: "image/jpeg", data, label: w.fileName, extend: !!extend }),
             redirect: "follow",
             signal: ctrl ? ctrl.signal : undefined
         });
@@ -6293,7 +6378,7 @@ function exFormatUntil(t){
 // QR の画像を描く（作品が変わったときだけ）。描けたら true
 function exQrDrawCode(w){
     if(!exQrLib) return false;
-    const key = w.qrToken + "|" + EXHIBIT_QR_GAS_URL;
+    const key = w.qrToken + "|" + exQrGasUrl;
     if(exQrTexKey === key) return true;
     let qr;
     try {
@@ -6324,14 +6409,16 @@ function exQrDrawCode(w){
 
 // いまの状態から、QR・案内・「さいはっこう」の出し方を決める
 function exQrView(w, now){
-    if(!EXHIBIT_QR_GAS_URL || w.qrState === "nourl"){
-        return { qr: false, lines: ["QRコードの せってい（GAS の URL）が", "ありません"], btn: null };
+    if(!exQrConfigured() || w.qrState === "nourl"){
+        return { qr: false, lines: ["受け取りQRの設定が まだです", "（スタート画面で GAS の URL と合言葉を入れてね）"], btn: null };
     }
     if(w.qrState === "sending" || (!w.qrState && w.blob)){
         return { qr: false, lines: ["QRコードを じゅんび中…"], btn: null };
     }
     if(w.qrState === "error"){
-        return { qr: false, lines: ["さくひんを おくれませんでした", "ネットワークを たしかめてね"],
+        const badKey = /合言葉/.test(w.qrError || "");
+        return { qr: false, lines: badKey ? ["合言葉が ちがいます", "受け取りQRの設定を たしかめてね"]
+                                          : ["さくひんを おくれませんでした", "ネットワークを たしかめてね"],
                  btn: { label: "もういちど", sub: "QRコードを はっこう", extend: !!w.qrRetryExtend } };
     }
     if(w.qrState === "ok"){
@@ -6367,6 +6454,7 @@ function exQrTick(now){
         return;
     }
     if(!exQrLib) exQrLoadLib();
+    if(w.qrState === "nourl" && exQrConfigured()) w.qrState = null;   // あとから設定が入ったら送れるようにする
     if(!w.qrState && w.blob) exQrUpload(w, false);   // まだ送っていなければ送る（④・②で初めて出したとき）
     const v = exQrView(w, Date.now());
     const drawn = v.qr && exQrDrawCode(w);
@@ -7106,8 +7194,8 @@ function exRefreshQrToggle(){
     btn.textContent = exQrEnabled ? "🔳 する" : "🚫 しない";
     btn.style.opacity = !exhibitEnabled ? "" : (exQrEnabled ? "1.0" : "0.55");
     if(st){
-        st.textContent = (exhibitEnabled && exQrEnabled && !EXHIBIT_QR_GAS_URL)
-            ? "⚠️ GAS の URL が せっていされていません（index.html の EXHIBIT_QR_GAS_URL）" : "";
+        st.textContent = (exhibitEnabled && exQrEnabled && !exQrConfigured())
+            ? "⚠️ 受け取りQRの設定（GAS の URL・合言葉）が まだです" : "";
     }
 }
 (function(){
@@ -7119,6 +7207,89 @@ function exRefreshQrToggle(){
         exRefreshQrToggle();
     });
     exRefreshQrToggle();
+})();
+
+// ===== 開始画面の「受け取りQRの設定」=====
+// GAS の URL と合言葉を入れて、この端末のブラウザ（localStorage）に保存する。
+// 「つながるか たしかめる」は、作品を送らずに合言葉だけを確かめる
+// （正しい合言葉なら GAS は「作品の番号の形が違います」と返すので、それを「つながった」とみなす）。
+(function(){
+    const modal = document.getElementById("qrSettingsModal");
+    const url = document.getElementById("qrsUrl");
+    const key = document.getElementById("qrsKey");
+    const msg = document.getElementById("qrsMsg");
+    const show = (text, kind) => { msg.textContent = text; msg.className = "qrs-msg" + (kind ? " " + kind : ""); };
+    const readForm = () => ({ u: url.value.trim(), k: key.value.trim() });
+    function check(u){
+        if(!u) return "";
+        if(!/^https:\/\//.test(u)) return "URL は https:// で始まるものを入れてください";
+        if(!/\/exec(\?|$)/.test(u)) return "⚠️ ふつうは …/exec で終わる URL です（…/dev ではなく公開した方）";
+        return "";
+    }
+    function open(){
+        url.value = exQrGasUrl;
+        key.value = exQrKey;
+        key.type = "password";
+        show(exQrConfigured() ? "設定ずみです" : "まだ設定されていません", exQrConfigured() ? "ok" : "");
+        modal.classList.add("open");
+        setTimeout(() => (exQrGasUrl ? key : url).focus(), 30);
+    }
+    function close(){ modal.classList.remove("open"); }
+
+    document.getElementById("openQrSettingsBtn").addEventListener("click", open);
+    document.getElementById("qrsClose").addEventListener("click", close);
+    modal.addEventListener("click", e => { if(e.target === modal) close(); });
+    document.addEventListener("keydown", e => { if(e.key === "Escape" && modal.classList.contains("open")) close(); });
+    document.getElementById("qrsShowKey").addEventListener("click", () => {
+        key.type = key.type === "password" ? "text" : "password";
+    });
+    document.getElementById("qrsSave").addEventListener("click", () => {
+        const { u, k } = readForm();
+        const warn = check(u);
+        if(u && !/^https:\/\//.test(u)){ show(warn, "ng"); return; }
+        const ok = exSaveSetting(EX_QR_SETTING_URL_KEY, u) & exSaveSetting(EX_QR_SETTING_KEY_KEY, k);
+        exQrGasUrl = u;
+        exQrKey = k;
+        exQrTexKey = "";        // QR の中身（URL）が変わるかもしれないので描き直す
+        exRefreshQrToggle();
+        if(!ok){ show("ブラウザに保存できませんでした（プライベートモードなど）。この画面を開いているあいだだけ使えます", "ng"); return; }
+        if(!u || !k) show("保存しました（URL と合言葉の両方を入れると使えます）", "");
+        else show(warn || "保存しました", warn ? "" : "ok");
+    });
+    document.getElementById("qrsClear").addEventListener("click", () => {
+        if(!confirm("受け取りQRの設定（URL と合言葉）を、この端末から消します。よろしいですか？")) return;
+        exSaveSetting(EX_QR_SETTING_URL_KEY, "");
+        exSaveSetting(EX_QR_SETTING_KEY_KEY, "");
+        exQrGasUrl = ""; exQrKey = ""; exQrTexKey = "";
+        url.value = ""; key.value = "";
+        exRefreshQrToggle();
+        show("設定を消しました", "");
+    });
+    document.getElementById("qrsTest").addEventListener("click", async () => {
+        const { u, k } = readForm();
+        if(!u || !k){ show("URL と合言葉を入れてください", "ng"); return; }
+        if(!/^https:\/\//.test(u)){ show(check(u), "ng"); return; }
+        show("たしかめています…", "");
+        const ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+        const timer = ctrl ? setTimeout(() => ctrl.abort(), 20000) : 0;
+        try {
+            const res = await fetch(u, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ key: k, k: "" }),   // 番号をわざと空にして、作品は作らない
+                redirect: "follow",
+                signal: ctrl ? ctrl.signal : undefined
+            });
+            const j = await res.json();
+            if(j && /番号/.test(j.error || "")) show("✅ つながりました（合言葉も正しいです）。「保存」を押してください", "ok");
+            else if(j && /合言葉/.test(j.error || "")) show("合言葉が ちがいます（Code.gs の KEY と同じにしてください）", "ng");
+            else show("返事が想定とちがいます：" + JSON.stringify(j).slice(0, 120), "ng");
+        } catch(e){
+            show("つながりませんでした（URL・公開の設定「アクセスできるユーザー：全員」・ネットワークを確認）", "ng");
+        } finally {
+            if(timer) clearTimeout(timer);
+        }
+    });
 })();
 
 // ===== 開始画面の「てんじに かざった さくひんを ダウンロード」=====
