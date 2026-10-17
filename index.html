@@ -544,42 +544,49 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
   letter-spacing: 0.04em;
   text-shadow: 0 0 8px rgba(200,168,74,0.3);
 }
-/* ===== 受け取りQRの設定（モーダル） ===== */
-#qrSettingsModal {
+/* ===== モーダル（受け取りQRの設定・ぜんぶ けす） ===== */
+.ex-modal {
   position: fixed; inset: 0; z-index: 3100; display: none;
   align-items: center; justify-content: center;
   background: rgba(4, 3, 14, 0.85);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   padding: 16px;
 }
-#qrSettingsModal.open { display: flex; }
-#qrSettingsModal .qrs-inner {
+.ex-modal.open { display: flex; }
+.ex-modal .qrs-inner {
   width: min(560px, 100%); max-height: 92vh; overflow: auto;
   background: linear-gradient(150deg, rgba(18,14,32,0.97), rgba(12,9,22,0.98));
   border: 1px solid rgba(200,168,74,0.25); border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.75);
   padding: 22px 22px 18px; color: var(--txt-body); font-family: sans-serif;
 }
-#qrSettingsModal h3 {
+.ex-modal h3 {
   margin: 0 0 8px; text-align: center; font-family: 'Noto Serif JP', serif;
   font-size: 19px; color: var(--txt-muted); letter-spacing: 0.12em;
 }
-#qrSettingsModal .qrs-lead { font-size: 13px; line-height: 1.7; color: var(--txt-sub); margin: 0 0 14px; text-align: center; }
-#qrSettingsModal .qrs-field { display: block; margin: 0 0 12px; }
-#qrSettingsModal .qrs-field > span { display: block; font-size: 12px; font-weight: 700; color: rgba(200,190,160,0.75); margin-bottom: 5px; letter-spacing: 0.04em; }
-#qrSettingsModal input {
+.ex-modal .qrs-lead { font-size: 13px; line-height: 1.7; color: var(--txt-sub); margin: 0 0 14px; text-align: center; }
+.ex-modal .qrs-field { display: block; margin: 0 0 12px; }
+.ex-modal .qrs-field > span { display: block; font-size: 12px; font-weight: 700; color: rgba(200,190,160,0.75); margin-bottom: 5px; letter-spacing: 0.04em; }
+.ex-modal input {
   width: 100%; padding: 10px 12px; font-size: 15px; border-radius: 10px;
   background: rgba(255,255,255,0.07); color: #f0e8d0;
   border: 1px solid rgba(200,168,74,0.35); outline: none; font-family: ui-monospace, monospace;
 }
-#qrSettingsModal input:focus { border-color: rgba(200,168,74,0.8); box-shadow: 0 0 0 3px rgba(200,168,74,0.18); }
-#qrSettingsModal .qrs-keyrow { display: flex; gap: 8px; }
-#qrSettingsModal .qrs-keyrow .start-file-btn { flex: none; }
-#qrSettingsModal .qrs-msg { min-height: 1.6em; font-size: 13px; line-height: 1.6; margin: 2px 0 10px; color: #f0c860; }
-#qrSettingsModal .qrs-msg.ok { color: #6ee7a0; }
-#qrSettingsModal .qrs-msg.ng { color: #f87171; }
-#qrSettingsModal .qrs-btns { display: flex; gap: 10px; margin-top: 8px; }
-#qrSettingsModal .qrs-primary { background: rgba(200,168,74,0.22); border-color: rgba(200,168,74,0.7); color: #fff1c8; }
+.ex-modal input:focus { border-color: rgba(200,168,74,0.8); box-shadow: 0 0 0 3px rgba(200,168,74,0.18); }
+.ex-modal .qrs-keyrow { display: flex; gap: 8px; }
+.ex-modal .qrs-keyrow .start-file-btn { flex: none; }
+.ex-modal .qrs-msg { min-height: 1.6em; font-size: 13px; line-height: 1.6; margin: 2px 0 10px; color: #f0c860; }
+.ex-modal .qrs-msg.ok { color: #6ee7a0; }
+.ex-modal .qrs-msg.ng { color: #f87171; }
+.ex-modal .qrs-btns { display: flex; gap: 10px; margin-top: 8px; }
+.ex-modal .qrs-primary { background: rgba(200,168,74,0.22); border-color: rgba(200,168,74,0.7); color: #fff1c8; }
+
+.ex-modal .clr-choice { display: block; width: 100%; padding: 14px 12px; font-size: 15px; margin-top: 6px; }
+.ex-modal .clr-danger { border-color: rgba(220,70,70,0.6); color: #fca5a5; background: rgba(180,40,40,0.18); }
+.ex-modal .clr-danger:hover { background: rgba(180,40,40,0.30); border-color: rgba(240,90,90,0.8); }
+.ex-modal .clr-note { font-size: 12px; line-height: 1.7; color: var(--txt-sub); margin: 6px 2px 12px; }
+.ex-modal .clr-warn { color: #f0c860; }
+.ex-modal .clr-warn:empty { display: none; }
 
 #guideModalClose:hover {
   background: rgba(200, 168, 74, 0.18);
@@ -655,7 +662,7 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
     </div>
     <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
     <button class="start-file-btn" id="downloadExhibitBtn" style="width:100%;flex:none;" disabled>🖼️ てんじに かざった さくひんを ダウンロード（0まい）</button>
-    <button class="start-file-btn" id="clearExhibitStoreBtn" style="width:100%;flex:none;" disabled>🗑️ ブラウザに ほぞんした さくひんを ぜんぶ けす（0まい）</button>
+    <button class="start-file-btn" id="clearExhibitStoreBtn" style="width:100%;flex:none;" disabled>🗑️ ほぞんした さくひんを ぜんぶ けす</button>
 
     <div class="start-slider-block">
       <div class="ssl-preset">
@@ -727,6 +734,11 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
         <div class="ssl-warn" id="qrStatus"></div>
         <div class="ssl-tm">QRコードは株式会社デンソーウェーブの登録商標です。</div>
       </div>
+      <div class="ssl-row" id="shareRow">
+        <span class="ssl-lbl">てんじの きょうゆう</span>
+        <button class="start-file-btn" id="shareToggle" style="min-width:8em;">🏠 独立</button>
+        <div class="ssl-warn" id="shareStatus"></div>
+      </div>
     </div>
 
     <div class="start-notice">
@@ -742,8 +754,27 @@ body { margin: 0; overflow: hidden; background: #0a0a12; font-family: 'Noto Seri
   </div>
 </div>
 
+<!-- ===== モーダル（ほぞんした さくひんを ぜんぶ けす） ===== -->
+<div id="clearModal" class="ex-modal" role="dialog" aria-modal="true" aria-labelledby="clearTitle">
+  <div class="qrs-inner">
+    <h3 id="clearTitle">ほぞんした さくひんを ぜんぶ けす</h3>
+    <p class="qrs-lead" id="clearLead">どちらを けしますか？</p>
+    <button type="button" class="start-file-btn clr-choice" id="clearOwnBtn">📱 この端末で作った作品だけ けす</button>
+    <p class="clr-note">この端末の「独立」の作品と、この端末が「共有」に出した作品を消します。
+      共有に出した作品は、ほかの端末の展示からも消えます。ほかの端末で作られた作品は残ります。</p>
+    <button type="button" class="start-file-btn clr-choice clr-danger" id="clearAllBtn">🌐 全体から ぜんぶ けす</button>
+    <p class="clr-note">この端末の作品をすべて消し、共有の展示からも、すべての端末の作品を消します。
+      「独立」にしている端末では、「共有」にもどしたときに消えます。<br>
+      QRコードは、発行から7日間は そのまま受け取れます。</p>
+    <p class="clr-note clr-warn" id="clearAllNote"></p>
+    <div class="qrs-btns">
+      <button type="button" class="start-file-btn" id="clearCancelBtn">✕ やめる</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== モーダル（受け取りQRの設定） ===== -->
-<div id="qrSettingsModal" role="dialog" aria-modal="true" aria-labelledby="qrSettingsTitle">
+<div id="qrSettingsModal" class="ex-modal" role="dialog" aria-modal="true" aria-labelledby="qrSettingsTitle">
   <div class="qrs-inner">
     <h3 id="qrSettingsTitle">受け取りQRの設定</h3>
     <p class="qrs-lead">作品を Google ドライブに預けて、QRコードからスマホで受け取るための設定です。<br>
@@ -4442,12 +4473,19 @@ function exUpdateDownloadAllBtn(){
     const n = exUserWorks.filter(w => w.blob).length;
     btn.textContent = `🖼️ てんじに かざった さくひんを ダウンロード（${n}まい）`;
     btn.disabled = n === 0;
+    exRefreshClearBtn();
+}
+
+// スタート画面の「ほぞんした さくひんを ぜんぶ けす」：この端末のブラウザに入っている作品の数を出す
+// （全体から消すこともできるので、受け取りQRの設定があれば 0まい でも押せる）
+function exRefreshClearBtn(){
     const del = document.getElementById("clearExhibitStoreBtn");
-    if(del){
-        const m = exUserWorks.length;
-        del.textContent = `🗑️ ブラウザに ほぞんした さくひんを ぜんぶ けす（${m}まい）`;
-        del.disabled = m === 0;
-    }
+    if(!del) return;
+    exDbRun("readonly", st => st.count()).then(n => {
+        n = n || 0;
+        del.textContent = `🗑️ ほぞんした さくひんを ぜんぶ けす（この端末に ${n}まい）`;
+        del.disabled = n === 0 && !exQrConfigured();
+    });
 }
 
 // 「作品展示：する」で読み込み中の間は START AR を押せなくする（読み込みが終われば元に戻す）。
@@ -4710,6 +4748,7 @@ function exStartLoading(){
         if(!exStoreRestored){
             exStoreRestored = true;
             await exRestoreUserWorks();
+            exShareSync();   // 共有なら最新に合わせる（たまっている「消す」も送る）。待たずに先へ進む
         }
         exLoadStatus = (loaded.length === 0 && (skipped > 0 || aborted)) ? "error" : "done";
     }).catch(e => {
@@ -4800,6 +4839,7 @@ function exDisposeUserWork(w){
 // 新しい作品に押し出されたのと同じ扱いで、古い作品から展示を外す（ブラウザの保存には「展示していない」印を付けて残す）。
 // 枠の番号が重なっている・範囲外のときは、古い順に詰め直して保存し直す。
 function exTrimUserWorks(){
+    if(exShareMode === "shared"){ exApplySharedDisplay(); return; }   // 共有は受け取り順で並べ直す
     const cap = exUserCapacity();
     const slotsOk = () => exUserWorks.every(w => w.slot >= 0 && w.slot < cap)
         && new Set(exUserWorks.map(w => w.slot)).size === exUserWorks.length;
@@ -4825,7 +4865,8 @@ function exRemoveAllUserWorks(){
     exUpdateStartStatus();
 }
 
-// 自分の作品を1枚、展示とブラウザの保存から消す（②④の「けす」）。Google ドライブの分は消さない（期限で自動的に消える）。
+// 自分の作品を1枚、展示とブラウザの保存から消す（②④の「けす」。作った端末でだけ出る）。
+// 共有の作品なら全体からも消す。QR コード用の画像はドライブに残す（期限で自動的に消える）。
 // ①で選んでいた作品が残っていれば、その作品を選んだままにする。
 function exDeleteUserWork(w){
     const k = exUserWorks.indexOf(w);
@@ -4837,6 +4878,13 @@ function exDeleteUserWork(w){
     exUserWorks.splice(k, 1);
     exDisposeUserWork(w);
     exStoreDelete(w.id);
+    if(w.col === "shared"){
+        // 共有の作品：作った端末からの「けす」は、全体（ほかの端末の展示）からも消す
+        const e = exSharedEntries.get(w.id);
+        if(e) e.deleted = true;
+        exShareQueueDelete(w.id);
+        exSharedDirty = true;   // 押し出されていた作品がもどることがあるので、①で並べ直す
+    }
     exRebuildWorkList();
     exLayout();
     const keep = (selW && selW !== w) ? exWorks.indexOf(selW) : Math.min(removedAt, exWorks.length - 1);
@@ -4902,7 +4950,10 @@ function exStorePut(w){
     return exDbRun("readwrite", st => st.put({
         id: w.id, seq: w.seq, slot: w.slot, fileName: w.fileName,
         created: w.created, imgW: w.imgW, imgH: w.imgH, blob: w.blob,
-        qrToken: w.qrToken || null, qrUntil: w.qrUntil || 0, exhibited: true
+        qrToken: w.qrToken || null, qrUntil: w.qrUntil || 0, exhibited: true,
+        // どちらの展示の作品か（"local"＝独立／"shared"＝共有）と、共有のときの情報
+        col: w.col || "local", own: w.col === "shared" ? !!w.own : true,
+        device: w.device || exDeviceId, sseq: (w.sseq == null) ? null : w.sseq, synced: !!w.synced
     }));
 }
 // 保存してある1件の一部だけを書き換える（展示から外した印・QR の期限など）。無ければ何もしない
@@ -4922,34 +4973,51 @@ function exStoreClear(){
     return exDbRun("readwrite", st => st.clear());
 }
 
-// 保存してある自分の作品を読み出して展示にもどす（作った順・同じ枠に）。押し出された作品（exhibited: false）はもどさない
+// 保存してある1件から、展示用の作品を作る（板はまだ作らない）
+async function exWorkFromRecord(r){
+    const { canvas, w: iw, h: ih } = await exDecodeToCanvas(r.blob, EXHIBIT_TEX_MAX);
+    const ink = exAnalyzeInk(canvas);
+    const texture = exMakeTexture(canvas);
+    if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
+    const imgW = r.imgW || iw, imgH = r.imgH || ih;
+    const shared = r.col === "shared";
+    const work = {
+        user: true, id: r.id, seq: r.seq || 0, slot: Number.isInteger(r.slot) ? r.slot : -1, no: 0,
+        blob: r.blob, url: URL.createObjectURL(r.blob),
+        fileName: r.fileName || exUserFileName(new Date(r.created || Date.now())),
+        created: r.created || Date.now(),
+        imgW, imgH, aspect: imgW / imgH, texture,
+        inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert,
+        qrToken: r.qrToken || exMakeQrToken(), qrUntil: r.qrUntil || 0,
+        qrState: r.qrUntil ? "ok" : null,
+        col: shared ? "shared" : "local", own: shared ? !!r.own : true,
+        device: r.device || exDeviceId, sseq: (r.sseq == null) ? null : r.sseq, synced: !!r.synced
+    };
+    if(!r.qrToken) exStorePatch(r.id, { qrToken: work.qrToken });
+    return work;
+}
+
+// 保存してある自分の作品を読み出して展示にもどす。いまのモード（独立／共有）の展示だけをもどす。
+//   独立：作った順・同じ枠に。押し出された作品（exhibited: false）はもどさない
+//   共有：受け取り順で並べる（exApplySharedDisplayNow）
 async function exRestoreUserWorks(){
-    const recs = await exDbRun("readonly", st => st.getAll());
-    if(!recs || recs.length === 0) return;
-    recs.sort((p, q) => (p.seq || 0) - (q.seq || 0));
+    const recs = (await exDbRun("readonly", st => st.getAll())) || [];
     // 通し番号は、展示していない作品も含めた続きから
     exUserSeq = recs.reduce((m, r) => Math.max(m, r.seq || 0), exUserSeq);
     exEnsureScene();
-    for(const r of recs){
-        if(!r || !r.blob || r.exhibited === false) continue;
+    if(exShareMode === "shared"){
+        for(const r of recs){
+            if(r && r.col === "shared" && r.blob) exSharedEntries.set(r.id, exSharedEntryFromRecord(r));
+        }
+        await exApplySharedDisplayNow();
+        return;
+    }
+    const locals = recs.filter(r => r && (r.col || "local") === "local").sort((p, q) => (p.seq || 0) - (q.seq || 0));
+    for(const r of locals){
+        if(!r.blob || r.exhibited === false) continue;
         if(exUserWorks.some(w => w.id === r.id)) continue;
         try {
-            const { canvas, w: iw, h: ih } = await exDecodeToCanvas(r.blob, EXHIBIT_TEX_MAX);
-            const ink = exAnalyzeInk(canvas);
-            const texture = exMakeTexture(canvas);
-            if(typeof renderer.initTexture === "function") renderer.initTexture(texture);
-            const imgW = r.imgW || iw, imgH = r.imgH || ih;
-            const work = {
-                user: true, id: r.id, seq: r.seq || 0, slot: Number.isInteger(r.slot) ? r.slot : -1, no: 0,
-                blob: r.blob, url: URL.createObjectURL(r.blob),
-                fileName: r.fileName || exUserFileName(new Date(r.created || Date.now())),
-                created: r.created || Date.now(),
-                imgW, imgH, aspect: imgW / imgH, texture,
-                inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert,
-                qrToken: r.qrToken || exMakeQrToken(), qrUntil: r.qrUntil || 0,
-                qrState: r.qrUntil ? "ok" : null
-            };
-            if(!r.qrToken) exStorePatch(r.id, { qrToken: work.qrToken });
+            const work = await exWorkFromRecord(r);
             exUserWorks.push(work);
             exBuildWorkMesh(work);
         } catch(e){
@@ -4961,6 +5029,399 @@ async function exRestoreUserWorks(){
     exRebuildWorkList();
     exUpdateDownloadAllBtn();
     exUpdateStartStatus();
+}
+
+// =====================================================================
+// ===== 端末間の共有（独立／共有）=====
+// スタート画面の「てんじの きょうゆう」で選ぶ（その端末のブラウザに保存。はじめは「独立」）。
+//   独立：これまでどおり。展示はこの端末の作品だけ（col: "local"）
+//   共有：作った作品を GAS（Code.gs）の展示用フォルダへ送り、ほかの端末の作品も取り込んで展示する（col: "shared"）
+// 端末の中では、独立の展示と共有の展示を別々に持ち、いまのモードの方だけを出す（切り替えても混ざらない）。
+// 共有の並びと押し出しは、GAS が受け取った順番（sseq）で決まるので、全端末で同じになる。
+// 同期：ページを開いたとき・①に入ったとき・EXHIBIT_SHARE_POLL_MS ごと。
+//   1) まだ送っていない「消す」（けす・ぜんぶ けす）を送る（ネットがなかったときの分）
+//   2) まだ送っていない自分の作品を送る
+//   3) 一覧を受け取り、消された作品を消し、新しい作品の画像を取り込む
+// ②③④のあいだは展示を並べ替えない（選んでいる作品が動かないように）。①に入ったときに反映する。
+// =====================================================================
+const EX_SHARE_MODE_KEY = "echizen-kuusho.shareMode";
+const EX_DEVICE_ID_KEY = "echizen-kuusho.deviceId";
+const EX_SHARE_PENDING_KEY = "echizen-kuusho.share.pending";
+const EXHIBIT_SHARE_POLL_MS = 30000;
+let exShareMode = exLoadSetting(EX_SHARE_MODE_KEY) === "shared" ? "shared" : "local";
+let exDeviceId = exLoadSetting(EX_DEVICE_ID_KEY);   // この端末（ブラウザ）の番号。自動で作る
+if(!/^[A-Za-z0-9_-]{16,64}$/.test(exDeviceId)){
+    exDeviceId = exMakeQrToken();
+    exSaveSetting(EX_DEVICE_ID_KEY, exDeviceId);
+}
+const exSharedEntries = new Map();   // 共有の作品の一覧（id → { id, device, own, sseq, created, imgW, imgH, qrToken, label, deleted, hasImage }）
+let exSharedDirty = false;           // 展示を並べ直す必要がある（①に入ったときに反映）
+let exShareSyncing = false, exShareResync = false;
+let exShareLastSync = 0, exShareLastError = "";
+let exShareDownloading = false;
+let exShareSwitching = false;
+let exSharedApplyChain = Promise.resolve();
+
+function exSharedEntryFromRecord(r){
+    return {
+        id: r.id, device: r.device || exDeviceId, own: !!r.own, sseq: (r.sseq == null) ? null : r.sseq,
+        created: r.created || 0, imgW: r.imgW || 0, imgH: r.imgH || 0, qrToken: r.qrToken || "",
+        label: r.fileName || "", deleted: false, hasImage: !!r.blob
+    };
+}
+
+// GAS を呼ぶ（合言葉は自動で付ける）。ok でなければ例外（GAS からの返事なら e.server = true）
+async function exGasCall(body, timeoutMs = EXHIBIT_QR_TIMEOUT_MS){
+    if(!exQrConfigured()) throw new Error("受け取りQRの設定がまだです");
+    const ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : 0;
+    try {
+        const res = await fetch(exQrGasUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(Object.assign({ key: exQrKey }, body)),
+            redirect: "follow",
+            signal: ctrl ? ctrl.signal : undefined
+        });
+        const j = await res.json();
+        if(!j || !j.ok){
+            const e = new Error((j && j.error) || ("HTTP " + res.status));
+            e.server = true;
+            throw e;
+        }
+        return j;
+    } finally {
+        if(timer) clearTimeout(timer);
+    }
+}
+
+// 共有の並び：消されていない作品を受け取り順に（まだ送れていない自分の作品は最後に、作った順）
+function exSharedOrder(){
+    return [...exSharedEntries.values()].filter(e => !e.deleted && e.device).sort((a, b) => {
+        const sa = (a.sseq == null) ? Infinity : a.sseq, sb = (b.sseq == null) ? Infinity : b.sseq;
+        if(sa !== sb) return sa - sb;
+        if(a.created !== b.created) return a.created - b.created;
+        return a.id < b.id ? -1 : 1;
+    });
+}
+
+// 共有の枠：受け取り順に、空いている枠へ入れていき、いっぱいなら いちばん古い作品の枠と入れかえる
+// （独立の押し出しと同じ決め方を、全端末で同じ一覧から計算する）。戻り値：id → 枠（古い順）
+function exSharedSlots(cap){
+    const shown = new Map();
+    if(cap <= 0) return shown;
+    for(const e of exSharedOrder()){
+        if(shown.size < cap){
+            const used = new Set(shown.values());
+            let slot = 0;
+            while(used.has(slot)) slot++;
+            shown.set(e.id, slot);
+        } else {
+            const oldest = shown.keys().next().value;
+            const slot = shown.get(oldest);
+            shown.delete(oldest);
+            shown.set(e.id, slot);
+        }
+    }
+    return shown;
+}
+
+// いま展示を並べ替えてよいか（VR の外、または①・入室直後）
+function exCanApplyShared(){
+    return !renderer.xr.isPresenting || exState === EX_SELECT || exState === EX_WAIT || exState === EX_OFF;
+}
+
+function exApplySharedDisplay(){
+    exSharedApplyChain = exSharedApplyChain.then(exApplySharedDisplayNow).catch(e => {
+        console.warn("作品展示：共有の展示を並べ直せませんでした", e);
+    });
+    return exSharedApplyChain;
+}
+
+// 共有の展示を、一覧から並べ直す（足りない画像は読み込み、外れた作品は片づける）
+async function exApplySharedDisplayNow(){
+    if(exShareMode !== "shared") return;
+    if(!exCanApplyShared()){ exSharedDirty = true; return; }
+    exSharedDirty = false;
+    let slots = exSharedSlots(exUserCapacity());
+    const built = [];
+    for(const id of slots.keys()){
+        if(exUserWorks.some(w => w.id === id)) continue;
+        const e = exSharedEntries.get(id);
+        if(!e || !e.hasImage) continue;   // まだ画像を取り込んでいない（取り込めたら、もう一度並べ直す）
+        const r = await exDbRun("readonly", st => st.get(id));
+        if(!r || !r.blob){ e.hasImage = false; continue; }
+        try { built.push(await exWorkFromRecord(r)); }
+        catch(err){ console.warn("作品展示：共有の作品を読み込めませんでした", err); }
+    }
+    if(exShareMode !== "shared" || !exCanApplyShared()){
+        // 待っているあいだに②へ進んだ・モードを切り替えた：今回は反映しない
+        for(const w of built) exDisposeUserWork(w);
+        exSharedDirty = exShareMode === "shared";
+        return;
+    }
+    slots = exSharedSlots(exUserCapacity());   // 待っているあいだに一覧が変わったかもしれない
+    const selW = exWorks[exSelIdx];
+    exClearSelectionHighlight();
+    for(const w of exUserWorks.slice()){
+        if(!slots.has(w.id)){
+            exUserWorks.splice(exUserWorks.indexOf(w), 1);
+            exDisposeUserWork(w);
+        }
+    }
+    for(const w of built){
+        if(slots.has(w.id) && !exUserWorks.some(x => x.id === w.id)){
+            exUserWorks.push(w);
+            exBuildWorkMesh(w);
+        } else {
+            exDisposeUserWork(w);
+        }
+    }
+    for(const w of exUserWorks) w.slot = slots.get(w.id);
+    exRebuildWorkList();
+    if(exWorks.length) exLayout();
+    if(exState === EX_SELECT && renderer.xr.isPresenting){
+        if(exWorks.length === 0){
+            exFallbackToNormal(false);
+        } else {
+            const i = selW ? exWorks.indexOf(selW) : -1;
+            exSelIdx = i >= 0 ? i : Math.min(Math.max(exSelIdx, 0), exWorks.length - 1);
+            exSetSelection(exSelIdx);
+        }
+    }
+    if([...slots.keys()].some(id => !exUserWorks.some(w => w.id === id))) exShareDownloadNeeded();
+    exUpdateDownloadAllBtn();
+    exUpdateStartStatus();
+    exRefreshShareToggle();
+}
+
+// 展示に出す作品のうち、まだ画像を持っていないものを GAS から取り込む（新しい作品から順に）
+async function exShareDownloadNeeded(){
+    if(exShareDownloading || exShareMode !== "shared" || !exQrConfigured()) return;
+    exShareDownloading = true;
+    let got = 0;
+    try {
+        const slots = exSharedSlots(exUserCapacity());
+        const ids = [...slots.keys()].reverse();
+        for(const id of ids){
+            const e = exSharedEntries.get(id);
+            if(!e || e.deleted || e.hasImage) continue;
+            let j;
+            try { j = await exGasCall({ action: "get", id }); }
+            catch(err){
+                if(err.server) continue;   // その作品だけ取れなかった（消された直後など）
+                break;                      // ネットワーク：次の同期でまた試す
+            }
+            if(e.deleted || exShareMode !== "shared") continue;
+            const bin = atob(j.data || "");
+            const u8 = new Uint8Array(bin.length);
+            for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+            const blob = new Blob([u8], { type: j.type || "image/jpeg" });
+            await exDbRun("readwrite", st => st.put({
+                id, seq: 0, slot: -1, fileName: e.label || exUserFileName(new Date(e.created || Date.now())),
+                created: e.created || Date.now(), imgW: e.imgW, imgH: e.imgH, blob,
+                qrToken: e.qrToken || null, qrUntil: 0, exhibited: true,
+                col: "shared", own: !!e.own, device: e.device, sseq: e.sseq, synced: true
+            }));
+            e.hasImage = true;
+            got++;
+        }
+    } finally {
+        exShareDownloading = false;
+    }
+    if(got){
+        exApplySharedDisplay();
+        exRefreshClearBtn();
+    }
+}
+
+// まだ送っていない「消す」（けす・ぜんぶ けす）。ネットがないときはここにためて、あとで送る
+function exLoadPending(){
+    try {
+        const p = JSON.parse(localStorage.getItem(EX_SHARE_PENDING_KEY) || "{}");
+        return { dels: Array.isArray(p.dels) ? p.dels : [], delDevice: !!p.delDevice, delAll: !!p.delAll };
+    } catch(e){
+        return { dels: [], delDevice: false, delAll: false };
+    }
+}
+function exSavePending(p){
+    exSaveSetting(EX_SHARE_PENDING_KEY, (p.dels.length || p.delDevice || p.delAll) ? JSON.stringify(p) : "");
+}
+function exShareQueueDelete(id){
+    const p = exLoadPending();
+    if(!p.dels.includes(id)) p.dels.push(id);
+    exSavePending(p);
+    exShareSync();
+}
+async function exSharePendingOps(){
+    const p = exLoadPending();
+    if(p.delAll){
+        await exGasCall({ action: "delAll" });
+        p.delAll = false; p.delDevice = false; p.dels = [];
+        exSavePending(p);
+    }
+    if(p.delDevice){
+        await exGasCall({ action: "delDevice", device: exDeviceId });
+        p.delDevice = false; p.dels = [];
+        exSavePending(p);
+    }
+    while(p.dels.length){
+        try { await exGasCall({ action: "del", id: p.dels[0], device: exDeviceId }); }
+        catch(err){ if(!err.server) throw err; }   // 「作った端末ではない」などは、送り直しても同じなので捨てる
+        p.dels.shift();
+        exSavePending(p);
+    }
+}
+
+// 同期（同時には1つだけ。動いているあいだに頼まれたら、終わってからもう1回）
+async function exShareSync(){
+    if(!exQrConfigured()) return;
+    if(exShareSyncing){ exShareResync = true; return; }
+    exShareSyncing = true;
+    try {
+        await exSharePendingOps();          // 「消す」は、独立にしている端末からでも送る
+        if(exShareMode !== "shared") return;
+
+        // 自分の作品で、まだ送っていないもの
+        const recs = (await exDbRun("readonly", st => st.getAll())) || [];
+        for(const r of recs){
+            if(r.col !== "shared" || !r.own || r.synced || !r.blob) continue;
+            if(exShareMode !== "shared") return;
+            const j = await exGasCall({
+                action: "share", id: r.id, device: exDeviceId, data: await exBlobToBase64(r.blob),
+                created: r.created, imgW: r.imgW, imgH: r.imgH, qrToken: r.qrToken || "", label: r.fileName || ""
+            });
+            const e = exSharedEntries.get(r.id);
+            if(j.deleted){
+                // 送るより前に「全体から ぜんぶ けす」が行われていた
+                await exStoreDelete(r.id);
+                if(e) e.deleted = true;
+            } else {
+                await exStorePatch(r.id, { sseq: j.seq, synced: true });
+                if(e) e.sseq = j.seq;
+                const w = exUserWorks.find(x => x.id === r.id);
+                if(w){ w.sseq = j.seq; w.synced = true; }
+            }
+            exSharedDirty = true;
+        }
+
+        // 一覧
+        const j = await exGasCall({ action: "list" });
+        if(exShareMode !== "shared") return;
+        let changed = false;
+        for(const it of (j.items || [])){
+            if(!it || !it.id) continue;
+            const e = exSharedEntries.get(it.id);
+            if(it.deleted){
+                if(!e || !e.deleted){
+                    // はじめて知った「消された」作品：展示とブラウザの保存から消す
+                    if(e){ e.deleted = true; changed = true; }
+                    else exSharedEntries.set(it.id, { id: it.id, deleted: true });
+                    exStoreDelete(it.id);
+                }
+                continue;
+            }
+            if(!e){
+                exSharedEntries.set(it.id, {
+                    id: it.id, device: it.device, own: it.device === exDeviceId, sseq: it.seq,
+                    created: it.created || 0, imgW: it.imgW || 0, imgH: it.imgH || 0,
+                    qrToken: it.qrToken || "", label: it.label || "", deleted: false, hasImage: false
+                });
+                changed = true;
+            } else if(!e.deleted && e.sseq !== it.seq){
+                e.sseq = it.seq;
+                changed = true;
+                if(e.hasImage) exStorePatch(it.id, { sseq: it.seq, synced: true });
+            }
+        }
+        exShareLastSync = Date.now();
+        exShareLastError = "";
+        if(changed) exSharedDirty = true;
+        if(exSharedDirty) exApplySharedDisplay();
+        exShareDownloadNeeded();
+    } catch(err){
+        exShareLastError = err && err.server ? String(err.message) : "net";
+        console.warn("作品展示：共有の同期ができませんでした", err);
+    } finally {
+        exShareSyncing = false;
+        exRefreshShareToggle();
+        exRefreshClearBtn();
+        if(exShareResync){ exShareResync = false; exShareSync(); }
+    }
+}
+
+// 独立／共有を切り替える（スタート画面から）。いまの展示を片づけて、もう一方の展示を読み出す
+async function exSetShareMode(mode){
+    exShareMode = mode === "shared" ? "shared" : "local";
+    exSaveSetting(EX_SHARE_MODE_KEY, exShareMode === "shared" ? "shared" : "");
+    exClearSelectionHighlight();
+    for(const w of exUserWorks) exDisposeUserWork(w);
+    exUserWorks = [];
+    exSharedEntries.clear();
+    exSharedDirty = false;
+    exRebuildWorkList();
+    await exRestoreUserWorks();
+    exUpdateStartStatus();
+    exUpdateDownloadAllBtn();
+    if(exShareMode === "shared") exShareSync();
+}
+
+// 「ぜんぶ けす」：この端末で作った作品だけ（独立の作品すべてと、共有に出した自分の作品。共有の分は全体からも消す）
+async function exClearOwn(){
+    const recs = (await exDbRun("readonly", st => st.getAll())) || [];
+    const ids = recs.filter(r => (r.col || "local") === "local" || r.own).map(r => r.id);
+    if(ids.length) await exDbRun("readwrite", st => { let q = null; for(const id of ids) q = st.delete(id); return q; });
+    for(const e of exSharedEntries.values()) if(e.own) e.deleted = true;
+    if(exQrConfigured()){
+        const p = exLoadPending();
+        p.delDevice = true;
+        exSavePending(p);
+    }
+    exRemoveAllUserWorks();
+    if(exShareMode === "shared") await exApplySharedDisplayNow();   // ほかの端末の作品は残る
+    exRefreshClearBtn();
+    exShareSync();
+}
+
+// 「ぜんぶ けす」：全体から（この端末の作品をすべて消し、共有の展示からも、すべての端末の作品を消す）
+async function exClearAll(){
+    await exStoreClear();
+    for(const e of exSharedEntries.values()) e.deleted = true;
+    if(exQrConfigured()){
+        const p = exLoadPending();
+        p.delAll = true; p.delDevice = false; p.dels = [];
+        exSavePending(p);
+    }
+    exRemoveAllUserWorks();
+    exRefreshClearBtn();
+    exShareSync();
+}
+
+// スタート画面の「てんじの きょうゆう」トグルと状態の表示
+function exRefreshShareToggle(){
+    const btn = document.getElementById("shareToggle");
+    const st = document.getElementById("shareStatus");
+    if(!btn) return;
+    const shared = exShareMode === "shared";
+    btn.textContent = shared ? "🔗 共有" : "🏠 独立";
+    // 作品展示が「しない」とき・切り替え中・（独立から共有へは）受け取りQRの設定がないときは押せない
+    btn.disabled = !exhibitEnabled || exShareSwitching || (!shared && !exQrConfigured());
+    btn.classList.toggle("qr-off", btn.disabled);
+    btn.style.opacity = btn.disabled ? "" : (shared ? "1.0" : "0.75");
+    if(!st) return;
+    let t = "";
+    if(exhibitEnabled){
+        if(exShareSwitching) t = "⏳ きりかえ中…";
+        else if(!shared) t = exQrConfigured() ? "" : "（共有するには 受け取りQRの設定が必要です）";
+        else if(!exQrConfigured()) t = "⚠️ 受け取りQRの設定がまだです（この端末の作品だけで動いています）";
+        else if(exShareLastError === "net") t = "⚠️ つながりません（ネットワークを確認）。つながったら追いつきます";
+        else if(exShareLastError) t = "⚠️ " + exShareLastError;
+        else if(exShareLastSync){
+            const d = new Date(exShareLastSync);
+            t = `🔗 共有中：てんじ ${exUserWorks.length}まい（${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")} に同期）`;
+        } else t = "🔗 共有：同期中…";
+    }
+    st.textContent = t;
 }
 
 // ===== シーン上のオブジェクト生成（初回のみ）=====
@@ -5802,6 +6263,11 @@ function exEnterSelect(){
     exSetCircleDim(false);  // 選択中は展示作品を元の明るさに
     exRoot.visible = true;
     exSetSelection(exSelIdx >= 0 && exSelIdx < exWorks.length ? exSelIdx : 0);
+    if(exShareMode === "shared"){
+        // 共有：②③④のあいだに届いた変更をここで反映し、少したっていれば同期もする
+        if(exSharedDirty) exApplySharedDisplay();
+        if(Date.now() - exShareLastSync > 5000) exShareSync();
+    }
 }
 
 // 目の前に置く作品（画像）をセットする。位置・角度・大きさ（長辺）は変えない
@@ -5828,7 +6294,7 @@ function exUpdateAdjButtons(){
     const isUser = !!(w && w.user);
     exBtnAdjDl.visible  = isUser && EXHIBIT_SHOW_DOWNLOAD;
     exBtnAdjQr.visible  = isUser && exQrEnabled;
-    exBtnAdjDel.visible = isUser;
+    exBtnAdjDel.visible = isUser && (w.col !== "shared" || !!w.own);   // 「けす」は作った端末でだけ
     exBtnMeshesAdjActive = exBtnMeshesAdj.filter((b, i) => i < 3 || b.visible);
     exStackButtons(exBtnGroupAdj, exBtnMeshesAdjActive);
     exUpdateAdjQrButtonFace();
@@ -6091,7 +6557,8 @@ function exAddUserWork(cap){
         url: null, blob: null, fileName: exUserFileName(new Date()),
         imgW: cap.W, imgH: cap.H, aspect: cap.W / cap.H, texture,
         inkLo: ink.inkLo, inkHi: ink.inkHi, inkInvert: ink.inkInvert,
-        qrToken: exMakeQrToken(), qrUntil: 0, qrState: null   // QR コード用の番号（送るのは QR を出したとき）
+        qrToken: exMakeQrToken(), qrUntil: 0, qrState: null,  // QR コード用の番号（送るのは QR を出したとき）
+        col: "local", own: true, device: exDeviceId, sseq: null, synced: false   // 共有のときは下で "shared" にする
     };
     // ダウンロード用の JPEG（できあがったら blob と url を入れ、ブラウザにも保存する）。
     // 枠がまだ決まっていなければ、決まったところで保存する（下）
@@ -6099,12 +6566,32 @@ function exAddUserWork(cap){
         if(work.disposed || !b) return;
         work.blob = b;
         work.url = URL.createObjectURL(b);
-        if(work.slot >= 0) exStorePut(work);
+        if(work.slot >= 0) exPersistNewWork(work);
         exUpdateDownloadAllBtn();
     }, "image/jpeg", EXHIBIT_JPEG_QUALITY);
 
     let replaced = false;
-    if(exUserWorks.length < exUserCapacity()){
+    if(exShareMode === "shared"){
+        // 共有：一覧に加えて、受け取り順の並びで枠を決める（いっぱいなら いちばん古い作品が押し出される）。
+        // GAS へ送るのは JPEG ができてから（exPersistNewWork → 同期）
+        work.col = "shared"; work.own = true; work.device = exDeviceId; work.sseq = null; work.synced = false;
+        exSharedEntries.set(work.id, {
+            id: work.id, device: exDeviceId, own: true, sseq: null, created: work.created,
+            imgW: work.imgW, imgH: work.imgH, qrToken: work.qrToken, label: work.fileName, deleted: false, hasImage: false
+        });
+        const slots = exSharedSlots(exUserCapacity());
+        for(const w of exUserWorks.slice()){
+            if(!slots.has(w.id)){
+                exUserWorks.splice(exUserWorks.indexOf(w), 1);
+                exDisposeUserWork(w);
+                replaced = true;
+            }
+        }
+        exUserWorks.push(work);
+        for(const w of exUserWorks) if(slots.has(w.id)) w.slot = slots.get(w.id);
+        // まだ画像を取り込んでいない作品があった（ずれている）ときは、①で並べ直す
+        if([...slots.keys()].some(id => !exUserWorks.some(w => w.id === id))) exSharedDirty = true;
+    } else if(exUserWorks.length < exUserCapacity()){
         const used = new Set(exUserWorks.map(u => u.slot));
         let slot = 0;
         while(used.has(slot)) slot++;
@@ -6120,13 +6607,25 @@ function exAddUserWork(cap){
         exUserWorks[k] = work;
         replaced = true;
     }
-    if(work.blob) exStorePut(work);   // JPEG が先にできていた場合
+    if(work.blob) exPersistNewWork(work);   // JPEG が先にできていた場合
     exBuildWorkMesh(work);
     exRebuildWorkList();
     exLayout();
     exUpdateStartStatus();
     exUpdateDownloadAllBtn();   // JPEG が先にできていた場合も、ここで数を合わせる
     return { index: work.mesh.userData.exIndex, replaced };
+}
+
+// 新しく作った作品をブラウザに保存する。共有なら、そのあと GAS へ送る（同期）
+function exPersistNewWork(work){
+    exStorePut(work).then(() => {
+        if(work.col === "shared" && !work.disposed){
+            const e = exSharedEntries.get(work.id);
+            if(e) e.hasImage = true;
+            exShareSync();
+        }
+        exRefreshClearBtn();
+    });
 }
 
 // ③「おわる」：自分の作品を作って展示に加え、ギャラリーに保存して描画を全部消し、④へ。
@@ -7114,6 +7613,7 @@ function exhibitOnSessionStart(){
     if(session) session.addEventListener("select", exOnXRSelect);
     if(!exhibitEnabled){ exState = EX_OFF; return; }
     if(exQrEnabled) exQrLoadLib();
+    if(exShareMode === "shared") exShareSync();
     exEnsureScene();
     exState = EX_WAIT;
     exGate = true;
@@ -7170,6 +7670,7 @@ function exhibitRestoreAfterCapture(v){
         btn.style.opacity = exhibitEnabled ? "1.0" : "0.55";
         exUpdateStartStatus();
         exRefreshQrToggle();   // 作品展示が「しない」のときは QR コードのトグルを押せなくする
+        exRefreshShareToggle();
     }
     btn.addEventListener("click", () => {
         exhibitEnabled = !exhibitEnabled;
@@ -7186,6 +7687,8 @@ function exhibitRestoreAfterCapture(v){
 // 「する」のとき：④で作品の右どなりに QR コードを出し（作品を GAS へ送る）、②に「QRコード」ボタンを出す。
 // 作品展示が「しない」のときは押せない（QR コードは作品展示の中だけで使うため）。
 function exRefreshQrToggle(){
+    exRefreshShareToggle();
+    exRefreshClearBtn();
     const btn = document.getElementById("qrToggle");
     const st = document.getElementById("qrStatus");
     if(!btn) return;
@@ -7305,20 +7808,63 @@ function exRefreshQrToggle(){
     exUpdateDownloadAllBtn();
 })();
 
-// ===== 開始画面の「ブラウザに ほぞんした さくひんを ぜんぶ けす」=====
-// ブラウザの保存と、展示中の自分の作品をまとめて消す（画像の展示はそのまま）
+// ===== 開始画面の「ほぞんした さくひんを ぜんぶ けす」=====
+// 管理する人が使う操作。「この端末で作った作品だけ」か「全体から」かを選ぶ（画像の展示はそのまま）
 (function(){
     const btn = document.getElementById("clearExhibitStoreBtn");
+    const modal = document.getElementById("clearModal");
+    const allBtn = document.getElementById("clearAllBtn");
+    const note = document.getElementById("clearAllNote");
+    const close = () => modal.classList.remove("open");
+    btn.addEventListener("click", () => {
+        if(exLoadStatus === "loading"){
+            alert("さくひんを よみこみ中です。おわってから もういちど おしてください。");
+            return;
+        }
+        allBtn.disabled = !exQrConfigured();
+        note.textContent = exQrConfigured() ? "" : "※「全体から」は、受け取りQRの設定をしてから使えます";
+        modal.classList.add("open");
+    });
+    document.getElementById("clearCancelBtn").addEventListener("click", close);
+    modal.addEventListener("click", e => { if(e.target === modal) close(); });
+    document.addEventListener("keydown", e => { if(e.key === "Escape" && modal.classList.contains("open")) close(); });
+    document.getElementById("clearOwnBtn").addEventListener("click", async () => {
+        if(!confirm("この端末で作った作品を けします。\n共有に出した作品は、ほかの端末の展示からも きえます。よろしいですか？")) return;
+        close();
+        await exClearOwn();
+        exUpdateStartStatus();
+        exUpdateDownloadAllBtn();
+    });
+    allBtn.addEventListener("click", async () => {
+        if(!confirm("すべての端末の作品を、共有の展示から けします。\nこの端末の作品も すべて きえます。ほんとうに よろしいですか？")) return;
+        close();
+        await exClearAll();
+        exUpdateStartStatus();
+        exUpdateDownloadAllBtn();
+    });
+})();
+
+// ===== 開始画面の「てんじの きょうゆう」（独立／共有）=====
+(function(){
+    const btn = document.getElementById("shareToggle");
     btn.addEventListener("click", async () => {
         if(exLoadStatus === "loading"){
             alert("さくひんを よみこみ中です。おわってから もういちど おしてください。");
             return;
         }
-        if(!confirm("ブラウザに ほぞんした じぶんの さくひんを ぜんぶ けします。\nてんじからも きえます。よろしいですか？")) return;
-        exRemoveAllUserWorks();
-        await exStoreClear();
-        exUpdateDownloadAllBtn();
+        const next = exShareMode === "shared" ? "local" : "shared";
+        if(next === "shared" && !exQrConfigured()) return;
+        exShareSwitching = true;
+        exRefreshShareToggle();
+        try { await exSetShareMode(next); }
+        finally {
+            exShareSwitching = false;
+            exRefreshShareToggle();
+        }
     });
+    exRefreshShareToggle();
+    // 共有のとき：定期的に同期する（独立のときも、たまっている「消す」があれば送る）
+    setInterval(() => { if(exQrConfigured()) exShareSync(); }, EXHIBIT_SHARE_POLL_MS);
 })();
 
 // リスナーはページ読み込み時に1回だけ登録する（入室・退室を繰り返しても重複しない）
