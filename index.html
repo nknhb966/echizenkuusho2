@@ -1045,6 +1045,10 @@ const LOCK_TRIGGER_THRESHOLD = 0.5;   // 「トリガーを引いている」と
 let lockTapCount = 0;
 let lockTapLastTime = 0;
 let prevAForLock = false;
+// 右グリップをにぎったままでも書ける。ただし書いている途中で A・B を押したら（固定化・完全リセットの操作の始まり）、
+// その1画を取り消し、トリガーを離すまで書かない
+let gestureAbortLatch = false;
+let prevAForAbort = false, prevBForAbort = false;
 // 固定化中の「操作しようとした瞬間」バイブ用：直前フレームの入力状態
 let lockFbPrev = {
     rTrig:false, rGrip:false, rA:false, rB:false, rStickBtn:false, rStickAx:false,
@@ -2459,6 +2463,17 @@ function tickReplay(){
     }
 }
 
+// 書いている1画を、払いを出さずに取り消す（グリップ＋トリガー中に A・B が押されたとき）。
+// トリガーを離すまで、新しく書き始めない
+function abortStrokeForGesture(){
+    if(replayActive) finishReplayImmediately();
+    if(drawing) undoLastStroke();
+    drawing = false;
+    hasLast = false;
+    releaseActive = false;
+    gestureAbortLatch = true;
+}
+
 // ===== 取り消し =====
 // 生乾き（未焼き込み）のストロークだけ取り消せる。
 // 焼き込み済みの墨は「乾いて紙に染み込んだ」ものとして取り消し不可。
@@ -3674,11 +3689,26 @@ function render(){
         releaseActive = false;
         handleLockedFeedback();
     } else {
-        // 右グリップ＋右トリガーの姿勢は固定化ジェスチャ中なので描画させない
+        // 右グリップ＋右トリガーの姿勢は、固定化（＋A10連打）・完全リセット（＋B長押し）の始まりでもある。
+        // グリップをにぎっていても書けるが、書いている途中で A・B が押されたら、その1画を取り消して
+        // トリガーを離すまで書かない（固定化・完全リセットの操作で線が残らないように）
         const lockGesturePosture = (getTriggerValue(1) >= GRIP_PAN_THRESHOLD)
                                 && (trigger >= LOCK_TRIGGER_THRESHOLD);
+        const aNow = !!gamepad?.buttons[BTN_A]?.pressed;
+        const bNow = !!gamepad?.buttons[BTN_B]?.pressed;
+        const aAbort = aNow && !prevAForAbort, bAbort = bNow && !prevBForAbort;
+        if(lockGesturePosture && drawing && (aAbort || bAbort)){
+            abortStrokeForGesture();
+            // 取り消しに使った A・B は、離すまで通常の機能（色の切り替え・取り消し）に使わない
+            //（B を離した瞬間に、さらに前の1画まで取り消されないように）
+            if(aAbort) abGestureLatchA = true;
+            if(bAbort) abGestureLatchB = true;
+        }
+        prevAForAbort = aNow;
+        prevBForAbort = bNow;
+        if(gestureAbortLatch && trigger < 0.05) gestureAbortLatch = false;
 
-        if(trigger > 0.05 && !replayActive && !lockGesturePosture){
+        if(trigger > 0.05 && !replayActive && !gestureAbortLatch){
             releaseActive = false;
             draw();
         } else {
@@ -7500,6 +7530,8 @@ function exTickReset(now, bEdge){
     const posture = exIn.trig >= 0.5 && exIn.grip >= GRIP_PAN_THRESHOLD;
     if(posture && bEdge && !operationLocked
        && (exState === EX_SELECT || exState === EX_ADJUST || exState === EX_DRAW || exState === EX_FINISH)){
+        // ③で書いている途中なら、その1画を取り消す（グリップ＋トリガーのまま書けるため）
+        if(exState === EX_DRAW) abortStrokeForGesture();
         exResetActive = true;
         exResetStart = now;
         exResetWarned = false;
